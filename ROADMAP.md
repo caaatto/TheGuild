@@ -66,7 +66,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Localization for all client languages Forever ships.
 - Done: profile export and import for module settings as text.
 - Full keyboard and gamepad navigation in the window.
-- Load and memory audit with 500 member guilds, traffic audit with 100 online users.
+- Done in the simulator: 500 member guild loads in milliseconds, first seen records and sync answers travel in batches of 40 items, welcome messages stop after three joins per minute. Still open: in game memory profile and a traffic audit with 100 online users.
 - Documentation site and in game help.
 
 ## Open questions

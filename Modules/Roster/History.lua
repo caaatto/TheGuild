@@ -31,14 +31,31 @@ function History:FirstSeen(key)
     return h and h.f
 end
 
+local pendingFirst = {}
+local flushScheduled = false
+
+local function flushFirstSeen()
+    flushScheduled = false
+    local values = {}
+    local now = TG.Now()
+    for key, rankIndex in pairs(pendingFirst) do
+        if not History:Get(key) and TG.Roster:Get(key) then
+            values[key] = { f = now, r = { { t = now, i = rankIndex } } }
+        end
+    end
+    wipe(pendingFirst)
+    if next(values) then TG.Store:SetBatch(NS_HIST, values) end
+end
+
+-- New members are collected for a few seconds so a fresh install in a big
+-- guild sends a handful of batches instead of one message per member.
 function History:RecordFirstSeen(entry)
-    local key = entry.key
-    if self:Get(key) then return end
-    later(function()
-        if self:Get(key) then return end
-        local record = { f = TG.Now(), r = { { t = TG.Now(), i = entry.rankIndex } } }
-        TG.Store:Set(NS_HIST, key, record)
-    end)
+    if self:Get(entry.key) then return end
+    pendingFirst[entry.key] = entry.rankIndex
+    if not flushScheduled then
+        flushScheduled = true
+        later(flushFirstSeen)
+    end
 end
 
 function History:RecordRank(entry, oldRank)

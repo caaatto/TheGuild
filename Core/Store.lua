@@ -9,6 +9,7 @@ TG.Store = Store
 
 local policies = {}
 local SYNC_INTERVAL = 1200
+local BATCH_SIZE = 40
 local lastSyncRequest = 0
 
 function Store:DefinePolicy(ns, policy)
@@ -91,6 +92,31 @@ function Store:Set(ns, key, value)
     return true
 end
 
+-- Writes many keys of one namespace and sends them as a few batch messages
+-- instead of one message per key.
+function Store:SetBatch(ns, values)
+    local d = data()
+    if not d then return 0 end
+    d[ns] = d[ns] or {}
+    local me = TG.MyName()
+    local batch = {}
+    for key, value in pairs(values) do
+        if canWrite(ns, key, me) then
+            local existing = d[ns][key]
+            local item = { v = value, r = (existing and existing.r or 0) + 1, t = TG.Now(), a = me }
+            d[ns][key] = item
+            batch[#batch + 1] = { ns = ns, k = key, v = value, r = item.r, t = item.t, a = me }
+            TG:Fire("STORE_CHANGED", ns, key, value)
+        end
+    end
+    for i = 1, #batch, BATCH_SIZE do
+        local slice = {}
+        for j = i, math.min(i + BATCH_SIZE - 1, #batch) do slice[#slice + 1] = batch[j] end
+        TG.Comm:Send("SB", slice, "BULK")
+    end
+    return #batch
+end
+
 function Store:Delete(ns, key)
     return self:Set(ns, key, nil)
 end
@@ -159,8 +185,11 @@ TG.Comm:Register("SQ", function(sender, theirs)
     end
     if #batch == 0 then return end
     TG.After(responderDelay(), function()
-        if TG.Roster:Get(sender) and TG.Roster:Get(sender).online or TG.Comm:Peers()[sender] then
-            TG.Comm:Whisper(sender, "SB", batch, "BULK")
+        if not (TG.Roster:Get(sender) and TG.Roster:Get(sender).online or TG.Comm:Peers()[sender]) then return end
+        for i = 1, #batch, BATCH_SIZE do
+            local slice = {}
+            for j = i, math.min(i + BATCH_SIZE - 1, #batch) do slice[#slice + 1] = batch[j] end
+            TG.Comm:Whisper(sender, "SB", slice, "BULK")
         end
     end)
 end)

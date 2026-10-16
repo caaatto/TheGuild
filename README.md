@@ -67,6 +67,7 @@ Prefix `TheGuild`, messages `<protocol>\001<tag>\001<payload>`. Payloads startin
 | CTA | call to arms with map, position, zone and text |
 | LF | item find with link, quality, bind type and zone |
 | LS / LR / LV / LA / LE | loot session start, response, vote, award and end, sent to the raid or party |
+| SB (guild) | batch of store items written at once, for example first seen records after a fresh install, 40 items per message |
 | PS / PQ | profession snapshot, request for snapshots |
 
 ## Beta notes

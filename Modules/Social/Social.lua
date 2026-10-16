@@ -78,8 +78,16 @@ function Social:OnOnline(entry)
     self:Schedule("greet", entry)
 end
 
+local joinBurst = {}
+
 function Social:OnJoined(entry)
     if not self.db.welcome or GetTime() - loginAt < 15 then return end
+    local now = GetTime()
+    for i = #joinBurst, 1, -1 do
+        if now - joinBurst[i] > 60 then table.remove(joinBurst, i) end
+    end
+    joinBurst[#joinBurst + 1] = now
+    if #joinBurst > 3 then return end
     self:Schedule("welcome", entry)
 end
 
