@@ -28,7 +28,6 @@ function Trade:Pending()
     return Loot.cdb.trades
 end
 
--- Remembers an award that sits in my bags and belongs to someone else.
 function Trade:Add(link, winner)
     local id = itemID(link)
     if not id or TG.IsMe(winner) or not findInBags(id) then return false end
@@ -50,7 +49,6 @@ function Trade:Clear()
     TG:Fire("LOOT_TRADES")
 end
 
--- Drops entries whose item left the bags, for example after a manual trade.
 function Trade:Prune()
     local list = Loot.cdb.trades
     local changed = false

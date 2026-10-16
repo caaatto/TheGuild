@@ -66,7 +66,6 @@ local function withOffline(fn)
     if not ok then error(err, 0) end
 end
 
--- Demo mode replaces the roster with made up members until it ends.
 function Roster:SetDemo(entries, guildName)
     demo = true
     demoGuild = guildName

@@ -120,8 +120,6 @@ function Comm:Whisper(target, tag, payload, prio)
     return self:Send(tag, payload, prio, TG.Address(target))
 end
 
--- Group messages go to the raid or party and are accepted from anyone in
--- the group, guild member or not.
 function Comm:SendGroup(tag, payload, prio)
     if not IsInGroup() then return false end
     local chatType = IsInRaid() and "RAID" or "PARTY"

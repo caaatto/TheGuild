@@ -136,8 +136,6 @@ TG:RegisterSlash("version", function()
     end
 end, L["Version"])
 
--- Key bindings
-
 BINDING_HEADER_THEGUILD = "TheGuild"
 BINDING_NAME_THEGUILD_TOGGLE = L["Toggle window"]
 BINDING_NAME_THEGUILD_CTA = L["Call to Arms"]
@@ -156,8 +154,6 @@ function TheGuild_ToggleSharing()
     local map = TG:GetModule("Map")
     if map and map.enabled then map:ToggleSharing() end
 end
-
--- Startup
 
 TG:RegisterEvent("ADDON_LOADED", function(_, name)
     if name ~= TG.name then return end

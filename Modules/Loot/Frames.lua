@@ -38,8 +38,6 @@ local function setItem(button, item)
     if color then button.Border:SetVertexColor(color.r, color.g, color.b, 0.8) end
 end
 
--- Owner and council frame
-
 local function candidates(item)
     local rows = {}
     for name, resp in pairs(item.responses) do
@@ -174,8 +172,6 @@ function Frames:ShowOwner()
     owner:Show()
     self:RefreshOwner()
 end
-
--- Response frame for everyone in the group
 
 local function buildResponse()
     local f = CreateFrame("Frame", "TheGuildLootResponse", UIParent, "ButtonFrameTemplate")

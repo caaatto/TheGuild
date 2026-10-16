@@ -41,7 +41,6 @@ function Board:Events()
     return out
 end
 
--- "24.12.2026 19:30" or "24.12. 19:30" for the next matching date.
 function Board:ParseEventDate(text)
     text = TG.Trim(text or "")
     local d, m, y, h, mi = text:match("^(%d%d?)%.(%d%d?)%.(%d%d%d%d)%s+(%d%d?):(%d%d)$")
@@ -91,7 +90,6 @@ function Board:MySignup(eventKey)
     return TG.Store:Get(NS_SIGNUP, TG.MyName() .. "#" .. eventKey)
 end
 
--- Three sorted name lists: yes, maybe, no.
 function Board:Signups(ev)
     local lists = { {}, {}, {} }
     local suffix = "#" .. ev.key

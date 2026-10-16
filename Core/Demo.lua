@@ -1,10 +1,6 @@
 local _, TG = ...
 local L = TG.L
 
--- Demo mode fills every module with made up data so the addon can be shown
--- without a guild. Everything lives in a separate guild record and is thrown
--- away when the demo ends. No network traffic leaves the client meanwhile.
-
 local Demo = { active = false }
 TG.Demo = Demo
 
@@ -114,7 +110,6 @@ local function seedStore(me, mapID)
     local function someone() return pick(members).key end
     local function someoneOnline() return pick(online).key end
 
-    -- roles and alts
     for i, e in ipairs(members) do
         if i % 3 ~= 0 then Store:Seed("role", e.key, ROLE_FOR_CLASS[e.classFile] or "D", e.key, t - rnd(30) * DAY) end
     end
@@ -122,7 +117,6 @@ local function seedStore(me, mapID)
     Store:Seed("alt", members[9].key, members[2].key, members[2].key, t - 12 * DAY)
     Store:Seed("alt", members[15].key, me, me, t - 40 * DAY)
 
-    -- history
     for _, e in ipairs(members) do
         local first = t - (30 + rnd(400)) * DAY
         local record = { f = first, r = { { t = first, i = 4 } } }
@@ -134,7 +128,6 @@ local function seedStore(me, mapID)
         Store:Seed("gone", key, { t = t - rnd(60) * DAY, l = 20 + rnd(40), r = ranks[4], c = pick(CLASSES) }, me, t - i * DAY)
     end
 
-    -- deaths and pins on the current map
     if mapID then
         local zoneList = zones()
         for i = 1, 6 do
@@ -146,7 +139,6 @@ local function seedStore(me, mapID)
         Store:Seed("pin", members[2].key .. "#" .. (t - 2 * DAY), { m = mapID, x = 0.61, y = 0.37, l = L["Meeting point"], e = 0 }, members[2].key, t - 2 * DAY)
     end
 
-    -- raid teams
     local teamA = "tdemo1"
     local teamMembers = {}
     for i = 1, math.min(32, #members) do teamMembers[#teamMembers + 1] = members[i].key end
@@ -157,7 +149,6 @@ local function seedStore(me, mapID)
     for i = 2, 6 do squad[#squad + 1] = members[i].key end
     Store:Seed("team", "tdemo2", { n = L["Dungeon squad"], s = 10, m = squad, g = {}, d = { { w = 6, h = 21, m = 0 } } }, members[2].key, t - 20 * DAY)
 
-    -- attendance for the last six raid nights
     for week = 1, 6 do
         local when = t - week * 7 * DAY
         local list = {}
@@ -167,7 +158,6 @@ local function seedStore(me, mapID)
         Store:Seed("att", date("%Y-%m-%d", when) .. "#" .. me, { m = list, z = L["Molten Depths"] }, me, when)
     end
 
-    -- loot history
     local items = {
         { "Blade of the Silver Dawn", 4 }, { "Mantle of Whispering Ash", 4 }, { "Signet of the Deep", 3 },
         { "Boots of Quiet Steps", 3 }, { "Staff of Burning Resolve", 4 }, { "Girdle of the Mountain", 3 },
@@ -186,7 +176,6 @@ local function seedStore(me, mapID)
         Store:Seed("loot", when .. "#" .. (70000 + i) .. "#" .. winner, { t = when, i = itemLink, w = winner, r = rnd(2), b = me, z = L["Molten Depths"] }, me, when)
     end
 
-    -- board
     local posts = {
         { L["Raid night rules"], L["Be online 15 minutes early, bring food and flasks. Loot is handled through TheGuild loot sessions. Soft reserves are posted on Tuesday."], me, 9 * DAY, true },
         { L["Guild meeting on Sunday"], L["We talk about the second raid team and the new recruits. Everyone is welcome."], members[2].key, 2 * DAY, false },
@@ -226,14 +215,12 @@ local function seedStore(me, mapID)
     local b2 = me .. "#" .. (t - 8 * DAY)
     Store:Seed("bounty", b2, { t = L["Escort to the harbor"], r = L["Rare recipe"], b = "", ts = t - 8 * DAY, d = true, w = members[4].key, dt = t - 6 * DAY }, me, t - 6 * DAY)
 
-    -- candidates
     local statuses = { 1, 2, 3, 5 }
     for i = 1, 4 do
         local key = pick(FIRST) .. " " .. pick(LAST)
         Store:Seed("cand", key, { n = pick({ L["Met in a dungeon, solid healer"], L["Friend of %s"]:format(TG.FirstName(members[3].key)), L["Asked in the city"], L["Former raider, returning"] }), s = statuses[i], t = t - i * DAY, by = me }, me, t - i * DAY)
     end
 
-    -- voice groups
     Store:Seed("vgroup", "gdemo1", { n = L["Raid team Alpha"], o = me, ts = t - 3600 }, me, t - 3600)
     Store:Seed("vgroup", "gdemo2", { n = L["Fishing"], o = members[3].key, ts = t - 1800 }, members[3].key, t - 1800)
     for i = 2, 4 do Store:Seed("vmem", members[i].key, "gdemo1", members[i].key, t - 3000) end

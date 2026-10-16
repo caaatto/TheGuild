@@ -78,7 +78,6 @@ local function build(panel)
     end)
     newBounty:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
 
-    -- left list
     local listFrame = CreateFrame("Frame", nil, panel)
     listFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
     listFrame:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 4, 4)
@@ -122,7 +121,6 @@ local function build(panel)
         end,
     })
 
-    -- right detail
     local detail = UI.Card(panel)
     detail:SetPoint("TOPLEFT", listFrame, "TOPRIGHT", 8, 0)
     detail:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)

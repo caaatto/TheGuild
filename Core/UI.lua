@@ -41,8 +41,6 @@ function UI.HasAtlas(name)
     return C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(name) ~= nil
 end
 
--- Text
-
 function UI.Label(parent, text, template, justify)
     local fs = parent:CreateFontString(nil, "OVERLAY", template or "GameFontNormal")
     fs:SetText(text or "")
@@ -58,7 +56,6 @@ function UI.Cell(button, width, justify, template)
     return fs
 end
 
--- The guild frame header strip with a small caption, used above every section.
 function UI.SectionHeader(parent, text, width)
     local header = CreateFrame("Frame", nil, parent)
     header:SetHeight(18)
@@ -97,9 +94,6 @@ function UI.Empty(parent, text)
     return fs
 end
 
--- Containers
-
--- Bordered dark panel in the style of the Blizzard tooltip backdrop.
 function UI.Card(parent, title)
     local card = CreateFrame("Frame", nil, parent, "TooltipBackdropTemplate")
     if title then
@@ -114,7 +108,6 @@ function UI.Inset(parent)
     return CreateFrame("Frame", nil, parent, "InsetFrameTemplate")
 end
 
--- Inset border around a list, as the Blizzard member lists have it.
 function UI.ListBox(parent)
     local box = CreateFrame("Frame", nil, parent, "InsetFrameTemplate")
     if box.Bg then box.Bg:Hide() end
@@ -123,8 +116,6 @@ function UI.ListBox(parent)
     box.Content:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -2, 2)
     return box
 end
-
--- Controls
 
 function UI.Button(parent, text, width, onClick)
     local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
@@ -135,7 +126,6 @@ function UI.Button(parent, text, width, onClick)
     return b
 end
 
--- Square button with an icon, the Blizzard square button art.
 function UI.IconButton(parent, icon, tooltip, onClick)
     local b = CreateFrame("Button", nil, parent, "UIPanelSquareButton")
     b:SetSize(24, 24)
@@ -186,7 +176,6 @@ function UI.Dropdown(parent, width, setup)
     return dd
 end
 
--- Tab strip for views inside a panel. items: { { id, text }, ... }
 function UI.Tabs(parent, items, onSelect)
     local tabs = CreateFrame("Frame", nil, parent, "TabSystemTemplate")
     tabs:SetHeight(32)
@@ -220,9 +209,6 @@ function UI.Tooltip(frame, fn)
     frame:SetScript("OnLeave", function() GameTooltip:Hide() end)
 end
 
--- Numbers
-
--- Big number with a caption, for the overview tiles.
 function UI.Stat(parent, label, width)
     local tile = UI.Card(parent)
     tile:SetSize(width or 100, 52)
@@ -238,7 +224,6 @@ function UI.Stat(parent, label, width)
     return tile
 end
 
--- Status bar with a label on the left and a value on the right.
 function UI.Bar(parent, width, height)
     local bar = CreateFrame("StatusBar", nil, parent)
     bar:SetSize(width or 200, height or 14)
@@ -265,10 +250,6 @@ function UI.Bar(parent, width, height)
     return bar
 end
 
--- Lists
-
--- Column headers in the Blizzard who list style.
--- columns: { { key = "name", text = "Name", width = 150, justify = "LEFT" }, ... }
 function UI.Header(parent, columns, onSort)
     local header = CreateFrame("Frame", nil, parent)
     header:SetHeight(19)
@@ -307,7 +288,6 @@ function UI.Header(parent, columns, onSort)
     return header
 end
 
--- Cells aligned with UI.Header columns.
 function UI.Cells(button, columns, template)
     local cells = {}
     local x = 0
@@ -335,8 +315,6 @@ function UI.SetRowSelected(button, selected)
     if button.tgSelected then button.tgSelected:SetShown(selected and true or false) end
 end
 
--- A scrolling list. rows are plain Buttons filled by initRow(button, data).
--- opts: buildRow(button), alternate (stripes), spacing, top/bottom/left padding, inset (border around the list)
 function UI.List(parent, rowHeight, initRow, opts)
     opts = opts or {}
     local list = {}
@@ -393,8 +371,6 @@ function UI.List(parent, rowHeight, initRow, opts)
 
     return list
 end
-
--- Members
 
 function UI.ClassIcon(parent, size)
     local tex = parent:CreateTexture(nil, "ARTWORK")
@@ -457,7 +433,6 @@ function UI.MemberMenu(owner, entry)
     end)
 end
 
--- Guild banner with the tabard, as the inspect frame shows it.
 function UI.Banner(parent)
     local banner = CreateFrame("Frame", nil, parent)
     banner:SetSize(118, 144)
@@ -508,8 +483,6 @@ function UI.Banner(parent)
     end
     return banner
 end
-
--- Text dialog, doubles as compose and import box.
 
 local textDialog
 

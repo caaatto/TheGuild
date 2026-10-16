@@ -1,10 +1,6 @@
 local TG = TheGuild
 local L = TG.L
 
--- Proximity voice on top of the Blizzard guild voice channel. Everyone sits in
--- the same channel, this client turns each member up or down by distance and by
--- voice group, like the proximity mods for Minecraft do it.
-
 local NS_GROUP, NS_MEMBER = "vgroup", "vmem"
 local MAX_NAME = 30
 local TICK = 1
@@ -38,8 +34,6 @@ local original = {}
 local resolved = {}
 local speaking = {}
 
--- Blizzard voice
-
 function Voice:Available()
     if self.demoChannel then return true end
     return type(C_VoiceChat) == "table" and C_VoiceChat.CanPlayerUseVoiceChat ~= nil and C_VoiceChat.CanPlayerUseVoiceChat() == true
@@ -55,7 +49,6 @@ local function isLocal(memberID, channelID)
     return C_VoiceChat.IsMemberLocalPlayer(memberID, channelID)
 end
 
--- The demo hands in a fake channel. Volume calls stay local then.
 function Voice:SetDemoChannel(channel)
     self.demoChannel = channel
     wipe(applied)
@@ -70,7 +63,6 @@ function Voice:SetSpeaking(memberID, on)
     TG:Fire("VOICE_UPDATED")
 end
 
--- Club calls throw while the club list is still loading, so they run guarded.
 local function guildStream()
     if type(C_Club) ~= "table" or not C_Club.GetGuildClubId then return nil end
     local clubId = C_Club.GetGuildClubId()
@@ -146,8 +138,6 @@ function Voice:Leave()
     if channel and not self.demoChannel then C_VoiceChat.LeaveChannel(channel.channelID) end
     TG:Fire("VOICE_UPDATED")
 end
-
--- Groups
 
 function Voice:Groups()
     local counts = {}
@@ -235,13 +225,10 @@ function Voice:DeleteGroup(id)
     return true
 end
 
--- Empty groups vanish once the last member left.
 function Voice:PruneGroup(id)
     local group = self:Group(id)
     if group and #group.members == 0 then TG.Store:Delete(NS_GROUP, id) end
 end
-
--- Distance and volume
 
 local function worldPosition(mapID, x, y)
     if not mapID or not x or not y or x <= 0 or y <= 0 then return nil end
@@ -263,8 +250,6 @@ function Voice:MyPosition()
     return worldPosition(mapID, x, y)
 end
 
--- Distance in yards to a member, nil when either position is unknown or on
--- another continent.
 function Voice:Distance(key)
     local map = TG:GetModule("Map")
     if not map or not map.enabled then return nil end
@@ -341,7 +326,6 @@ function Voice:Apply(force)
     TG:Fire("VOICE_UPDATED")
 end
 
--- Puts every member we touched back to the volume they had before.
 function Voice:Restore()
     local channel = self:Channel()
     if channel and not self.demoChannel then
@@ -354,8 +338,6 @@ function Voice:Restore()
     wipe(original)
     wipe(resolved)
 end
-
--- Rows for the panel
 
 function Voice:Members()
     local out = {}
@@ -399,8 +381,6 @@ function Voice:ModeName()
     end
     return ""
 end
-
--- Lifecycle
 
 function Voice:OnStoreChanged(ns, key, value)
     if ns ~= NS_GROUP and ns ~= NS_MEMBER then return end
@@ -461,7 +441,6 @@ function Voice:StatusName(code)
     return tostring(code)
 end
 
--- Prints everything needed to tell why voice does not come up.
 function Voice:PrintDiagnostics()
     TG:Print(L["Voice"])
     local lines = {}

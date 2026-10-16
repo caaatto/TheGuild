@@ -1,10 +1,5 @@
 local _, TG = ...
 
--- Forever characters carry a first name and a surname. The roster and
--- addon message senders use "First Surname" with an optional realm
--- suffix, UnitName("player") only gives the first name. Every key in
--- TheGuild is the name without realm.
-
 local myName
 local myGUID
 
@@ -66,8 +61,6 @@ function TG.IsMe(name)
     return TG.FirstName(me) == name and not me:find(" ", 1, true)
 end
 
--- Name used for whisper and invite. The server rejects a realm suffix
--- for your own realm, so names are passed without one.
 function TG.Address(name)
     name = TG.StripRealm(name)
     return name

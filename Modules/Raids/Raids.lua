@@ -23,8 +23,6 @@ local Raids = TG:NewModule("Raids", {
 TG.Store:DefinePolicy(NS_TEAM, "officer")
 TG.Store:DefinePolicy(NS_ATT, "officer")
 
--- Teams
-
 function Raids:Teams()
     local out = {}
     for id, item in pairs(TG.Store:Items(NS_TEAM)) do
@@ -100,14 +98,10 @@ function Raids:RemoveMember(id, key)
     return false
 end
 
-
--- Raid builder
-
 function Raids:GroupCount(team)
     return math.max(1, math.floor(team.size / GROUP_SIZE))
 end
 
--- Roles come from what members set for themselves, with the raid assignment as fallback.
 function Raids:Roles(team)
     local raidRoles = {}
     if IsInRaid() and UnitGroupRolesAssigned then
@@ -172,7 +166,6 @@ function Raids:ClearLayout(id)
     return save(team)
 end
 
--- Places unassigned members so that tanks and healers spread evenly across groups.
 function Raids:AutoFill(id)
     local team = self:Team(id)
     if not team then return false end
@@ -204,8 +197,6 @@ function Raids:AutoFill(id)
     return changed and save(team)
 end
 
--- Moves raid members into their planned subgroups. The server applies moves
--- asynchronously, so the panel calls this again on the next roster update.
 function Raids:ApplyLayout(id, continuing)
     local team = self:Team(id)
     if not team or not IsInRaid() or not TG.IsGroupLead() or not SetRaidSubgroup then return 0 end
@@ -257,8 +248,6 @@ function Raids:ContinueApply()
     if a.passes <= 0 or self:ApplyLayout(a.id, true) == 0 then self.applying = nil end
 end
 
--- Invites
-
 local pendingInvites = {}
 
 local groupNames = TG.GroupMembers
@@ -291,8 +280,6 @@ function Raids:InviteTeam(id)
     sendInvites()
     return count
 end
-
--- Attendance
 
 local function today()
     return date("%Y-%m-%d")
@@ -389,8 +376,6 @@ function Raids:Attendance(limit)
     return rows, days
 end
 
--- Raid schedule
-
 local MAX_DAYS = 7
 
 function Raids:WeekdayName(wday)
@@ -464,8 +449,6 @@ function Raids:FormatRaid(r, withTeam)
     return text
 end
 
--- Calendar
-
 function Raids:CalendarTitle(team)
     return L["Raid: %s"]:format(team.name):sub(1, 31)
 end
@@ -478,8 +461,6 @@ function Raids:CanExport()
     return TG.Calendar.CanAdd()
 end
 
--- Creates guild sign up events for the coming raid nights. Runs from a click
--- because AddEvent needs a hardware event.
 function Raids:ExportCalendar(id, weeks)
     local team = self:Team(id)
     if not team or not self:CanExport() then return 0, 0 end

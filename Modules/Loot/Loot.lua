@@ -108,7 +108,6 @@ function Loot:IsReserved(item, name)
     return self.Reserves:Matches(item.reserves, name)
 end
 
--- Item data can arrive late, so this runs again shortly after a session starts.
 function Loot:AutoPass(isRetry)
     local s = self.session
     if not s or not self.db.autoPass then return end
@@ -203,8 +202,6 @@ function Loot:History()
     return out
 end
 
--- Group messages
-
 function Loot:OnStart(sender, data)
     if type(data) ~= "table" or type(data.id) ~= "string" or type(data.items) ~= "table" then return end
     if self.session and self.session.id ~= data.id then
@@ -270,8 +267,6 @@ function Loot:OnEnd(sender, data)
     TG:Fire("LOOT_SESSION")
     self.Frames:Hide()
 end
-
--- Loot window capture
 
 function Loot:OnLootOpened()
     if not self.db.autoAdd or not IsInGroup() or not TG.IsGroupLead() then return end

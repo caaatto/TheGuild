@@ -2,9 +2,6 @@ local TG = TheGuild
 local L = TG.L
 local Loot = TG:GetModule("Loot")
 
--- Rare or better items a member loots are announced to the guild with
--- their bind type and end up in the event log.
-
 local Finds = {}
 Loot.Finds = Finds
 

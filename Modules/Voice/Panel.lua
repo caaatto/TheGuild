@@ -36,7 +36,6 @@ local function build(panel)
     rangeText:SetPoint("LEFT", modeDropdown, "RIGHT", 12, 0)
     rangeText:SetPoint("RIGHT", panel, "RIGHT", -8, 0)
 
-    -- members in the channel
     local membersFrame = CreateFrame("Frame", nil, panel)
     membersFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -62)
     membersFrame:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 4, 4)
@@ -98,7 +97,6 @@ local function build(panel)
         end,
     })
 
-    -- groups
     local groupsFrame = CreateFrame("Frame", nil, panel)
     groupsFrame:SetPoint("TOPLEFT", membersFrame, "TOPRIGHT", 8, 0)
     groupsFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)

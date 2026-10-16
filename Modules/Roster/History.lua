@@ -1,9 +1,6 @@
 local TG = TheGuild
 local L = TG.L
 
--- Member history shared through the guild store: first seen, rank changes
--- and former members. Any member may record, the first record wins.
-
 local History = {}
 TG.History = History
 
@@ -47,8 +44,6 @@ local function flushFirstSeen()
     if next(values) then TG.Store:SetBatch(NS_HIST, values) end
 end
 
--- New members are collected for a few seconds so a fresh install in a big
--- guild sends a handful of batches instead of one message per member.
 function History:RecordFirstSeen(entry)
     if self:Get(entry.key) then return end
     pendingFirst[entry.key] = entry.rankIndex

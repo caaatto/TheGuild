@@ -1,9 +1,6 @@
 local _, TG = ...
 local L = TG.L
 
--- Thin layer over the Blizzard calendar. Everything here runs on server time,
--- because that is what the calendar shows.
-
 local Calendar = {}
 TG.Calendar = Calendar
 
@@ -27,7 +24,6 @@ function Calendar.ServerTime()
     return { year = d.year, month = d.month, day = d.day, hour = d.hour, min = d.min, wday = d.wday }
 end
 
--- Asks the server for calendar data once, so day events can be read.
 function Calendar.Request()
     if requested or not (C_Calendar and C_Calendar.OpenCalendar) then return end
     requested = true
@@ -68,8 +64,6 @@ function Calendar.CanAdd()
     return true
 end
 
--- Creates a guild sign up event. AddEvent needs a hardware event, so callers
--- run this from a click.
 function Calendar.Create(title, description, year, month, day, hour, minute)
     if not Calendar.CanAdd() then return false end
     local ok = pcall(function()

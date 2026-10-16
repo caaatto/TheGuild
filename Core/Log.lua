@@ -1,8 +1,6 @@
 local _, TG = ...
 local L = TG.L
 
--- Guild event log, kept per guild on this client. Not synced.
-
 local Log = {}
 TG.Log = Log
 

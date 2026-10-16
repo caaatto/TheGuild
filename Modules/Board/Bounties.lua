@@ -87,7 +87,6 @@ function Board:Claimers(bounty)
     return out
 end
 
--- The author or an officer closes a bounty and names who earned the reward.
 function Board:CompleteBounty(key, winner)
     local v = TG.Store:Get(NS_BOUNTY, key)
     if type(v) ~= "table" or v.d then return false end

@@ -28,8 +28,6 @@ local function updateTabVisuals(index)
     end
 end
 
--- Forever shows module tabs as icon tabs on the right side of a frame, like the
--- professions and collections windows. Older clients fall back to bottom tabs.
 local function buildSideTabs()
     for i, tab in ipairs(tabs) do
         local button = CreateFrame("Button", "TheGuildFrameTab" .. i, frame, "LargeSideTabButtonTemplate")
@@ -116,9 +114,6 @@ local function build()
 
     tinsert(UISpecialFrames, "TheGuildFrame")
 
-    -- Ctrl + Tab cycles the tabs, Ctrl + F jumps to the search field. Unhandled
-    -- keys fall through to the game. Propagation cannot be changed in combat,
-    -- so the keyboard is released while fighting.
     frame:EnableKeyboard(not InCombatLockdown())
     frame:SetPropagateKeyboardInput(true)
     frame:SetScript("OnKeyDown", function(self, key)

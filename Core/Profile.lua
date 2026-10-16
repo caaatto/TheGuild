@@ -3,9 +3,6 @@ local L = TG.L
 local LibSerialize = LibStub("LibSerialize")
 local LibDeflate = LibStub("LibDeflate")
 
--- Settings travel as text so a guild can hand one setup to every member.
--- Guild data (store, log) stays out on purpose.
-
 local Profile = {}
 TG.Profile = Profile
 

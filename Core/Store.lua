@@ -1,9 +1,5 @@
 local _, TG = ...
 
--- Replicated guild data. Every client keeps a copy, changes travel over
--- the guild addon channel and the highest revision wins. Nothing is
--- written into the guild itself.
-
 local Store = {}
 TG.Store = Store
 
@@ -93,8 +89,6 @@ function Store:Set(ns, key, value)
     return true
 end
 
--- Writes many keys of one namespace and sends them as a few batch messages
--- instead of one message per key.
 function Store:SetBatch(ns, values)
     local d = data()
     if not d then return 0 end
@@ -118,7 +112,6 @@ function Store:SetBatch(ns, values)
     return #batch
 end
 
--- Direct write with a chosen author and time, used by the demo only.
 function Store:Seed(ns, key, value, author, t)
     local d = data()
     if not d then return end
@@ -162,8 +155,6 @@ function Store:RequestSync(force)
     TG.Comm:Send("SQ", digest(), "BULK")
 end
 
--- Only the first few clients by name answer a sync request, so a login in a
--- guild with a hundred users online does not trigger a hundred answers.
 local function responderSlot(requester)
     local names = {}
     for name in pairs(TG.Comm:Peers()) do

@@ -4,8 +4,6 @@ local L = TG.L
 local Blizzard = {}
 TG.Blizzard = Blizzard
 
--- Guild window tab
-
 local communitiesTab
 
 local function layoutCommunitiesTab()
@@ -44,8 +42,6 @@ local function hookCommunities()
     end
     layoutCommunitiesTab()
 end
-
--- Unit popup menus
 
 local MENUS = { "COMMUNITIES_GUILD_MEMBER", "GUILD", "GUILD_OFFLINE", "FRIEND", "CHAT_ROSTER", "PLAYER", "PARTY", "RAID_PLAYER", "RAID", "TARGET", "FOCUS" }
 
@@ -105,8 +101,6 @@ local function hookUnitMenus()
         Menu.ModifyMenu("MENU_UNIT_" .. which, modifyUnitMenu)
     end
 end
-
--- Unit tooltip
 
 local function onUnitTooltip(tooltip, data)
     if tooltip ~= GameTooltip or not data or not TG.usable(data.guid) then return end

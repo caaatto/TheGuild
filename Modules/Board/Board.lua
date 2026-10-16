@@ -25,8 +25,6 @@ local function authorOf(key)
     return key:match("^(.-)#") or key
 end
 
--- Posts
-
 function Board:Posts()
     local cutoff = TG.Now() - self.db.days * 86400
     local out = {}
@@ -77,7 +75,6 @@ function Board:SetPinned(key, pinned)
     return TG.Store:Set(NS_POST, key, { t = v.t, b = v.b, ts = v.ts, p = pinned and true or nil })
 end
 
--- Officers drop posts that fell out of everyone's view long ago.
 function Board:Prune()
     if not self:CanManage() then return end
     local cutoff = TG.Now() - self.db.days * 2 * 86400
@@ -90,8 +87,6 @@ function Board:Prune()
         end
     end
 end
-
--- Polls
 
 function Board:Polls()
     local out = {}
@@ -164,8 +159,6 @@ function Board:Results(poll)
     for _, list in ipairs(voters) do table.sort(list) end
     return counts, total, voters
 end
-
--- Notifications
 
 function Board:OnStoreChanged(ns, key, value)
     if type(value) ~= "table" or TG.Now() - (value.ts or 0) > FRESH then return end

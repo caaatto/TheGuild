@@ -50,7 +50,6 @@ local function myClass()
     return me and me.classFile
 end
 
--- true or false for gear, nil when the item data is missing or the item is not gear.
 function Usable:CanUse(link)
     local classFile = myClass()
     if not classFile or not ARMOR_BY_CLASS[classFile] then return nil end

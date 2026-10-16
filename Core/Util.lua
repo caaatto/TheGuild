@@ -261,7 +261,6 @@ function TG.SetWaypoint(mapID, x, y)
     return ok
 end
 
--- Names of everyone in the current group, keyed without realm.
 function TG.GroupMembers()
     local names = {}
     local n = GetNumGroupMembers()
@@ -281,8 +280,6 @@ function TG.GroupMembers()
     return names
 end
 
--- Group unit id for a member name, matched by first name because UnitName
--- on Forever only returns the first name.
 function TG.UnitForName(name)
     local first = TG.FirstName(name)
     if not first then return nil end

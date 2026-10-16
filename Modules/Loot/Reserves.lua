@@ -36,7 +36,6 @@ local function splitCSV(line)
     return fields
 end
 
--- Accepts the CSV export of softres.it or plain lines of "itemID name".
 function Reserves:Parse(text)
     local reserves, count = {}, 0
     local idCol, nameCol, plusCol
@@ -87,7 +86,6 @@ function Reserves:Import(text)
     return count, TG.Count(reserves)
 end
 
--- Display names for an item, with a plus suffix like "Anna+1".
 function Reserves:Names(link)
     local id = tonumber((link or ""):match("item:(%d+)"))
     local list = id and Loot.cdb.reserves[id]

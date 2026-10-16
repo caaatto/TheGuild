@@ -63,8 +63,6 @@ function WM:Markers(mapID)
     return out
 end
 
--- Data provider
-
 TheGuildMapDataProviderMixin = CreateFromMixins(MapCanvasDataProviderMixin)
 
 function TheGuildMapDataProviderMixin:OnAdded(mapCanvas)
@@ -79,7 +77,6 @@ function TheGuildMapDataProviderMixin:OnRemoved(mapCanvas)
     MapCanvasDataProviderMixin.OnRemoved(self, mapCanvas)
 end
 
--- The ping helper of the base mixin looks pins up by template and id key.
 function TheGuildMapDataProviderMixin:GetPinTemplate()
     return MEMBER_TEMPLATE
 end
@@ -118,8 +115,6 @@ function TheGuildMapDataProviderMixin:RefreshAllData()
         pin:SetPosition(marker.x, marker.y)
     end
 end
-
--- Member pin
 
 TheGuildMemberPinMixin = CreateFromMixins(MapCanvasPinMixin)
 
@@ -170,8 +165,6 @@ function TheGuildMemberPinMixin:OnMouseClickAction(button)
     if entry then UI.MemberMenu(self, entry) end
 end
 
--- Marker pin (guild pins and deaths)
-
 TheGuildMarkerPinMixin = CreateFromMixins(MapCanvasPinMixin)
 
 function TheGuildMarkerPinMixin:OnLoad()
@@ -209,8 +202,6 @@ end
 function TheGuildMarkerPinMixin:OnMouseClickAction(button)
     if self.marker.onClick then self.marker.onClick(self, button, self.marker) end
 end
-
--- Provider management
 
 local provider
 local added = false

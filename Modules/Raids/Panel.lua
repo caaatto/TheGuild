@@ -84,7 +84,6 @@ local function build(panel)
     end)
     viewTabs:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -2)
 
-    -- team members
     local membersFrame = CreateFrame("Frame", nil, panel)
     membersFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -70)
     membersFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOM", -4, 4)
@@ -121,7 +120,6 @@ local function build(panel)
         end,
     })
 
-    -- roster picker
     local pickerFrame = CreateFrame("Frame", nil, panel)
     pickerFrame:SetPoint("TOPLEFT", panel, "TOP", 4, -70)
     pickerFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
@@ -151,7 +149,6 @@ local function build(panel)
         end,
     })
 
-    -- raid builder
     local builderFrame = CreateFrame("Frame", nil, panel)
     builderFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -70)
     builderFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
@@ -305,7 +302,6 @@ local function build(panel)
         apply:SetEnabled(team ~= nil and IsInRaid() and TG.IsGroupLead())
     end
 
-    -- schedule
     local scheduleFrame = CreateFrame("Frame", nil, panel)
     scheduleFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -70)
     scheduleFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
@@ -406,7 +402,6 @@ local function build(panel)
         export:SetEnabled(#upcoming > 0 and Raids:CanExport())
     end
 
-    -- attendance
     local attendanceFrame = CreateFrame("Frame", nil, panel)
     attendanceFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -70)
     attendanceFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)

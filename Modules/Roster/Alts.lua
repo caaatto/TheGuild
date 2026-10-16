@@ -2,10 +2,6 @@ local TG = TheGuild
 local L = TG.L
 local UI = TG.UI
 
--- Alt suggestions from public notes: a note that names another member
--- ("Alt of Anna", "Annas Twink", "Anna Berg") becomes a suggestion that an
--- officer accepts or ignores.
-
 local Alts = {}
 TG.AltSuggestions = Alts
 

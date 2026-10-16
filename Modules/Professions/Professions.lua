@@ -19,8 +19,6 @@ local index
 local indexDirty = true
 local lastRequest = 0
 
--- Guild data: TG:GuildDB().profs[charName] = { c = classFile, p = { [profID] = { n, s, m, r = { [recipeID] = itemID or name }, t } } }
-
 local function guildProfs()
     local g = TG:GuildDB()
     if not g then return nil end
@@ -148,8 +146,6 @@ function Prof:Request()
     TG.Comm:Send("PQ", "1", "BULK")
 end
 
--- Index: recipe value (itemID or name) -> { { char, profID, profName, recipeID }, ... }
-
 function Prof:Index()
     if not indexDirty and index then return index end
     index = { byItem = {}, byName = {}, entries = {} }
@@ -222,8 +218,6 @@ local function onItemTooltip(tooltip, data)
     if not list or #list == 0 then return end
     GameTooltip_AddColoredLine(tooltip, L["Crafters"] .. ": " .. crafterText(list, 5), LIGHTBLUE_FONT_COLOR, true)
 end
-
--- Window tab
 
 local profFilter = nil
 local searchText = ""

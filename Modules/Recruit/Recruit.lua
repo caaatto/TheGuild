@@ -122,7 +122,6 @@ function Recruit:OnJoined(entry)
     if self:CanManage() and v.s ~= 4 then self:Update(entry.key, { s = 4, t = TG.Now() }) end
 end
 
--- Joined candidates leave the list after a week.
 function Recruit:Prune()
     if not self:CanManage() then return end
     local cutoff = TG.Now() - KEEP_JOINED
@@ -130,8 +129,6 @@ function Recruit:Prune()
         if c.status == 4 and c.time < cutoff then TG.Store:Delete(NS, c.key) end
     end
 end
-
--- Recruitment message
 
 local lastPost = 0
 
@@ -170,8 +167,6 @@ function Recruit:OnEnable()
     end)
     TG.After(60, function() if self.enabled then self:Prune() end end)
 end
-
--- Tab
 
 local columns = {
     { key = "name", text = L["Name"], width = 170 },
