@@ -64,7 +64,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 ### 1.0 Launch quality
 
 - Localization for all client languages Forever ships.
-- Profile export and import for guild settings.
+- Done: profile export and import for module settings as text.
 - Full keyboard and gamepad navigation in the window.
 - Load and memory audit with 500 member guilds, traffic audit with 100 online users.
 - Documentation site and in game help.

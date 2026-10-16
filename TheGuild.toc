@@ -43,6 +43,7 @@ Core\Settings.lua
 Core\Minimap.lua
 Core\Blizzard.lua
 Core\Slash.lua
+Core\Profile.lua
 
 Modules\Dashboard\Dashboard.lua
 

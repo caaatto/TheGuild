@@ -75,6 +75,12 @@ function Options:Build()
     local debug = Settings.RegisterAddOnSetting(category, "TG_DEBUG", "debug", TG.db.global, Settings.VarType.Boolean, L["Debug output"], false)
     Settings.CreateCheckbox(category, debug)
 
+    if CreateSettingsButtonInitializer and layout then
+        header(layout, L["Profile"])
+        layout:AddInitializer(CreateSettingsButtonInitializer(L["Export profile"], L["Export"], function() TG.Profile:OpenExport() end, L["Share your module settings with the guild as text."], true))
+        layout:AddInitializer(CreateSettingsButtonInitializer(L["Import profile"], L["Import"], function() TG.Profile:OpenImport() end, L["Paste a profile text. Your module settings are replaced."], true))
+    end
+
     header(layout, L["Modules"])
     for _, mod in ipairs(TG.moduleOrder) do
         moduleToggle(mod)
