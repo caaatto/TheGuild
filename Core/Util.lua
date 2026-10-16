@@ -211,6 +211,11 @@ function TG.Whisper(name)
     if fn then fn(TG.Address(name)) end
 end
 
+function TG.InsertLink(link)
+    local fn = (ChatFrameUtil and ChatFrameUtil.InsertLink) or ChatEdit_InsertLink
+    if fn and link then fn(link) end
+end
+
 function TG.Invite(name)
     if C_PartyInfo and C_PartyInfo.InviteUnit then
         C_PartyInfo.InviteUnit(TG.Address(name))

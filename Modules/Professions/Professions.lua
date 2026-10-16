@@ -341,7 +341,7 @@ local function build(panel)
                 if not self.group then return end
                 if mouse == "LeftButton" and IsModifiedClick("CHATLINK") and type(self.group.key) == "number" then
                     local _, link = C_Item.GetItemInfo(self.group.key)
-                    if link then ChatEdit_InsertLink(link) end
+                    TG.InsertLink(link)
                     return
                 end
                 MenuUtil.CreateContextMenu(self, function(_, root)

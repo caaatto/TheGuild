@@ -57,7 +57,7 @@ local function build(panel)
             end)
             button:SetScript("OnLeave", function() GameTooltip:Hide() end)
             button:SetScript("OnClick", function(self)
-                if self.row and self.row.link and IsModifiedClick("CHATLINK") then ChatEdit_InsertLink(self.row.link) end
+                if self.row and self.row.link and IsModifiedClick("CHATLINK") then TG.InsertLink(self.row.link) end
             end)
         end,
     })
