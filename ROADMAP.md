@@ -57,7 +57,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 
 - Done: guild bulletin board and polls stored in the guild store (Board module).
 - Done: events with sign up in the Board module. Bounties open.
-- Guild statistics: deaths, levels, play time milestones, with opt in per member.
+- Done: guild statistics with deaths, levels, loot and raids, opt out per character for rankings. Play time milestones wait for an API that does not print to chat.
 - Recruitment helper: candidate list, prepared invite button (invites stay a manual click as Blizzard requires), welcome flow.
 - Allied guilds: shared crafter directory and pins between two guilds over whisper relays.
 
