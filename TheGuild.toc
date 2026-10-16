@@ -44,6 +44,7 @@ Core\Minimap.lua
 Core\Blizzard.lua
 Core\Slash.lua
 Core\Profile.lua
+Core\Demo.lua
 
 Modules\Dashboard\Dashboard.lua
 

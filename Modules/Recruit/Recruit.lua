@@ -39,7 +39,7 @@ function Recruit:StatusText(id)
 end
 
 function Recruit:CanManage()
-    if not IsInGuild() then return false end
+    if not TG.InGuild() then return false end
     if TG.Roster:AmOfficer() then return true end
     local can = CanGuildInvite and CanGuildInvite()
     return TG.usable(can) and can == true

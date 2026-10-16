@@ -41,11 +41,33 @@ local speaking = {}
 -- Blizzard voice
 
 function Voice:Available()
+    if self.demoChannel then return true end
     return type(C_VoiceChat) == "table" and C_VoiceChat.CanPlayerUseVoiceChat ~= nil and C_VoiceChat.CanPlayerUseVoiceChat() == true
 end
 
 function Voice:LoggedIn()
+    if self.demoChannel then return true end
     return self:Available() and C_VoiceChat.IsLoggedIn() == true
+end
+
+local function isLocal(memberID, channelID)
+    if Voice.demoChannel then return memberID == 1 end
+    return C_VoiceChat.IsMemberLocalPlayer(memberID, channelID)
+end
+
+-- The demo hands in a fake channel. Volume calls stay local then.
+function Voice:SetDemoChannel(channel)
+    self.demoChannel = channel
+    wipe(applied)
+    wipe(original)
+    wipe(resolved)
+    wipe(speaking)
+    TG:Fire("VOICE_UPDATED")
+end
+
+function Voice:SetSpeaking(memberID, on)
+    speaking[memberID] = on or nil
+    TG:Fire("VOICE_UPDATED")
 end
 
 -- Club calls throw while the club list is still loading, so they run guarded.
@@ -69,6 +91,7 @@ function Voice:GuildStream()
 end
 
 function Voice:Channel()
+    if self.demoChannel then return self.demoChannel end
     if not self:LoggedIn() then return nil end
     local clubId, streamId = self:GuildStream()
     if not clubId or not streamId then return nil end
@@ -78,7 +101,7 @@ function Voice:Channel()
 end
 
 function Voice:JoinPending()
-    if not self:LoggedIn() or not C_VoiceChat.IsChannelJoinPending then return false end
+    if self.demoChannel or not self:LoggedIn() or not C_VoiceChat.IsChannelJoinPending then return false end
     local clubId, streamId = self:GuildStream()
     if not clubId or not streamId then return false end
     local channelType = Enum.ChatChannelType and Enum.ChatChannelType.Communities or 2
@@ -91,6 +114,7 @@ function Voice:IsJoined()
 end
 
 function Voice:Join()
+    if self.demoChannel then return true end
     if not self:Available() then
         TG:Print(L["Blizzard voice chat is not available on this account."])
         return false
@@ -119,7 +143,7 @@ end
 function Voice:Leave()
     local channel = self:Channel()
     self:Restore()
-    if channel then C_VoiceChat.LeaveChannel(channel.channelID) end
+    if channel and not self.demoChannel then C_VoiceChat.LeaveChannel(channel.channelID) end
     TG:Fire("VOICE_UPDATED")
 end
 
@@ -169,7 +193,7 @@ end
 function Voice:CreateGroup(name)
     name = TG.Trim(name or ""):sub(1, MAX_NAME)
     if name == "" then return nil end
-    if not IsInGuild() or not TG.MyName() then
+    if not TG.InGuild() or not TG.MyName() then
         TG:Print(L["Voice groups need a guild and a loaded roster."])
         return nil
     end
@@ -270,6 +294,7 @@ function Voice:TargetVolume(key)
 end
 
 local function resolveMember(memberID, channelID)
+    if Voice.demoChannel then return Voice.demoChannel.keys[memberID] end
     local cached = resolved[memberID]
     if cached then return cached end
     local key
@@ -287,6 +312,7 @@ local function resolveMember(memberID, channelID)
 end
 
 local function setVolume(memberID, channelID, volume)
+    if Voice.demoChannel then applied[memberID] = volume return end
     local location = PlayerLocation and PlayerLocation.CreateFromVoiceID and PlayerLocation:CreateFromVoiceID(memberID, channelID)
     if not location then return end
     if original[memberID] == nil then
@@ -303,7 +329,7 @@ function Voice:Apply(force)
     local channelID = channel.channelID
     for _, member in ipairs(channel.members or {}) do
         local memberID = member.memberID
-        if not C_VoiceChat.IsMemberLocalPlayer(memberID, channelID) then
+        if not isLocal(memberID, channelID) then
             local key = resolveMember(memberID, channelID)
             local volume = key and self:TargetVolume(key) or (self.db.mode == "all" and FULL or 0)
             if self.db.mode == "all" and original[memberID] then volume = original[memberID] end
@@ -318,7 +344,7 @@ end
 -- Puts every member we touched back to the volume they had before.
 function Voice:Restore()
     local channel = self:Channel()
-    if channel then
+    if channel and not self.demoChannel then
         for memberID, volume in pairs(original) do
             local location = PlayerLocation and PlayerLocation.CreateFromVoiceID and PlayerLocation:CreateFromVoiceID(memberID, channel.channelID)
             if location then C_VoiceChat.SetMemberVolume(location, volume) end
@@ -336,7 +362,7 @@ function Voice:Members()
     local channel = self:Channel()
     if not channel then return out end
     for _, member in ipairs(channel.members or {}) do
-        local isMe = C_VoiceChat.IsMemberLocalPlayer(member.memberID, channel.channelID)
+        local isMe = isLocal(member.memberID, channel.channelID)
         local key = isMe and TG.MyName() or resolveMember(member.memberID, channel.channelID)
         local distance = key and not isMe and self:Distance(key) or nil
         out[#out + 1] = {

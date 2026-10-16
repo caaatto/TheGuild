@@ -27,6 +27,7 @@ function TG:InitDB()
 end
 
 function TG:GuildKey()
+    if TG.Demo and TG.Demo.active then return "Demo@Demo" end
     local name = GetGuildInfo("player")
     if not TG.usable(name) or name == "" then return nil end
     local faction = UnitFactionGroup("player")

@@ -91,7 +91,7 @@ function Prof:Scan()
 end
 
 function Prof:Share(profID)
-    if not self.db.share or not IsInGuild() then return end
+    if not self.db.share or not TG.InGuild() then return end
     local char, me = myChar()
     local prof = char.p[profID]
     if not prof then return end

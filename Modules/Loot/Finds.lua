@@ -77,7 +77,7 @@ local function send(link, attempt)
     if Loot.db.findBopOnly and bindType ~= BIND_ON_PICKUP then return end
     local data = { link = link, quality = quality, bind = bindType, zone = TG.plain(GetZoneText(), "") }
     Finds:Record(TG.MyName(), data)
-    if Loot.db.findShare and IsInGuild() then
+    if Loot.db.findShare and TG.InGuild() then
         TG.Comm:Send("LF", { i = link, q = quality, b = bindType, z = data.zone }, "NORMAL")
     end
 end

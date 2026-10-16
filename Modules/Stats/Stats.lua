@@ -22,7 +22,7 @@ local Stats = TG:NewModule("Stats", {
 TG.Store:DefinePolicy(NS_STAT, "self")
 
 function Stats:PublishOptIn(value)
-    if not IsInGuild() then return end
+    if not TG.InGuild() then return end
     if value then
         TG.Store:Delete(NS_STAT, TG.MyName())
     else

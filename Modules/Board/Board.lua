@@ -45,7 +45,7 @@ function Board:Posts()
 end
 
 function Board:CanPost()
-    return IsInGuild() and TG.Store:CanWrite(NS_POST, TG.MyName() .. "#x")
+    return TG.InGuild() and TG.Store:CanWrite(NS_POST, TG.MyName() .. "#x")
 end
 
 function Board:CanManage()

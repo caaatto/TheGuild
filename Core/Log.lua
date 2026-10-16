@@ -29,6 +29,14 @@ function Log:Add(kind, name, extra)
     TG:Fire("LOG_ADDED", item)
 end
 
+function Log:Seed(item)
+    local list = entries()
+    if not list then return end
+    list[#list + 1] = item
+    table.sort(list, function(a, b) return (a.t or 0) > (b.t or 0) end)
+    for i = #list, MAX_ENTRIES + 1, -1 do list[i] = nil end
+end
+
 function Log:Entries(filter)
     local list = entries() or {}
     if not filter then return list end

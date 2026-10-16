@@ -485,6 +485,13 @@ function UI.Banner(parent)
     banner.EmblemBorder = banner:CreateTexture(nil, "OVERLAY")
     banner.EmblemBorder:Hide()
     function banner:Update()
+        if TG.Demo and TG.Demo.active then
+            self:Show()
+            self.Left:Hide()
+            self.Right:Hide()
+            self.Emblem:Hide()
+            return
+        end
         if not IsInGuild() then self:Hide() return end
         self:Show()
         if SetDoubleGuildTabardTextures then

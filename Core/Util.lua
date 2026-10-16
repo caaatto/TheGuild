@@ -54,6 +54,10 @@ function TG.Now()
     return GetServerTime()
 end
 
+function TG.InGuild()
+    return IsInGuild() or (TG.Demo ~= nil and TG.Demo.active == true)
+end
+
 function TG.Trim(s)
     return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", ""))
 end

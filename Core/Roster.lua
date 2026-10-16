@@ -10,6 +10,8 @@ local ready = false
 local reading = false
 local pending = false
 local lastRead = 0
+local demo = false
+local demoGuild
 local READ_GAP = 1.5
 local REQUEST_INTERVAL = 60
 
@@ -64,7 +66,30 @@ local function withOffline(fn)
     if not ok then error(err, 0) end
 end
 
+-- Demo mode replaces the roster with made up members until it ends.
+function Roster:SetDemo(entries, guildName)
+    demo = true
+    demoGuild = guildName
+    members, list, byGUID = {}, {}, {}
+    for _, e in ipairs(entries) do
+        members[e.key] = e
+        list[#list + 1] = e
+        if e.guid then byGUID[e.guid] = e end
+    end
+    ready = true
+    TG:Fire("ROSTER_UPDATED")
+end
+
+function Roster:ClearDemo()
+    demo = false
+    demoGuild = nil
+    members, list, byGUID = {}, {}, {}
+    ready = false
+    self:Read()
+end
+
 function Roster:Read()
+    if demo then return end
     if not IsInGuild() then
         if next(members) then
             members, list, byGUID = {}, {}, {}
@@ -164,6 +189,7 @@ local function scheduleRead()
 end
 
 function Roster:Request()
+    if demo then return end
     if IsInGuild() and C_GuildInfo and C_GuildInfo.GuildRoster then
         C_GuildInfo.GuildRoster()
     end
@@ -208,6 +234,7 @@ function Roster:MyEntry()
 end
 
 function Roster:GuildName()
+    if demo then return demoGuild end
     local name = GetGuildInfo("player")
     return TG.usable(name) and name or nil
 end

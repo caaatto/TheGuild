@@ -47,7 +47,7 @@ local function pick(list)
 end
 
 function Social:Say(text)
-    if not text or text == "" or not IsInGuild() then return end
+    if not text or text == "" or not TG.InGuild() then return end
     SendChatMessage(text:sub(1, 255), "GUILD")
 end
 

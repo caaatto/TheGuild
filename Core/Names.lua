@@ -37,6 +37,11 @@ function TG.LearnMyName(name)
     end
 end
 
+function TG.ForgetMyName()
+    myName = nil
+    if TG.cdb then TG.cdb.myName = nil end
+end
+
 function TG.MyName()
     if myName then return myName end
     if TG.cdb and TG.cdb.myName then

@@ -65,6 +65,7 @@ local function utf8Cut(s, i, j)
 end
 
 local function dispatchRaw(text, chatType, target, prio)
+    if Comm.muted then return end
     if lockedDown() then
         held[#held + 1] = { text = text, chatType = chatType, target = target, prio = prio }
         Comm.stats.held = Comm.stats.held + 1
@@ -238,6 +239,14 @@ function Comm:SendHello(prio)
     if not IsInGuild() then return end
     lastHello = GetTime()
     self:Send("HI", ("%s:%s"):format(TG.version, TG.MyGUID() or "-"), prio or "ALERT")
+end
+
+function Comm:SeedPeer(key, version, guid)
+    peers[key] = { version = version, guid = guid, seen = GetTime(), proto = TG.protocol }
+end
+
+function Comm:ResetPeers()
+    wipe(peers)
 end
 
 function Comm:Peers()

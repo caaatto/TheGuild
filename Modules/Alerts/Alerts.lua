@@ -37,7 +37,7 @@ function Alerts:Remaining()
 end
 
 function Alerts:Prompt()
-    if not IsInGuild() then
+    if not TG.InGuild() then
         TG:Print(L["You need to be in a guild."])
         return
     end

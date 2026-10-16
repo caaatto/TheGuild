@@ -204,7 +204,7 @@ local function build(panel)
         end
         upcoming:SetText(#lines > 0 and table.concat(lines, "\n") or GRAY_FONT_COLOR:WrapTextInColorCode(L["Nothing planned."]))
 
-        local text = C_GuildInfo and C_GuildInfo.GetMOTD and C_GuildInfo.GetMOTD()
+        local text = TG.Demo.active and TG.Demo.motd or (C_GuildInfo and C_GuildInfo.GetMOTD and C_GuildInfo.GetMOTD())
         if not TG.usable(text) and GetGuildRosterMOTD then text = GetGuildRosterMOTD() end
         motd:SetText(TG.usable(text) and text ~= "" and text or GRAY_FONT_COLOR:WrapTextInColorCode("..."))
         shareButton:SetEnabled(map ~= nil and map.enabled)

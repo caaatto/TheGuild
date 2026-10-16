@@ -71,7 +71,7 @@ function Map:Snapshot()
 end
 
 function Map:Publish(force)
-    if not IsInGuild() then return end
+    if not TG.InGuild() then return end
     if not self.cdb.share then
         if self.announced then
             self.announced = false
@@ -136,6 +136,11 @@ function Map:CheckHealth(key, peer)
     local entry = TG.Roster:Get(key)
     local name = entry and TG.ClassText(entry.classFile, key) or key
     TG.RaidWarning(L["%s is low on health (%d%%) in %s"]:format(name, peer.hp, TG.MapName(peer.mapID)))
+end
+
+function Map:SeedPeer(key, peer)
+    self.peers[key] = peer
+    self:Changed()
 end
 
 function Map:Peers()

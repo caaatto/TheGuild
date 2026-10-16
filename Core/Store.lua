@@ -118,6 +118,14 @@ function Store:SetBatch(ns, values)
     return #batch
 end
 
+-- Direct write with a chosen author and time, used by the demo only.
+function Store:Seed(ns, key, value, author, t)
+    local d = data()
+    if not d then return end
+    d[ns] = d[ns] or {}
+    d[ns][key] = { v = value, r = 1, t = t or TG.Now(), a = author or TG.MyName() }
+end
+
 function Store:Delete(ns, key)
     return self:Set(ns, key, nil)
 end
