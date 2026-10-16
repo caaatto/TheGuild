@@ -1,0 +1,205 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'README.de.md'
+      - 'ROADMAP.md'
+      - 'Screenshots/**'
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'CurseForge release type'
+        type: choice
+        options: [release, beta, alpha]
+        default: release
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'release v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check TOC file lists
+        run: |
+          python3 - <<'PY'
+          import pathlib, re, sys
+          missing = []
+          for toc in [pathlib.Path("TheGuild.toc")] + sorted(pathlib.Path("Modules").glob("*/TheGuild_*.toc")):
+              for line in toc.read_text(encoding="utf-8").splitlines():
+                  line = line.strip()
+                  if not line or line.startswith("#"):
+                      continue
+                  path = toc.parent / line.replace("\\", "/")
+                  if not path.exists():
+                      missing.append(f"{toc}: {line}")
+          if missing:
+              print("\n".join(missing))
+              sys.exit(1)
+          print("all TOC entries exist")
+          PY
+
+      - name: Bump version
+        id: version
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, re
+          tocs = [pathlib.Path("TheGuild.toc")] + sorted(pathlib.Path("Modules").glob("*/TheGuild_*.toc"))
+          pattern = re.compile(r"^(## Version:[ \t]*)(\S+)[ \t]*$", re.M)
+          raw = tocs[0].read_bytes().decode("utf-8")
+          m = pattern.search(raw)
+          if not m:
+              raise SystemExit("no version in TheGuild.toc")
+          parts = m.group(2).split(".")
+          while len(parts) < 3:
+              parts.append("0")
+          parts[2] = str(int(parts[2]) + 1)
+          new = ".".join(parts[:3])
+          for toc in tocs:
+              text = toc.read_bytes().decode("utf-8")
+              text, hits = pattern.subn(lambda mm: mm.group(1) + new, text, count=1)
+              if not hits:
+                  raise SystemExit(f"no version in {toc}")
+              toc.write_bytes(text.encode("utf-8"))
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"version={new}\n")
+          print(f"{m.group(2)} -> {new}")
+          PY
+
+      - name: Commit
+        id: commit
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          git config user.name "Catto"
+          git config user.email "info@catto.at"
+          git add TheGuild.toc Modules/*/TheGuild_*.toc
+          git commit -m "release v${VERSION}"
+          echo "hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Package
+        id: package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os, pathlib, shutil
+          version = os.environ["VERSION"]
+          out = pathlib.Path("build")
+          shutil.rmtree(out, ignore_errors=True)
+          out.mkdir()
+          ignore = {".git", ".github", "Modules", "Screenshots", "build", "tools", ".pkgmeta", "README.md", "README.de.md", "ROADMAP.md"}
+          core = out / "TheGuild"
+          shutil.copytree(".", core, ignore=lambda d, names: [n for n in names if pathlib.Path(d) == pathlib.Path(".") and n in ignore])
+          for toc in sorted(pathlib.Path("Modules").glob("*/TheGuild_*.toc")):
+              shutil.copytree(toc.parent, out / toc.stem)
+          archive = shutil.make_archive(f"TheGuild-{version}", "zip", out)
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"zip={archive}\n")
+          print(archive)
+          for p in sorted(out.iterdir()):
+              print(" ", p.name)
+          PY
+
+      - name: Resolve CurseForge game version
+        if: vars.CF_PROJECT_ID != ''
+        id: gameversion
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: |
+          IFACE=$(sed -n 's/^## Interface:[ \t]*\([0-9]\{1,\}\).*/\1/p' TheGuild.toc | head -1)
+          NAME="$((10#$IFACE / 10000)).$((10#$IFACE / 100 % 100)).$((10#$IFACE % 100))"
+          echo "interface ${IFACE} -> game version ${NAME}"
+
+          curl -sf -H "X-Api-Token: $CF_API_TOKEN" https://wow.curseforge.com/api/game/version-types -o "$RUNNER_TEMP/types.json"
+          curl -sf -H "X-Api-Token: $CF_API_TOKEN" https://wow.curseforge.com/api/game/versions -o "$RUNNER_TEMP/versions.json"
+
+          TYPE=$(jq -r '[.[] | select((.name | test("forever|camelot"; "i")))] | .[0].id // empty' "$RUNNER_TEMP/types.json")
+          if [ -z "$TYPE" ]; then
+            echo "::error::CurseForge lists no game version type for Forever. Known types:"
+            jq -r '.[] | "\(.id) \(.name)"' "$RUNNER_TEMP/types.json"
+            exit 1
+          fi
+
+          IDS=$(jq -c --arg n "$NAME" --argjson t "$TYPE" \
+            '[.[] | select(.name == $n and (.gameVersionTypeID // .gameVersionTypeId) == $t) | .id]' \
+            "$RUNNER_TEMP/versions.json")
+          if [ "$IDS" = "[]" ]; then
+            echo "::error::no CurseForge game version ${NAME} for type ${TYPE}. Versions of that type:"
+            jq -r --argjson t "$TYPE" '[.[] | select((.gameVersionTypeID // .gameVersionTypeId) == $t)] | sort_by(.id) | .[-8:] | map(.name) | join(", ")' "$RUNNER_TEMP/versions.json"
+            exit 1
+          fi
+          echo "ids=${IDS}" >> "$GITHUB_OUTPUT"
+          echo "type ${TYPE}, version ${NAME} -> ${IDS}"
+
+      - name: Upload to CurseForge
+        if: vars.CF_PROJECT_ID != ''
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
+          GAME_VERSIONS: ${{ steps.gameversion.outputs.ids }}
+          ZIP: ${{ steps.package.outputs.zip }}
+          RELEASE_TYPE: ${{ inputs.release_type || 'release' }}
+        run: |
+          CHANGELOG=$(git log --format='%s' "$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD~1" | sed 's/^/- /')
+          METADATA=$(jq -cn \
+            --arg cl "TheGuild ${VERSION}"$'\n\n'"${CHANGELOG}" \
+            --arg v "$VERSION" \
+            --arg rt "$RELEASE_TYPE" \
+            --argjson gv "$GAME_VERSIONS" \
+            '{changelog: $cl, changelogType: "markdown", displayName: ("TheGuild " + $v), gameVersions: $gv, releaseType: $rt}')
+
+          for attempt in 1 2 3 4; do
+            STATUS=$(curl -s -o response.json -w '%{http_code}' -X POST \
+              "https://wow.curseforge.com/api/projects/${{ vars.CF_PROJECT_ID }}/upload-file" \
+              -H "X-Api-Token: $CF_API_TOKEN" \
+              -F "metadata=$METADATA" \
+              -F "file=@${ZIP}")
+            echo "attempt ${attempt}: HTTP ${STATUS}"
+            cat response.json; echo
+            case "$STATUS" in
+              2*) exit 0 ;;
+              5*|000) sleep $((attempt * 20)) ;;
+              *) echo "::error::CurseForge rejected the upload (HTTP ${STATUS})"; exit 1 ;;
+            esac
+          done
+          echo "::error::CurseForge upload failed after 4 attempts"
+          exit 1
+
+      - name: Push commit and tag
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            git tag -f "v${VERSION}"
+            if git push origin HEAD; then
+              git push origin "v${VERSION}"
+              exit 0
+            fi
+            echo "push rejected, retrying"
+          done
+          echo "::error::could not push the release commit"
+          exit 1
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          ZIP: ${{ steps.package.outputs.zip }}
+        run: |
+          NOTES=$(git log --format='- %s' "$(git describe --tags --abbrev=0 "v${VERSION}^" 2>/dev/null || git rev-list --max-parents=0 HEAD)..v${VERSION}^" )
+          gh release create "v${VERSION}" "$ZIP" --title "TheGuild ${VERSION}" --notes "${NOTES:-TheGuild ${VERSION}}"

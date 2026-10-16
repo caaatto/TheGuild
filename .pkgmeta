@@ -19,3 +19,4 @@ ignore:
   - README.de.md
   - ROADMAP.md
   - Screenshots
+  - .github
