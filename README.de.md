@@ -117,6 +117,22 @@ Alles, was die Gilde teilt, läuft über den Gilden-Addonkanal zwischen Mitglied
 
 Die Nachrichtentypen stehen in der englischen README.
 
+## Entwicklung
+
+- Das Repository nach `Interface\AddOns\TheGuild` klonen und einmal `tools\link-modules.cmd` ausführen. Es legt Junctions `AddOns\TheGuild_<Modul>` auf `TheGuild\Modules\<Modul>` an, der Client lädt jedes Modul damit direkt aus dem Checkout.
+- `TheGuild.toc` ist der Kern, jeder Ordner unter `Modules` ein eigenes Addon mit `## Dependencies: TheGuild` und `## Group: TheGuild`. Ein Modul meldet sich mit `TG:NewModule` an, registriert Ereignisse und Nachrichten über seine Modulmethoden, damit das Abschalten alles entfernt, und hängt seinen Reiter mit `TG.Window:RegisterTab` ins Fenster.
+- Alle Fensterbausteine stammen aus `Core/UI.lua` und nutzen nur Vorlagen, die der Forever-Client mitbringt. Spaltenköpfe, Listen mit Inset-Rahmen, Reiterleisten, Abschnittsleisten, Karten, Kacheln, Balken und das Gildenbanner sind Helfer dort.
+- Geteilte Daten laufen über `TG.Store` mit einer Regel pro Bereich: `any`, `self`, `officer`, `gm` oder `own`. Jeder Wert aus Chat, Einheiten oder Roster wird vor der Verwendung mit `TG.usable` geprüft, weil der Client geheime Werte liefert.
+- Texte stehen in `Locales/enUS.lua` mit deutscher Übersetzung in `Locales/deDE.lua`. Jeder neue Text braucht beides.
+- Der Code enthält bewusst keine Kommentare. Diese Datei und `ROADMAP.md` tragen die Erklärungen.
+- `/tg demo` füllt alle Module ohne Gilde mit erfundenen Daten, `/tg memory` zeigt Speicher und Datenmengen, `/tg voice status` den Zustand des Sprachchats.
+
+## Veröffentlichung
+
+Jeder Push auf `main` startet den Workflow in `.github/workflows/release.yml`, außer Pushes, die nur READMEs, Roadmap oder Screenshots ändern. Der Workflow prüft, dass jede in einer TOC gelistete Datei existiert, zählt die Patch-Version in allen TOCs hoch, committet das als `release vX.Y.Z` mit Tag, baut das Zip im Release-Layout (`TheGuild` plus je ein Ordner `TheGuild_<Modul>`, wie in `.pkgmeta` beschrieben), veröffentlicht ein GitHub-Release mit dem Zip und lädt die Datei zu CurseForge hoch. Die CurseForge-Spielversion wird aus `## Interface` abgeleitet und im Forever-Versionstyp gesucht, ein Client-Patch braucht also nur neue TOC-Werte.
+
+Minor- und Major-Versionen werden vor dem Push von Hand in allen TOCs gesetzt, der Workflow zählt nur die letzte Stelle. Über den Reiter Actions lässt er sich auch von Hand mit Typ release, beta oder alpha starten. Er braucht die Repository-Variable `CF_PROJECT_ID` und das Secret `CF_API_TOKEN`.
+
 ## Bibliotheken
 
 LibStub, CallbackHandler-1.0, ChatThrottleLib, LibSerialize, LibDeflate, LibDataBroker-1.1, LibDBIcon-1.0, HereBeDragons-2.0. Jede bringt ihre eigene Lizenz mit.

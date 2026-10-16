@@ -31,7 +31,7 @@ TheGuild wants to be the one guild addon a Forever guild installs. The measure i
 
 Core, comm, store, settings, window, map, members, call to arms, messages, professions. Modules as separate addons with junction tooling and packager metadata.
 
-### 0.2 Daily life (in progress)
+### 0.2 Daily life (done)
 
 - Done: member history (first seen, rank changes, former members, rejoin detection) in the guild store.
 - Done: persistent guild event log in the overview with filters and text export.
@@ -42,7 +42,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Done: name change detection through GUIDs with migration of roles, alt links and history.
 - Layer awareness if an API or a reliable heuristic appears.
 
-### 0.3 Raids (in progress)
+### 0.3 Raids (done except readiness)
 
 - Done: raid teams with saved members, sizes 10, 20 and 40, one click invites with raid conversion.
 - Done: attendance per raid night recorded by officers in the raid, synced through the guild store, attendance table with alts counted for their main.
@@ -69,6 +69,9 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Done: Ctrl + Tab and gamepad shoulder buttons switch tabs, Ctrl + F focuses the search field, Escape closes. Lists stay mouse driven.
 - Done in the simulator: 500 member guild loads in milliseconds, first seen records and sync answers travel in batches of 40 items, welcome messages stop after three joins per minute. With 100 online users only the three lowest names answer a sync request. Moving members send a position every 3 seconds, idle ones every 25 seconds, so 100 moving users mean about 33 small messages per second for every client. `/tg memory` prints the memory of every loaded part and the size of the shared data.
 - Done: in game help from the overview. A documentation site waits for the launch.
+- Done: demo mode that fills every module with made up data for presentations.
+- Done: release pipeline. Every push to main raises the version, tags, publishes a GitHub release and uploads to CurseForge.
+- Done: bilingual README with screenshots.
 - Done: window rebuilt on the Forever templates (side tabs, column headers, inset lists, tab strips, banner, cards, status bars).
 
 ## Open questions

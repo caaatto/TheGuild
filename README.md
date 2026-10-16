@@ -126,6 +126,22 @@ Everything the guild shares travels over the guild addon channel between members
 | LS / LR / LV / LA / LE | loot session messages, sent to the raid or party |
 | PS / PQ | profession snapshot and request |
 
+## Development
+
+- Clone the repository into `Interface\AddOns\TheGuild` and run `tools\link-modules.cmd` once. It creates junctions `AddOns\TheGuild_<Module>` pointing at `TheGuild\Modules\<Module>`, so the client loads every module straight from the checkout.
+- `TheGuild.toc` is the core, every folder under `Modules` is its own addon with `## Dependencies: TheGuild` and `## Group: TheGuild`. A module registers itself with `TG:NewModule`, registers events and comm handlers through its module methods so disabling it removes everything, and adds its window tab with `TG.Window:RegisterTab`.
+- All window pieces come from `Core/UI.lua` and use only templates the Forever client ships. Column headers, inset lists, tab strips, section headers, cards, stat tiles, bars and the guild banner are helpers there.
+- Shared data goes through `TG.Store` with a policy per namespace: `any`, `self`, `officer`, `gm` or `own`. Every value from chat, units or the roster is checked with `TG.usable` before use because the client hands out secret values.
+- Text lives in `Locales/enUS.lua` with a German translation in `Locales/deDE.lua`. Every new string needs both.
+- The code carries no comments on purpose. This file and `ROADMAP.md` hold the explanations.
+- `/tg demo` fills every module with made up data without a guild, `/tg memory` prints memory and store sizes, `/tg voice status` prints the voice chat state.
+
+## Releases
+
+Every push to `main` runs the release workflow in `.github/workflows/release.yml`, except pushes that only touch the READMEs, the roadmap or the screenshots. The workflow checks that every file listed in a TOC exists, raises the patch version in all TOCs, commits that as `release vX.Y.Z` with a tag, builds the zip in the release layout (`TheGuild` plus one `TheGuild_<Module>` folder per module, the layout `.pkgmeta` describes), publishes a GitHub release with the zip and uploads the file to CurseForge. The CurseForge game version is derived from `## Interface` and looked up in the Forever version type, so a client patch only needs the TOCs bumped.
+
+Minor and major versions are raised by hand in all TOCs before the push, the workflow only counts the last digit. The workflow can also be started by hand from the Actions tab with a release type of release, beta or alpha. It needs the repository variable `CF_PROJECT_ID` and the secret `CF_API_TOKEN`.
+
 ## Libraries
 
 LibStub, CallbackHandler-1.0, ChatThrottleLib, LibSerialize, LibDeflate, LibDataBroker-1.1, LibDBIcon-1.0, HereBeDragons-2.0. Each ships with its own license.
