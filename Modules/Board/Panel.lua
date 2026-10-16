@@ -5,8 +5,8 @@ local Board = TG:GetModule("Board")
 
 Board.view = "posts"
 
-local VIEWS = { { "posts", L["Posts"] }, { "polls", L["Polls"] }, { "events", L["Events"] } }
-local selectedPost, selectedPoll, selectedEvent
+local VIEWS = { { "posts", L["Posts"] }, { "polls", L["Polls"] }, { "events", L["Events"] }, { "bounties", L["Bounties"] } }
+local selectedPost, selectedPoll, selectedEvent, selectedBounty
 
 local function viewName()
     for _, v in ipairs(VIEWS) do if v[1] == Board.view then return v[2] end end
@@ -74,6 +74,19 @@ local function build(panel)
     end)
     newEvent:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
 
+    local newBounty = UI.Button(panel, L["New bounty"], 120, function()
+        compose(L["New bounty"], L["First line is the title, second line the reward, the rest is the description."], function(text)
+            local lines = TG.Lines(text)
+            if #lines < 2 then return end
+            local bountyTitle = table.remove(lines, 1)
+            local reward = table.remove(lines, 1)
+            local key = Board:CreateBounty(bountyTitle, reward, table.concat(lines, "\n"))
+            if key then selectedBounty = key end
+            panel:OnShow()
+        end)
+    end)
+    newBounty:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
+
     -- left list
     local listFrame = CreateFrame("Frame", nil, panel)
     listFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -36)
@@ -84,7 +97,7 @@ local function build(panel)
 
     local list = UI.List(listFrame, 36, function(button, row)
         button.row = row
-        local current = Board.view == "posts" and selectedPost or Board.view == "polls" and selectedPoll or selectedEvent
+        local current = Board.view == "posts" and selectedPost or Board.view == "polls" and selectedPoll or Board.view == "events" and selectedEvent or selectedBounty
         local selected = current == row.key
         button.title:SetText((row.pinned and (TG.gold .. "* |r") or "") .. (selected and TG.gold or "") .. (row.title or row.question) .. (selected and "|r" or ""))
         if Board.view == "posts" then
@@ -94,6 +107,9 @@ local function build(panel)
             local when = Board:FormatEvent(row)
             if row.past then when = GRAY_FONT_COLOR:WrapTextInColorCode(when) end
             button.meta:SetText(("%s  %s"):format(when, L["%d yes, %d maybe"]:format(#lists[1], #lists[2])))
+        elseif Board.view == "bounties" then
+            local state = row.done and GRAY_FONT_COLOR:WrapTextInColorCode(L["Completed"]) or GREEN_FONT_COLOR:WrapTextInColorCode(L["Open"])
+            button.meta:SetText(("%s  %s  %s"):format(state, row.reward, L["%d claimed"]:format(#Board:Claimers(row))))
         else
             local _, total = Board:Results(row)
             button.meta:SetText(("%s  %s  %s"):format(row.closed and GRAY_FONT_COLOR:WrapTextInColorCode(L["Closed"]) or GREEN_FONT_COLOR:WrapTextInColorCode(L["Open"]), L["%d votes"]:format(total), date("%d.%m.%y", row.time)))
@@ -107,7 +123,8 @@ local function build(panel)
             button:SetScript("OnClick", function(self)
                 if Board.view == "posts" then selectedPost = self.row.key
                 elseif Board.view == "polls" then selectedPoll = self.row.key
-                else selectedEvent = self.row.key end
+                elseif Board.view == "events" then selectedEvent = self.row.key
+                else selectedBounty = self.row.key end
                 panel:OnShow()
             end)
         end,
@@ -146,6 +163,8 @@ local function build(panel)
             StaticPopup_ShowGenericConfirmation(L["Delete poll?"], function() Board:DeletePoll(selectedPoll) selectedPoll = nil panel:OnShow() end)
         elseif Board.view == "events" and selectedEvent then
             StaticPopup_ShowGenericConfirmation(L["Delete event?"], function() Board:DeleteEvent(selectedEvent) selectedEvent = nil panel:OnShow() end)
+        elseif Board.view == "bounties" and selectedBounty then
+            StaticPopup_ShowGenericConfirmation(L["Delete bounty?"], function() Board:DeleteBounty(selectedBounty) selectedBounty = nil panel:OnShow() end)
         end
     end)
     local toggleButton = action("", function()
@@ -162,6 +181,11 @@ local function build(panel)
                     TG:Print(ok and L["Event added to the calendar."] or existed and L["The event is already in the calendar."] or L["The event could not be added to the calendar."])
                 end
             end
+        elseif Board.view == "bounties" and selectedBounty then
+            local v = TG.Store:Get("bounty", selectedBounty)
+            if type(v) == "table" and v.d then Board:ReopenBounty(selectedBounty)
+            elseif Board:MyClaim(selectedBounty) then Board:Unclaim(selectedBounty)
+            else Board:Claim(selectedBounty) end
         end
         panel:OnShow()
     end)
@@ -188,6 +212,26 @@ local function build(panel)
         b:SetPoint("LEFT", signup, "LEFT", (i - 1) * 96, 0)
         signupButtons[i] = b
     end
+
+    local claimsFrame = CreateFrame("Frame", nil, detail)
+    claimsFrame:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", -4, -8)
+    claimsFrame:SetPoint("RIGHT", detail, "RIGHT", 0, 0)
+    claimsFrame:SetHeight(110)
+    local claims = UI.List(claimsFrame, 26, function(button, row)
+        button.row = row
+        button.text:SetText(authorText(row.name))
+        button.when:SetText(date("%d.%m.%y %H:%M", row.time))
+        button.award:SetShown(row.canAward)
+    end, {
+        buildRow = function(button)
+            button.text = UI.Cell(button, 200, "LEFT", "GameFontHighlight")
+            button.text:SetPoint("LEFT", button, "LEFT", 8, 0)
+            button.when = UI.Cell(button, 110, "LEFT", "GameFontDisableSmall")
+            button.when:SetPoint("LEFT", button.text, "RIGHT", 6, 0)
+            button.award = UI.Button(button, L["Award"], 80, function() Board:CompleteBounty(selectedBounty, button.row.name) panel:OnShow() end)
+            button.award:SetPoint("RIGHT", button, "RIGHT", -4, 0)
+        end,
+    })
 
     local optionsFrame = CreateFrame("Frame", nil, detail)
     optionsFrame:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", -4, -10)
@@ -235,6 +279,7 @@ local function build(panel)
         bodyScroll:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", 0, -10)
         optionsFrame:Hide()
         signup:Hide()
+        claimsFrame:Hide()
         toggleButton:SetWidth(110)
         if current then
             title:SetText(current.title)
@@ -269,6 +314,7 @@ local function build(panel)
         meta:SetShown(current ~= nil)
         bodyScroll:Hide()
         signup:Hide()
+        claimsFrame:Hide()
         toggleButton:SetWidth(110)
         optionsFrame:SetShown(current ~= nil)
         if current then
@@ -315,6 +361,7 @@ local function build(panel)
         title:SetShown(current ~= nil)
         meta:SetShown(current ~= nil)
         optionsFrame:Hide()
+        claimsFrame:Hide()
         signup:SetShown(current ~= nil)
         bodyScroll:SetShown(current ~= nil)
         bodyScroll:SetPoint("TOPLEFT", signup, "BOTTOMLEFT", 0, -8)
@@ -342,18 +389,67 @@ local function build(panel)
         end
     end
 
+    local function showBounty()
+        local bounties = Board:Bounties()
+        local current
+        for _, b in ipairs(bounties) do if b.key == selectedBounty then current = b end end
+        if not current then
+            current = bounties[1]
+            selectedBounty = current and current.key
+        end
+        empty:SetText(L["No bounties yet."])
+        empty:SetShown(#bounties == 0)
+        list:SetData(bounties)
+        hint:SetText(L["Select a bounty."])
+        hint:SetShown(current == nil)
+        title:SetShown(current ~= nil)
+        meta:SetShown(current ~= nil)
+        optionsFrame:Hide()
+        signup:Hide()
+        claimsFrame:SetShown(current ~= nil)
+        bodyScroll:SetShown(current ~= nil)
+        bodyScroll:SetPoint("TOPLEFT", claimsFrame, "BOTTOMLEFT", 4, -6)
+        toggleButton:SetWidth(110)
+        if current then
+            local mine = current.author == TG.MyName()
+            local canEdit = Board:CanEditBounty(current)
+            title:SetText(current.title)
+            local state = current.done and L["Completed by %s"]:format(current.winner and authorText(current.winner) or "?") or L["Open"]
+            meta:SetText(("%s, %s, %s, %s"):format(L["Reward: %s"]:format(current.reward), L["by %s"]:format(authorText(current.author)), date("%d.%m.%Y", current.time), state))
+            local rows = Board:Claimers(current)
+            for _, row in ipairs(rows) do row.canAward = canEdit and not current.done end
+            claims:SetData(rows)
+            body:SetText(#rows == 0 and not current.done and (GRAY_FONT_COLOR:WrapTextInColorCode(L["Nobody has claimed this bounty yet."]) .. "\n\n" .. current.desc) or current.desc)
+            local height = body:GetStringHeight()
+            bodyChild:SetHeight((tonumber(height) or 200) + 8)
+            deleteButton:SetShown(canEdit)
+            if current.done then
+                toggleButton:SetShown(canEdit)
+                toggleButton:SetText(L["Reopen"])
+            else
+                toggleButton:SetShown(not mine)
+                toggleButton:SetText(Board:MyClaim(current.key) and L["Withdraw"] or L["Claim"])
+            end
+        else
+            deleteButton:Hide()
+            toggleButton:Hide()
+        end
+    end
+
     function panel:OnShow()
         viewDropdown:SetDefaultText(viewName())
         newPost:SetShown(Board.view == "posts" and Board:CanPost())
         newPoll:SetShown(Board.view == "polls" and Board:CanManage())
         newEvent:SetShown(Board.view == "events" and Board:CanPost())
+        newBounty:SetShown(Board.view == "bounties" and Board:CanPost())
         if Board.view == "posts" then showPost()
         elseif Board.view == "polls" then showPoll()
-        else showEvent() end
+        elseif Board.view == "events" then showEvent()
+        else showBounty() end
     end
 
     TG:On("STORE_CHANGED", function(ns)
-        if panel:IsShown() and (ns == "post" or ns == "poll" or ns == "vote" or ns == "event" or ns == "signup") then panel:OnShow() end
+        if panel:IsShown() and (ns == "post" or ns == "poll" or ns == "vote" or ns == "event" or ns == "signup" or ns == "bounty" or ns == "claim") then panel:OnShow() end
     end, Board)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Board)
 end

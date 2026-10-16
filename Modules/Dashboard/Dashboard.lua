@@ -12,7 +12,7 @@ local Dashboard = TG:NewModule("Dashboard", {
 local LOG_FILTERS = {
     { "all", L["Everything"], nil },
     { "presence", L["Logins"], { online = true, offline = true } },
-    { "guild", L["Guild changes"], { joined = true, left = true, rejoined = true, rank = true, note = true, post = true, poll = true, event = true, recruited = true } },
+    { "guild", L["Guild changes"], { joined = true, left = true, rejoined = true, rank = true, note = true, post = true, poll = true, event = true, bounty = true, recruited = true } },
     { "level", L["Level ups"], { level = true } },
     { "death", L["Deaths"], { death = true } },
     { "found", L["Loot finds"], { found = true } },
@@ -165,6 +165,8 @@ local function build(panel)
         if nextEvent then
             lines[#lines + 1] = ("%s: %s"):format(L["Next event"], board:FormatEvent(nextEvent, true))
         end
+        local openBounties = board and board.enabled and board.OpenBountyCount and board:OpenBountyCount() or 0
+        if openBounties > 0 then lines[#lines + 1] = L["%d open bounties"]:format(openBounties) end
         stats:SetText(table.concat(lines, "\n"))
         local text = C_GuildInfo and C_GuildInfo.GetMOTD and C_GuildInfo.GetMOTD()
         if not TG.usable(text) and GetGuildRosterMOTD then text = GetGuildRosterMOTD() end

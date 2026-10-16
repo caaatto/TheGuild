@@ -8,7 +8,7 @@ local FRESH = 600
 
 local Board = TG:NewModule("Board", {
     title = L["Board"],
-    desc = L["Guild bulletin board and polls, shared through the guild store."],
+    desc = L["Guild bulletin board, polls, events and bounties, shared through the guild store."],
     order = 28,
     defaults = { chat = true, days = 30 },
     settings = {
@@ -179,6 +179,8 @@ function Board:OnStoreChanged(ns, key, value)
         if TG.IsMe(author) then return end
         TG.Log:Add("event", author, { title = value.t })
         if self.db.chat then TG:Print(L["New event: %s (%s)"], value.t or "", TG.ShortName(author)) end
+    elseif ns == "bounty" then
+        self:OnBountyChanged(key, value)
     elseif ns == NS_POLL then
         local item = TG.Store:Items(NS_POLL)[key]
         local author = item and item.a or "?"
@@ -194,5 +196,6 @@ function Board:OnEnable()
         if not self.enabled then return end
         self:Prune()
         if self.PruneEvents then self:PruneEvents() end
+        if self.PruneBounties then self:PruneBounties() end
     end)
 end

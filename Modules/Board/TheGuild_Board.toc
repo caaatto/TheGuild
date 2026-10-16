@@ -1,7 +1,7 @@
 ## Interface: 16001
 ## Title: TheGuild |cff4dc3ffBoard|r
-## Notes: Guild bulletin board and polls, shared through the guild store.
-## Notes-deDE: Schwarzes Brett und Umfragen der Gilde, geteilt über den Gildenspeicher.
+## Notes: Guild bulletin board, polls, events and bounties, shared through the guild store.
+## Notes-deDE: Schwarzes Brett, Umfragen, Events und Aufträge der Gilde, geteilt über den Gildenspeicher.
 ## Author: Catto
 ## Version: 0.2.0
 ## Dependencies: TheGuild
@@ -11,4 +11,5 @@
 
 Board.lua
 Events.lua
+Bounties.lua
 Panel.lua
