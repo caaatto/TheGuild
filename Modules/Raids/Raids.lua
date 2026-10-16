@@ -100,24 +100,7 @@ end
 
 local pendingInvites = {}
 
-local function groupNames()
-    local names = {}
-    local n = GetNumGroupMembers()
-    if not TG.usable(n) then return names end
-    if IsInRaid() then
-        for i = 1, n do
-            local name = GetRaidRosterInfo(i)
-            if TG.usable(name) then names[TG.StripRealm(name)] = true end
-        end
-    else
-        for i = 1, n - 1 do
-            local name = UnitName("party" .. i)
-            if TG.usable(name) then names[TG.StripRealm(name)] = true end
-        end
-    end
-    names[TG.MyName()] = true
-    return names
-end
+local groupNames = TG.GroupMembers
 
 local function sendInvites()
     if #pendingInvites == 0 then return end

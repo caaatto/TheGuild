@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffLoot|r
+## Notes: Loot sessions with responses, council votes, awards and a shared loot history.
+## Notes-deDE: Lootsitzungen mit Antworten, Ratsabstimmung, Vergabe und gemeinsamer Lootgeschichte.
+## Author: Catto
+## Version: 0.2.0
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\INV_Misc_Bag_10_Blue
+
+Loot.lua
+Frames.lua
+Panel.lua

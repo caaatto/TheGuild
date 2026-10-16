@@ -252,6 +252,37 @@ function TG.SetWaypoint(mapID, x, y)
     return ok
 end
 
+-- Names of everyone in the current group, keyed without realm.
+function TG.GroupMembers()
+    local names = {}
+    local n = GetNumGroupMembers()
+    if not TG.usable(n) then return names end
+    if IsInRaid() then
+        for i = 1, n do
+            local name = GetRaidRosterInfo(i)
+            if TG.usable(name) then names[TG.StripRealm(name)] = true end
+        end
+    else
+        for i = 1, n - 1 do
+            local name = UnitName("party" .. i)
+            if TG.usable(name) then names[TG.StripRealm(name)] = true end
+        end
+    end
+    names[TG.MyName()] = true
+    return names
+end
+
+function TG.InGroup(key)
+    return TG.GroupMembers()[TG.StripRealm(key) or key] == true
+end
+
+function TG.IsGroupLead()
+    local lead = UnitIsGroupLeader("player")
+    if TG.usable(lead) and lead then return true end
+    local assist = UnitIsGroupAssistant and UnitIsGroupAssistant("player")
+    return TG.usable(assist) and assist == true
+end
+
 function TG.PlayerLink(name)
     return ("|Hplayer:%s|h[%s]|h"):format(name, name)
 end

@@ -46,8 +46,9 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 
 - Done: raid teams with saved members, sizes 10, 20 and 40, one click invites with raid conversion.
 - Done: attendance per raid night recorded by officers in the raid, synced through the guild store, attendance table with alts counted for their main.
+- Done: loot sessions with responses, council votes, awards, group chat announcements and shared history, items captured from the loot window.
 - Raid builder with group assignments and role balance.
-- Loot session module: tradable items, responses, council votes, award, history, trade helper. Soft reserve import from softres.it.
+- Loot: trade helper, soft reserve import from softres.it, auto pass for unusable items.
 - Consumable and gear readiness overview using inspect data outside combat.
 - Calendar export of raid nights into the Blizzard calendar.
 

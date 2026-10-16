@@ -119,6 +119,32 @@ function Comm:Whisper(target, tag, payload, prio)
     return self:Send(tag, payload, prio, TG.Address(target))
 end
 
+-- Group messages go to the raid or party and are accepted from anyone in
+-- the group, guild member or not.
+function Comm:SendGroup(tag, payload, prio)
+    if not IsInGroup() then return false end
+    local chatType = IsInRaid() and "RAID" or "PARTY"
+    local body = encode(payload)
+    local head = TG.protocol .. SEP .. tag .. SEP
+    if #head + #body <= MAX_MESSAGE then
+        dispatchRaw(head .. body, chatType, nil, prio)
+        return true
+    end
+    seq = (seq % 99999) + 1
+    local i = 1
+    local pieces = {}
+    while i <= #body do
+        local j = utf8Cut(body, i, math.min(i + CHUNK_SIZE - 1, #body))
+        pieces[#pieces + 1] = body:sub(i, j)
+        i = j + 1
+    end
+    if #pieces > MAX_CHUNKS then return false end
+    for idx, piece in ipairs(pieces) do
+        dispatchRaw(TG.protocol .. SEP .. "K" .. SEP .. ("%d:%d:%d:%s"):format(seq, idx, #pieces, tag) .. SEP .. piece, chatType, nil, prio or "BULK")
+    end
+    return true
+end
+
 local function deliver(tag, sender, data, channel)
     local list = handlers[tag]
     if not list then return end
@@ -162,7 +188,8 @@ end
 local function onAddonMessage(_, prefix, text, channel, sender)
     if prefix ~= TG.prefix then return end
     if not TG.usable(text) or not TG.usable(sender) then return end
-    if channel ~= "GUILD" and channel ~= "WHISPER" then return end
+    local group = channel == "RAID" or channel == "PARTY"
+    if channel ~= "GUILD" and channel ~= "WHISPER" and not group then return end
     local key = TG.StripRealm(sender)
     if not key then return end
     Comm.stats.received = Comm.stats.received + 1
@@ -190,7 +217,12 @@ local function onAddonMessage(_, prefix, text, channel, sender)
 
     if TG.IsMe(key) then return end
     if proto ~= TG.protocol then Comm.stats.ignored = Comm.stats.ignored + 1 return end
-    if not senderAllowed(key) then Comm.stats.ignored = Comm.stats.ignored + 1 return end
+    if group then
+        if not TG.InGroup(key) then Comm.stats.ignored = Comm.stats.ignored + 1 return end
+    elseif not senderAllowed(key) then
+        Comm.stats.ignored = Comm.stats.ignored + 1
+        return
+    end
     if peers[key] then peers[key].seen = GetTime() end
 
     if tag == "K" then
