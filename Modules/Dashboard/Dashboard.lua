@@ -15,6 +15,7 @@ local LOG_FILTERS = {
     { "guild", L["Guild changes"], { joined = true, left = true, rejoined = true, rank = true, note = true } },
     { "level", L["Level ups"], { level = true } },
     { "death", L["Deaths"], { death = true } },
+    { "found", L["Loot finds"], { found = true } },
     { "cta", L["Call to Arms"], { cta = true } },
 }
 

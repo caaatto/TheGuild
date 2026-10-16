@@ -9,12 +9,19 @@ local Loot = TG:NewModule("Loot", {
     title = L["Loot"],
     desc = L["Loot sessions with responses, council votes and a shared history."],
     order = 27,
-    defaults = { autoAdd = true, minQuality = 3, announce = true },
+    defaults = { autoAdd = true, minQuality = 3, announce = true, findShare = true, findChat = true, findQuality = 3, findBopOnly = false },
     settings = {
+        { type = "header", name = L["Loot session"] },
         { key = "autoAdd", type = "boolean", name = L["Add loot from the loot window to the session"], tooltip = L["Only while you lead the group."], default = true },
         { key = "minQuality", type = "select", name = L["Minimum quality"], default = 3,
           options = { { 2, ITEM_QUALITY2_DESC or "Uncommon" }, { 3, ITEM_QUALITY3_DESC or "Rare" }, { 4, ITEM_QUALITY4_DESC or "Epic" } } },
         { key = "announce", type = "boolean", name = L["Announce awards in group chat"], default = true },
+        { type = "header", name = L["Guild finds"] },
+        { key = "findShare", type = "boolean", name = L["Tell the guild when I find a rare or better item"], default = true },
+        { key = "findChat", type = "boolean", name = L["Show finds of guild members in chat"], default = true },
+        { key = "findQuality", type = "select", name = L["Minimum quality for finds"], default = 3,
+          options = { { 3, ITEM_QUALITY3_DESC or "Rare" }, { 4, ITEM_QUALITY4_DESC or "Epic" } } },
+        { key = "findBopOnly", type = "boolean", name = L["Only report bind on pickup items"], default = false },
     },
 })
 
@@ -273,6 +280,7 @@ function Loot:OnEnable()
     self:RegisterComm("LA", "OnAward")
     self:RegisterComm("LE", "OnEnd")
     self:RegisterEvent("LOOT_OPENED", "OnLootOpened")
+    self.Finds:Enable(self)
     self:RegisterEvent("GROUP_LEFT", function() if self.session then self.session = nil TG:Fire("LOOT_SESSION") self.Frames:Hide() end end)
 end
 

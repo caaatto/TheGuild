@@ -8,7 +8,7 @@ TG.Log = Log
 
 local MAX_ENTRIES = 500
 
-Log.KINDS = { "online", "offline", "joined", "left", "rejoined", "renamed", "level", "rank", "death", "cta", "note", "raid" }
+Log.KINDS = { "online", "offline", "joined", "left", "rejoined", "renamed", "level", "rank", "death", "cta", "note", "raid", "found" }
 
 local function entries()
     local g = TG:GuildDB()
@@ -55,6 +55,12 @@ function Log:Text(item)
     if kind == "cta" then return L["%s calls to arms in %s"]:format(colored, item.zone or "") end
     if kind == "note" then return L["Note of %s changed"]:format(colored) end
     if kind == "renamed" then return L["%s was renamed to %s"]:format(item.from or "?", colored) end
+    if kind == "found" then
+        local text = L["%s found %s"]:format(colored, item.link or "?")
+        local bind = TG:GetModule("Loot") and TG:GetModule("Loot").Finds and TG:GetModule("Loot").Finds.BindText(item.bind)
+        if bind then text = text .. " (" .. bind .. ")" end
+        return text
+    end
     if kind == "raid" then return L["Raid night recorded with %d members"]:format(item.count or 0) end
     return colored
 end

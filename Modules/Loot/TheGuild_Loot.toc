@@ -10,5 +10,6 @@
 ## IconTexture: Interface\Icons\INV_Misc_Bag_10_Blue
 
 Loot.lua
+Finds.lua
 Frames.lua
 Panel.lua
