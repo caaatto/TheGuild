@@ -5,6 +5,8 @@ local NS_TEAM = "team"
 local NS_ATT = "att"
 local MAX_TEAMS = 9
 local PARTY_LIMIT = 5
+local GROUP_SIZE = 5
+local LFG_ROLE = { TANK = "T", HEALER = "H", DAMAGER = "D" }
 
 local Raids = TG:NewModule("Raids", {
     title = L["Raids"],
@@ -27,7 +29,7 @@ function Raids:Teams()
     for id, item in pairs(TG.Store:Items(NS_TEAM)) do
         local v = item.v
         if type(v) == "table" then
-            out[#out + 1] = { id = id, name = v.n or id, size = v.s or 20, members = v.m or {} }
+            out[#out + 1] = { id = id, name = v.n or id, size = v.s or 20, members = v.m or {}, groups = v.g or {} }
         end
     end
     table.sort(out, function(a, b) return a.name < b.name end)
@@ -37,7 +39,7 @@ end
 function Raids:Team(id)
     local v = TG.Store:Get(NS_TEAM, id)
     if type(v) ~= "table" then return nil end
-    return { id = id, name = v.n or id, size = v.s or 20, members = v.m or {} }
+    return { id = id, name = v.n or id, size = v.s or 20, members = v.m or {}, groups = v.g or {} }
 end
 
 function Raids:CanEdit()
@@ -53,7 +55,7 @@ function Raids:CreateTeam(name, size)
 end
 
 local function save(team)
-    return TG.Store:Set(NS_TEAM, team.id, { n = team.name, s = team.size, m = team.members })
+    return TG.Store:Set(NS_TEAM, team.id, { n = team.name, s = team.size, m = team.members, g = team.groups })
 end
 
 function Raids:RenameTeam(id, name)
@@ -90,10 +92,168 @@ function Raids:RemoveMember(id, key)
     for i, m in ipairs(team.members) do
         if m == key then
             table.remove(team.members, i)
+            team.groups[key] = nil
             return save(team)
         end
     end
     return false
+end
+
+
+-- Raid builder
+
+function Raids:GroupCount(team)
+    return math.max(1, math.floor(team.size / GROUP_SIZE))
+end
+
+-- Roles come from what members set for themselves, with the raid assignment as fallback.
+function Raids:Roles(team)
+    local raidRoles = {}
+    if IsInRaid() and UnitGroupRolesAssigned then
+        local n = GetNumGroupMembers()
+        for i = 1, (TG.usable(n) and n or 0) do
+            local name = GetRaidRosterInfo(i)
+            local lfg = UnitGroupRolesAssigned("raid" .. i)
+            if TG.usable(name) and TG.usable(lfg) then raidRoles[TG.StripRealm(name)] = LFG_ROLE[lfg] end
+        end
+    end
+    local roles = {}
+    for _, key in ipairs(team.members) do
+        roles[key] = TG.Store:Get("role", key) or raidRoles[key]
+    end
+    return roles
+end
+
+function Raids:Layout(team)
+    local groups = {}
+    for g = 1, self:GroupCount(team) do groups[g] = {} end
+    local unassigned = {}
+    for _, key in ipairs(team.members) do
+        local g = team.groups[key]
+        if g and groups[g] and #groups[g] < GROUP_SIZE then
+            groups[g][#groups[g] + 1] = key
+        else
+            unassigned[#unassigned + 1] = key
+        end
+    end
+    return groups, unassigned
+end
+
+function Raids:RoleCounts(keys, roles)
+    local counts = { T = 0, H = 0, D = 0, N = 0 }
+    for _, key in ipairs(keys) do
+        local role = roles[key]
+        if not counts[role] then role = "N" end
+        counts[role] = counts[role] + 1
+    end
+    return counts
+end
+
+function Raids:Assign(id, key, group)
+    local team = self:Team(id)
+    if not team then return false end
+    local inTeam = false
+    for _, m in ipairs(team.members) do if m == key then inTeam = true end end
+    if not inTeam then return false end
+    if group then
+        if group < 1 or group > self:GroupCount(team) then return false end
+        local groups = self:Layout(team)
+        if #groups[group] >= GROUP_SIZE and team.groups[key] ~= group then return false end
+    end
+    team.groups[key] = group
+    return save(team)
+end
+
+function Raids:ClearLayout(id)
+    local team = self:Team(id)
+    if not team then return false end
+    team.groups = {}
+    return save(team)
+end
+
+-- Places unassigned members so that tanks and healers spread evenly across groups.
+function Raids:AutoFill(id)
+    local team = self:Team(id)
+    if not team then return false end
+    local groups, unassigned = self:Layout(team)
+    if #unassigned == 0 then return false end
+    local roles = self:Roles(team)
+    local order = { T = 1, H = 2, D = 3 }
+    table.sort(unassigned, function(a, b)
+        local ra, rb = order[roles[a]] or 4, order[roles[b]] or 4
+        if ra ~= rb then return ra < rb end
+        return a < b
+    end)
+    local changed = false
+    for _, key in ipairs(unassigned) do
+        local role = roles[key]
+        local best, bestScore
+        for g, members in ipairs(groups) do
+            if #members < GROUP_SIZE then
+                local counts = self:RoleCounts(members, roles)
+                local score = (role and counts[role] or 0) * 100 + #members
+                if not bestScore or score < bestScore then best, bestScore = g, score end
+            end
+        end
+        if not best then break end
+        groups[best][#groups[best] + 1] = key
+        team.groups[key] = best
+        changed = true
+    end
+    return changed and save(team)
+end
+
+-- Moves raid members into their planned subgroups. The server applies moves
+-- asynchronously, so the panel calls this again on the next roster update.
+function Raids:ApplyLayout(id, continuing)
+    local team = self:Team(id)
+    if not team or not IsInRaid() or not TG.IsGroupLead() or not SetRaidSubgroup then return 0 end
+    local n = GetNumGroupMembers()
+    if not TG.usable(n) then return 0 end
+    local index, current, filled = {}, {}, {}
+    for i = 1, n do
+        local name, _, subgroup = GetRaidRosterInfo(i)
+        if TG.usable(name) and TG.usable(subgroup) then
+            local key = TG.StripRealm(name)
+            index[key] = i
+            current[key] = subgroup
+            filled[subgroup] = (filled[subgroup] or 0) + 1
+        end
+    end
+    local moves = 0
+    for _, key in ipairs(team.members) do
+        local target = team.groups[key]
+        local i = index[key]
+        if target and i and current[key] ~= target then
+            if (filled[target] or 0) < GROUP_SIZE then
+                SetRaidSubgroup(i, target)
+                filled[target] = (filled[target] or 0) + 1
+                filled[current[key]] = filled[current[key]] - 1
+                current[key] = target
+                moves = moves + 1
+            elseif SwapRaidSubgroup then
+                for other, g in pairs(current) do
+                    if g == target and team.groups[other] ~= target then
+                        SwapRaidSubgroup(i, index[other])
+                        current[other], current[key] = current[key], target
+                        moves = moves + 1
+                        break
+                    end
+                end
+            end
+        end
+    end
+    if moves > 0 and not continuing then
+        self.applying = { id = id, passes = 3 }
+    end
+    return moves
+end
+
+function Raids:ContinueApply()
+    local a = self.applying
+    if not a then return end
+    a.passes = a.passes - 1
+    if a.passes <= 0 or self:ApplyLayout(a.id, true) == 0 then self.applying = nil end
 end
 
 -- Invites
@@ -229,6 +389,6 @@ function Raids:Attendance(limit)
 end
 
 function Raids:OnEnable()
-    self:RegisterEvent("GROUP_ROSTER_UPDATE", function() sendInvites() end)
+    self:RegisterEvent("GROUP_ROSTER_UPDATE", function() sendInvites() self:ContinueApply() end)
     self:Ticker(60 * self.db.snapshotMinutes, function() self:Snapshot() end)
 end

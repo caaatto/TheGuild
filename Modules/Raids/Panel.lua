@@ -7,7 +7,20 @@ local SIZES = { 10, 20, 40 }
 
 local selectedTeam
 local pickerText = ""
-local view = "teams"
+Raids.view = "teams"
+
+local VIEWS = { { "teams", L["Teams"] }, { "builder", L["Raid builder"] }, { "attendance", L["Attendance"] } }
+
+local function viewName()
+    for _, v in ipairs(VIEWS) do if v[1] == Raids.view then return v[2] end end
+    return ""
+end
+
+local function roleIcon(role)
+    local markup = TG.RoleIconMarkup(role, 12)
+    if markup == "" then return TG.ROLE_NAMES[role]:sub(1, 1) end
+    return markup
+end
 
 local function build(panel)
     local teamDropdown = UI.Dropdown(panel, 170, function(_, root)
@@ -70,11 +83,15 @@ local function build(panel)
     end)
     invite:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
 
-    local toggle = UI.Button(panel, L["Attendance"], 110, function()
-        view = view == "teams" and "attendance" or "teams"
-        panel:OnShow()
+    local viewDropdown = UI.Dropdown(panel, 130, function(_, root)
+        for _, v in ipairs(VIEWS) do
+            root:CreateRadio(v[2], function() return Raids.view == v[1] end, function()
+                Raids.view = v[1]
+                panel:OnShow()
+            end)
+        end
     end)
-    toggle:SetPoint("RIGHT", invite, "LEFT", -6, 0)
+    viewDropdown:SetPoint("RIGHT", invite, "LEFT", -6, 0)
 
     -- team members
     local membersFrame = CreateFrame("Frame", nil, panel)
@@ -138,6 +155,158 @@ local function build(panel)
         end,
     })
 
+    -- raid builder
+    local builderFrame = CreateFrame("Frame", nil, panel)
+    builderFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
+    builderFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
+    local builderHint = UI.Label(builderFrame, L["Click a slot to place a member, right click to clear it."], "GameFontDisableSmall")
+    builderHint:SetPoint("TOPLEFT", builderFrame, "TOPLEFT", 8, -2)
+
+    local BOX_W, BOX_GAP, SLOT_H, COLS = 143, 4, 20, 4
+    local BOX_H = SLOT_H * 6 + 8
+    local boxes = {}
+    local builderRoles, builderFree = {}, {}
+
+    local function memberText(key)
+        local e = TG.Roster:Get(key)
+        local short = TG.ShortName(key)
+        local name = (e and e.online) and TG.ClassText(e.classFile, short) or GRAY_FONT_COLOR:WrapTextInColorCode(short)
+        local role = builderRoles[key]
+        return (role and (roleIcon(role) .. " ") or "") .. name
+    end
+
+    local function slotMenu(slot)
+        if not Raids:CanEdit() or not selectedTeam then return end
+        MenuUtil.CreateContextMenu(slot, function(_, root)
+            root:SetTag("MENU_THEGUILD_RAID_SLOT")
+            root:CreateTitle(L["Group %d"]:format(slot.group))
+            if slot.key then
+                root:CreateButton(L["Clear slot"], function() Raids:Assign(selectedTeam, slot.key, nil) panel:OnShow() end)
+            end
+            if #builderFree > 16 then root:SetScrollMode(16 * 20) end
+            for _, key in ipairs(builderFree) do
+                root:CreateButton(memberText(key), function()
+                    if slot.key then Raids:Assign(selectedTeam, slot.key, nil) end
+                    Raids:Assign(selectedTeam, key, slot.group)
+                    panel:OnShow()
+                end)
+            end
+        end)
+    end
+
+    local function createBox(g)
+        local box = UI.Inset(builderFrame)
+        box:SetSize(BOX_W, BOX_H)
+        local col, row = (g - 1) % COLS, math.floor((g - 1) / COLS)
+        box:SetPoint("TOPLEFT", builderFrame, "TOPLEFT", 8 + col * (BOX_W + BOX_GAP), -20 - row * (BOX_H + 6))
+        box.title = UI.Label(box, L["Group %d"]:format(g), "GameFontNormalSmall")
+        box.title:SetPoint("TOPLEFT", box, "TOPLEFT", 6, -6)
+        box.counts = UI.Label(box, "", "GameFontHighlightSmall", "RIGHT")
+        box.counts:SetPoint("TOPRIGHT", box, "TOPRIGHT", -6, -6)
+        box.slots = {}
+        for i = 1, 5 do
+            local slot = CreateFrame("Button", nil, box)
+            slot:SetSize(BOX_W - 8, SLOT_H - 2)
+            slot:SetPoint("TOPLEFT", box, "TOPLEFT", 4, -(SLOT_H + 4) - (i - 1) * SLOT_H)
+            slot:SetHighlightTexture("Interface\\Buttons\\WHITE8X8")
+            slot:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.08)
+            slot:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+            slot.text = UI.Cell(slot, BOX_W - 14)
+            slot.text:SetPoint("LEFT", slot, "LEFT", 3, 0)
+            slot.group = g
+            slot:SetScript("OnClick", function(self, mouse)
+                if mouse == "RightButton" then
+                    if self.key and Raids:CanEdit() then Raids:Assign(selectedTeam, self.key, nil) panel:OnShow() end
+                else
+                    slotMenu(self)
+                end
+            end)
+            UI.Tooltip(slot, function(tooltip, self)
+                local e = self.key and TG.Roster:Get(self.key)
+                if e then UI.MemberTooltip(tooltip, e) else GameTooltip_SetTitle(tooltip, L["Free slot"]) end
+            end)
+            box.slots[i] = slot
+        end
+        return box
+    end
+
+    local freeFrame = CreateFrame("Frame", nil, builderFrame)
+    freeFrame:SetPoint("TOPLEFT", builderFrame, "TOPLEFT", 12 + COLS * (BOX_W + BOX_GAP), -2)
+    freeFrame:SetPoint("BOTTOMRIGHT", builderFrame, "BOTTOMRIGHT", 0, 34)
+    local freeTitle = UI.Label(freeFrame, L["Unassigned"], "GameFontNormal")
+    freeTitle:SetPoint("TOPLEFT", freeFrame, "TOPLEFT", 8, 0)
+    local freeListFrame = CreateFrame("Frame", nil, freeFrame)
+    freeListFrame:SetPoint("TOPLEFT", freeFrame, "TOPLEFT", 0, -18)
+    freeListFrame:SetPoint("BOTTOMRIGHT", freeFrame, "BOTTOMRIGHT", 0, 0)
+    local freeList = UI.List(freeListFrame, 20, function(button, key)
+        button.key = key
+        button.text:SetText(memberText(key))
+    end, {
+        buildRow = function(button)
+            button.text = UI.Cell(button, 180)
+            button.text:SetPoint("LEFT", button, "LEFT", 6, 0)
+            button.text:SetPoint("RIGHT", button, "RIGHT", -4, 0)
+            button:SetScript("OnClick", function(self, mouse)
+                local e = TG.Roster:Get(self.key)
+                if e and mouse == "RightButton" then UI.MemberMenu(self, e) end
+            end)
+            UI.Tooltip(button, function(tooltip, self)
+                local e = TG.Roster:Get(self.key)
+                if e then UI.MemberTooltip(tooltip, e) end
+            end)
+        end,
+    })
+
+    local builderSummary = UI.Label(builderFrame, "", "GameFontHighlightSmall")
+    builderSummary:SetPoint("BOTTOMLEFT", builderFrame, "BOTTOMLEFT", 10, 10)
+    local apply = UI.Button(builderFrame, L["Apply to raid"], 160, function()
+        if not selectedTeam then return end
+        TG:Print(L["%d members moved."], Raids:ApplyLayout(selectedTeam))
+    end)
+    apply:SetPoint("BOTTOMRIGHT", builderFrame, "BOTTOMRIGHT", -8, 6)
+    UI.Tooltip(apply, function(tooltip)
+        GameTooltip_SetTitle(tooltip, L["Apply to raid"])
+        GameTooltip_AddNormalLine(tooltip, L["Moves raid members into the planned groups. You need to lead the raid."], true)
+    end)
+    local clearLayout = UI.Button(builderFrame, L["Clear layout"], 120, function()
+        if selectedTeam then Raids:ClearLayout(selectedTeam) panel:OnShow() end
+    end)
+    clearLayout:SetPoint("RIGHT", apply, "LEFT", -6, 0)
+    local autoFill = UI.Button(builderFrame, L["Auto fill"], 120, function()
+        if selectedTeam then Raids:AutoFill(selectedTeam) panel:OnShow() end
+    end)
+    autoFill:SetPoint("RIGHT", clearLayout, "LEFT", -6, 0)
+
+    local function showBuilder(team, canEdit)
+        builderRoles = team and Raids:Roles(team) or {}
+        local groups, free = {}, {}
+        if team then groups, free = Raids:Layout(team) end
+        builderFree = free
+        local count = team and Raids:GroupCount(team) or 0
+        for g = 1, math.max(count, #boxes) do
+            if g <= count then
+                boxes[g] = boxes[g] or createBox(g)
+                local box = boxes[g]
+                box:Show()
+                local members = groups[g]
+                local c = Raids:RoleCounts(members, builderRoles)
+                box.counts:SetText(("%s%d %s%d %s%d"):format(roleIcon("T"), c.T, roleIcon("H"), c.H, roleIcon("D"), c.D))
+                for i, slot in ipairs(box.slots) do
+                    slot.key = members[i]
+                    slot.text:SetText(slot.key and memberText(slot.key) or GRAY_FONT_COLOR:WrapTextInColorCode("..."))
+                end
+            else
+                boxes[g]:Hide()
+            end
+        end
+        freeList:SetData(free)
+        local total = Raids:RoleCounts(team and team.members or {}, builderRoles)
+        builderSummary:SetText(("%s %d   %s %d   %s %d   %s %d"):format(L["Tank"], total.T, L["Healer"], total.H, L["Damage"], total.D, L["No role"], total.N))
+        autoFill:SetShown(canEdit and team ~= nil)
+        clearLayout:SetShown(canEdit and team ~= nil)
+        apply:SetEnabled(team ~= nil and IsInRaid() and TG.IsGroupLead())
+    end
+
     -- attendance
     local attendanceFrame = CreateFrame("Frame", nil, panel)
     attendanceFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
@@ -190,14 +359,14 @@ local function build(panel)
         sizeDropdown:SetShown(canEdit and team ~= nil)
         delete:SetShown(canEdit and team ~= nil)
         invite:SetEnabled(team ~= nil)
-        toggle:SetText(view == "teams" and L["Attendance"] or L["Teams"])
+        viewDropdown:SetDefaultText(viewName())
+        local view = Raids.view
+        membersFrame:SetShown(view == "teams")
+        pickerFrame:SetShown(view == "teams" and canEdit and team ~= nil)
+        builderFrame:SetShown(view == "builder")
+        attendanceFrame:SetShown(view == "attendance")
 
-        local showTeams = view == "teams"
-        membersFrame:SetShown(showTeams)
-        pickerFrame:SetShown(showTeams and canEdit and team ~= nil)
-        attendanceFrame:SetShown(not showTeams)
-
-        if showTeams then
+        if view == "teams" then
             membersTitle:SetText(team and ("%s: %d / %d"):format(L["Team members"], #team.members, team.size) or L["Team members"])
             members:SetData(team and team.members or {})
             local candidates = {}
@@ -212,6 +381,8 @@ local function build(panel)
                 end
             end
             picker:SetData(candidates)
+        elseif view == "builder" then
+            showBuilder(team, canEdit)
         else
             local rows, days = Raids:Attendance(Raids.db.attendanceDays)
             for _, row in ipairs(rows) do row.allDays = days end
@@ -222,6 +393,7 @@ local function build(panel)
 
     TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "team" or ns == "att" or ns == "role") then panel:OnShow() end end, Raids)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Raids)
+    TG:RegisterEvent("GROUP_ROSTER_UPDATE", function() if panel:IsShown() and Raids.view == "builder" then panel:OnShow() end end, Raids)
 end
 
 TG.Window:RegisterTab("raids", L["Raids"], build, 25)
