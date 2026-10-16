@@ -33,6 +33,7 @@ The module folders live under `TheGuild/Modules/`. Release packages (see `.pkgme
 - Settings panel under Options > AddOns > TheGuild.
 - Minimap button (LibDBIcon) and addon compartment entry.
 - Key bindings for the window, call to arms and position sharing.
+- Keyboard: Escape closes the window, Ctrl + Tab and Ctrl + Shift + Tab switch tabs, Ctrl + F jumps to the search field of the current tab. With a gamepad the shoulder buttons switch tabs. Keys fall through to the game and are released in combat.
 
 ## Commands
 
@@ -45,6 +46,7 @@ The module folders live under `TheGuild/Modules/`. Release packages (see `.pkgme
 /tg sync         request a data sync
 /tg comms        communication statistics
 /tg version      versions of guild members running the addon
+/tg memory       memory of the addon and size of the shared data
 /tg help         list of commands
 ```
 

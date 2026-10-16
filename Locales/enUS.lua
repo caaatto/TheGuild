@@ -373,6 +373,13 @@ L["Ctrl + right click on the world map places a shared guild pin."] = "Ctrl + ri
 L["Officers edit public notes, raid teams, loot history and the candidate list. Everyone else sees them."] = "Officers edit public notes, raid teams, loot history and the candidate list. Everyone else sees them."
 L["Every module is its own addon in the AddOn list and can be disabled there or in the settings."] = "Every module is its own addon in the AddOn list and can be disabled there or in the settings."
 L["Shared data lives only on the clients of guild members with the addon. Nothing is written into the guild itself."] = "Shared data lives only on the clients of guild members with the addon. Nothing is written into the guild itself."
+
+L["Memory"] = "Memory"
+L["memory and data usage"] = "memory and data usage"
+L["Total %s, Lua %s"] = "Total %s, Lua %s"
+L["Store: %d items in %d namespaces"] = "Store: %d items in %d namespaces"
+L["Log: %d entries, %d guilds in the database"] = "Log: %d entries, %d guilds in the database"
+L["Ctrl + Tab switches tabs, Ctrl + F jumps to the search field. Both pause in combat."] = "Ctrl + Tab switches tabs, Ctrl + F jumps to the search field. Both pause in combat."
 L["start a loot session with item links"] = "start a loot session with item links"
 L["Loot session"] = "Loot session"
 L["Loot session of %s"] = "Loot session of %s"

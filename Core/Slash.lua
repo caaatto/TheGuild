@@ -24,6 +24,7 @@ local TIPS = {
     L["Officers edit public notes, raid teams, loot history and the candidate list. Everyone else sees them."],
     L["Every module is its own addon in the AddOn list and can be disabled there or in the settings."],
     L["Shared data lives only on the clients of guild members with the addon. Nothing is written into the guild itself."],
+    L["Ctrl + Tab switches tabs, Ctrl + F jumps to the search field. Both pause in combat."],
 }
 
 function TG:HelpText()
@@ -73,6 +74,56 @@ end
 
 TG:RegisterSlash("config", function() TG:OpenSettings() end, L["open the settings"])
 TG:RegisterSlash("comms", function() TG.Comm:PrintStats() end, L["show communication statistics"])
+local function addonMemory()
+    local out, total = {}, 0
+    if not (UpdateAddOnMemoryUsage and GetAddOnMemoryUsage and C_AddOns.GetNumAddOns) then return out, total end
+    UpdateAddOnMemoryUsage()
+    for i = 1, C_AddOns.GetNumAddOns() do
+        local name = C_AddOns.GetAddOnInfo(i)
+        if type(name) == "string" and (name == TG.name or name:sub(1, #TG.name + 1) == TG.name .. "_") and C_AddOns.IsAddOnLoaded(name) then
+            local kb = GetAddOnMemoryUsage(i) or 0
+            out[#out + 1] = { name = name, kb = kb }
+            total = total + kb
+        end
+    end
+    table.sort(out, function(a, b) return a.kb > b.kb end)
+    return out, total
+end
+
+local function sizeText(kb)
+    if kb >= 1024 then return ("%.1f MB"):format(kb / 1024) end
+    return ("%d KB"):format(kb)
+end
+
+function TG:MemoryReport()
+    local lines = {}
+    local addons, total = addonMemory()
+    for _, a in ipairs(addons) do lines[#lines + 1] = ("  %s: %s"):format(a.name, sizeText(a.kb)) end
+    if #addons > 0 then lines[#lines + 1] = L["Total %s, Lua %s"]:format(sizeText(total), sizeText(collectgarbage("count"))) end
+    local counts, items, namespaces = {}, 0, 0
+    local g = TG:GuildDB()
+    for ns, list in pairs(g and g.store or {}) do
+        local n = 0
+        for _ in pairs(list) do n = n + 1 end
+        if n > 0 then
+            namespaces = namespaces + 1
+            items = items + n
+            counts[#counts + 1] = ("%s %d"):format(ns, n)
+        end
+    end
+    table.sort(counts)
+    lines[#lines + 1] = L["Store: %d items in %d namespaces"]:format(items, namespaces)
+    if #counts > 0 then lines[#lines + 1] = "  " .. table.concat(counts, ", ") end
+    local guilds = 0
+    for _ in pairs(TG.db.guilds) do guilds = guilds + 1 end
+    lines[#lines + 1] = L["Log: %d entries, %d guilds in the database"]:format(#TG.Log:Entries(), guilds)
+    return lines
+end
+
+TG:RegisterSlash("memory", function()
+    TG:Print(L["Memory"])
+    for _, line in ipairs(TG:MemoryReport()) do DEFAULT_CHAT_FRAME:AddMessage(line) end
+end, L["memory and data usage"])
 TG:RegisterSlash("sync", function()
     TG.Store:RequestSync(true)
     TG.Comm:SendHello("ALERT")

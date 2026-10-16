@@ -276,6 +276,7 @@ local function build(panel)
         panel:OnShow()
     end)
     search:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
+    panel.search = search
 
     local dropdown = UI.Dropdown(panel, 160, function(dd, root)
         root:CreateRadio(L["All professions"], function() return profFilter == nil end, function() profFilter = nil panel:OnShow() end)

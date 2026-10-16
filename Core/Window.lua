@@ -55,6 +55,33 @@ local function build()
 
     tinsert(UISpecialFrames, "TheGuildFrame")
 
+    -- Ctrl + Tab cycles the tabs, Ctrl + F jumps to the search field. Unhandled
+    -- keys fall through to the game. Propagation cannot be changed in combat,
+    -- so the keyboard is released while fighting.
+    frame:EnableKeyboard(not InCombatLockdown())
+    frame:SetPropagateKeyboardInput(true)
+    frame:SetScript("OnKeyDown", function(self, key)
+        local handled = false
+        if key == "TAB" and IsControlKeyDown() then
+            Window:StepTab(IsShiftKeyDown() and -1 or 1)
+            handled = true
+        elseif key == "F" and IsControlKeyDown() then
+            handled = Window:FocusSearch()
+        end
+        if not InCombatLockdown() then self:SetPropagateKeyboardInput(not handled) end
+    end)
+    if type(C_GamePad) == "table" and C_GamePad.IsEnabled and C_GamePad.IsEnabled() then
+        frame:EnableGamePadButton(true)
+        frame:SetScript("OnGamePadButtonDown", function(self, button)
+            local handled = false
+            if button == "PADRSHOULDER" then Window:StepTab(1) handled = true
+            elseif button == "PADLSHOULDER" then Window:StepTab(-1) handled = true end
+            if not InCombatLockdown() then self:SetPropagateKeyboardInput(not handled) end
+        end)
+    end
+    TG:RegisterEvent("PLAYER_REGEN_DISABLED", function() frame:EnableKeyboard(false) end)
+    TG:RegisterEvent("PLAYER_REGEN_ENABLED", function() frame:EnableKeyboard(true) end)
+
     local buttons = {}
     for i, tab in ipairs(tabs) do
         local button = CreateFrame("Button", "TheGuildFrameTab" .. i, frame, "PanelTabButtonTemplate")
@@ -120,6 +147,23 @@ function Window:SelectTab(index)
     tab.panel:Show()
     if tab.panel.OnShow then TG.SafeCall(tab.panel.OnShow, tab.panel) end
     TG:Fire("WINDOW_TAB", tab.id)
+end
+
+function Window:StepTab(delta)
+    if not frame or #tabs == 0 then return end
+    local current = TG.db.global.window.tab or 1
+    PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+    self:SelectTab(((current - 1 + delta) % #tabs) + 1)
+end
+
+function Window:FocusSearch()
+    if not frame then return false end
+    local tab = tabs[TG.db.global.window.tab or 1]
+    local search = tab and tab.panel and tab.panel.search
+    if not search then return false end
+    search:SetFocus()
+    search:HighlightText()
+    return true
 end
 
 function Window:ShowTab(id)

@@ -166,6 +166,7 @@ local function build(panel)
         panel:OnShow()
     end)
     search:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
+    panel.search = search
 
     local filter = UI.Dropdown(panel, 150, function(_, root)
         for _, f in ipairs(FILTERS) do
