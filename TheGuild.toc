@@ -45,4 +45,3 @@ Core\Slash.lua
 
 Modules\Dashboard\Dashboard.lua
 
-Bindings.xml
