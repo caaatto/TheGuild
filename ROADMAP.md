@@ -55,7 +55,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 
 ### 0.4 Community
 
-- In progress: guild bulletin board and polls stored in the guild store (Board module, translations and docs still open).
+- Done: guild bulletin board and polls stored in the guild store (Board module).
 - Bounties and events with sign up.
 - Guild statistics: deaths, levels, play time milestones, with opt in per member.
 - Recruitment helper: candidate list, prepared invite button (invites stay a manual click as Blizzard requires), welcome flow.
