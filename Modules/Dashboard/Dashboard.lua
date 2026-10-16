@@ -154,6 +154,11 @@ local function build(panel)
         if map and map.enabled then
             lines[#lines + 1] = ("%s: %s"):format(L["Position sharing"], map:IsSharing() and GREEN_FONT_COLOR:WrapTextInColorCode(L["Online"]) or GRAY_FONT_COLOR:WrapTextInColorCode(L["Offline"]))
         end
+        local raids = TG:GetModule("Raids")
+        local nextRaid = raids and raids.enabled and raids.NextRaid and raids:NextRaid()
+        if nextRaid then
+            lines[#lines + 1] = ("%s: %s"):format(L["Next raid"], raids:FormatRaid(nextRaid, true))
+        end
         stats:SetText(table.concat(lines, "\n"))
         local text = C_GuildInfo and C_GuildInfo.GetMOTD and C_GuildInfo.GetMOTD()
         if not TG.usable(text) and GetGuildRosterMOTD then text = GetGuildRosterMOTD() end

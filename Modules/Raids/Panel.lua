@@ -9,7 +9,7 @@ local selectedTeam
 local pickerText = ""
 Raids.view = "teams"
 
-local VIEWS = { { "teams", L["Teams"] }, { "builder", L["Raid builder"] }, { "attendance", L["Attendance"] } }
+local VIEWS = { { "teams", L["Teams"] }, { "builder", L["Raid builder"] }, { "schedule", L["Schedule"] }, { "attendance", L["Attendance"] } }
 
 local function viewName()
     for _, v in ipairs(VIEWS) do if v[1] == Raids.view then return v[2] end end
@@ -307,6 +307,109 @@ local function build(panel)
         apply:SetEnabled(team ~= nil and IsInRaid() and TG.IsGroupLead())
     end
 
+    -- schedule
+    local scheduleFrame = CreateFrame("Frame", nil, panel)
+    scheduleFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
+    scheduleFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
+    local daysTitle = UI.Label(scheduleFrame, L["Raid days"], "GameFontNormal")
+    daysTitle:SetPoint("TOPLEFT", scheduleFrame, "TOPLEFT", 8, -2)
+    local serverHint = UI.Label(scheduleFrame, L["Times are server time."], "GameFontDisableSmall")
+    serverHint:SetPoint("LEFT", daysTitle, "RIGHT", 10, 0)
+
+    local newDay = { w = 5, h = 20, m = 0 }
+    local dayDropdown = UI.Dropdown(scheduleFrame, 130, function(_, root)
+        for i = 1, 7 do
+            local wday = i % 7 + 1
+            root:CreateRadio(Raids:WeekdayName(wday), function() return newDay.w == wday end, function() newDay.w = wday panel:OnShow() end)
+        end
+    end)
+    dayDropdown:SetPoint("TOPLEFT", daysTitle, "BOTTOMLEFT", 0, -6)
+    local hourDropdown = UI.Dropdown(scheduleFrame, 64, function(_, root)
+        for h = 0, 23 do
+            root:CreateRadio(("%02d"):format(h), function() return newDay.h == h end, function() newDay.h = h panel:OnShow() end)
+        end
+    end)
+    hourDropdown:SetPoint("LEFT", dayDropdown, "RIGHT", 4, 0)
+    local minuteDropdown = UI.Dropdown(scheduleFrame, 64, function(_, root)
+        for _, m in ipairs({ 0, 15, 30, 45 }) do
+            root:CreateRadio(("%02d"):format(m), function() return newDay.m == m end, function() newDay.m = m panel:OnShow() end)
+        end
+    end)
+    minuteDropdown:SetPoint("LEFT", hourDropdown, "RIGHT", 4, 0)
+    local addDay = UI.Button(scheduleFrame, L["Add"], 80, function()
+        if selectedTeam then Raids:AddRaidDay(selectedTeam, newDay.w, newDay.h, newDay.m) panel:OnShow() end
+    end)
+    addDay:SetPoint("LEFT", minuteDropdown, "RIGHT", 6, 0)
+
+    local daysListFrame = CreateFrame("Frame", nil, scheduleFrame)
+    daysListFrame:SetPoint("TOPLEFT", scheduleFrame, "TOPLEFT", 0, -52)
+    daysListFrame:SetPoint("BOTTOMRIGHT", scheduleFrame, "BOTTOM", -4, 0)
+    local noDays = UI.Label(daysListFrame, L["No raid days yet."], "GameFontDisableSmall", "CENTER")
+    noDays:SetPoint("CENTER")
+    local daysList = UI.List(daysListFrame, 22, function(button, row)
+        button.index = row.index
+        button.text:SetText(("%s %02d:%02d"):format(Raids:WeekdayName(row.w), row.h, row.m))
+        button.remove:SetShown(Raids:CanEdit())
+    end, {
+        buildRow = function(button)
+            button.text = UI.Cell(button, 240)
+            button.text:SetPoint("LEFT", button, "LEFT", 6, 0)
+            button.remove = UI.Button(button, REMOVE, 70, function() Raids:RemoveRaidDay(selectedTeam, button.index) panel:OnShow() end)
+            button.remove:SetPoint("RIGHT", button, "RIGHT", -4, 0)
+        end,
+    })
+
+    local upcomingTitle = UI.Label(scheduleFrame, L["Upcoming raid nights"], "GameFontNormal")
+    upcomingTitle:SetPoint("TOPLEFT", scheduleFrame, "TOP", 8, -2)
+    local export = UI.Button(scheduleFrame, L["Export to calendar"], 180, function()
+        if not selectedTeam then return end
+        local created, existing = Raids:ExportCalendar(selectedTeam, Raids.db.calendarWeeks)
+        TG:Print(L["%d events created, %d already existed."], created, existing)
+        panel:OnShow()
+    end)
+    export:SetPoint("TOPRIGHT", scheduleFrame, "TOPRIGHT", -8, 0)
+    UI.Tooltip(export, function(tooltip)
+        GameTooltip_SetTitle(tooltip, L["Export to calendar"])
+        GameTooltip_AddNormalLine(tooltip, L["Creates guild sign up events for the next weeks. Existing events are kept."], true)
+    end)
+    local upcomingListFrame = CreateFrame("Frame", nil, scheduleFrame)
+    upcomingListFrame:SetPoint("TOPLEFT", scheduleFrame, "TOP", 0, -28)
+    upcomingListFrame:SetPoint("BOTTOMRIGHT", scheduleFrame, "BOTTOMRIGHT", 0, 0)
+    local upcomingList = UI.List(upcomingListFrame, 22, function(button, r)
+        button.text:SetText(Raids:FormatRaid(r))
+        button.status:SetText(r.inCalendar and GREEN_FONT_COLOR:WrapTextInColorCode(L["in calendar"]) or "")
+    end, {
+        buildRow = function(button)
+            button.text = UI.Cell(button, 240)
+            button.text:SetPoint("LEFT", button, "LEFT", 6, 0)
+            button.status = UI.Cell(button, 120, "RIGHT")
+            button.status:SetPoint("RIGHT", button, "RIGHT", -8, 0)
+        end,
+    })
+
+    local calendarRequested = false
+    local function showSchedule(team, canEdit)
+        if not calendarRequested and C_Calendar and C_Calendar.OpenCalendar then
+            calendarRequested = true
+            C_Calendar.OpenCalendar()
+        end
+        dayDropdown:SetDefaultText(Raids:WeekdayName(newDay.w))
+        hourDropdown:SetDefaultText(("%02d"):format(newDay.h))
+        minuteDropdown:SetDefaultText(("%02d"):format(newDay.m))
+        local editing = canEdit and team ~= nil
+        dayDropdown:SetShown(editing)
+        hourDropdown:SetShown(editing)
+        minuteDropdown:SetShown(editing)
+        addDay:SetShown(editing)
+        local days = team and Raids:Schedule(team) or {}
+        noDays:SetShown(#days == 0)
+        daysList:SetData(days)
+        local upcoming = team and Raids:Upcoming(team, Raids.db.calendarWeeks) or {}
+        for _, r in ipairs(upcoming) do r.inCalendar = Raids:InCalendar(r) end
+        upcomingList:SetData(upcoming)
+        export:SetEnabled(#upcoming > 0 and Raids:CanExport())
+    end
+
     -- attendance
     local attendanceFrame = CreateFrame("Frame", nil, panel)
     attendanceFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
@@ -364,6 +467,7 @@ local function build(panel)
         membersFrame:SetShown(view == "teams")
         pickerFrame:SetShown(view == "teams" and canEdit and team ~= nil)
         builderFrame:SetShown(view == "builder")
+        scheduleFrame:SetShown(view == "schedule")
         attendanceFrame:SetShown(view == "attendance")
 
         if view == "teams" then
@@ -383,6 +487,8 @@ local function build(panel)
             picker:SetData(candidates)
         elseif view == "builder" then
             showBuilder(team, canEdit)
+        elseif view == "schedule" then
+            showSchedule(team, canEdit)
         else
             local rows, days = Raids:Attendance(Raids.db.attendanceDays)
             for _, row in ipairs(rows) do row.allDays = days end
@@ -394,6 +500,7 @@ local function build(panel)
     TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "team" or ns == "att" or ns == "role") then panel:OnShow() end end, Raids)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Raids)
     TG:RegisterEvent("GROUP_ROSTER_UPDATE", function() if panel:IsShown() and Raids.view == "builder" then panel:OnShow() end end, Raids)
+    TG:RegisterEvent("CALENDAR_UPDATE_EVENT_LIST", function() if panel:IsShown() and Raids.view == "schedule" then panel:OnShow() end end, Raids)
 end
 
 TG.Window:RegisterTab("raids", L["Raids"], build, 25)

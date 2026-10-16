@@ -51,7 +51,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Done: raid builder with group assignments per team, role counts, auto fill and apply to the live raid.
 - Loot: trade helper, soft reserve import from softres.it, auto pass for unusable items.
 - Consumable and gear readiness overview using inspect data outside combat.
-- Calendar export of raid nights into the Blizzard calendar.
+- Done: raid days per team, upcoming raid nights, export as guild sign up events into the Blizzard calendar.
 
 ### 0.4 Community
 

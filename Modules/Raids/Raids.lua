@@ -10,12 +10,13 @@ local LFG_ROLE = { TANK = "T", HEALER = "H", DAMAGER = "D" }
 
 local Raids = TG:NewModule("Raids", {
     title = L["Raids"],
-    desc = L["Raid teams with one click invites and attendance tracking."],
+    desc = L["Raid teams with invites, raid builder, schedule with calendar export and attendance tracking."],
     order = 25,
-    defaults = { snapshotMinutes = 5, attendanceDays = 10 },
+    defaults = { snapshotMinutes = 5, attendanceDays = 10, calendarWeeks = 4 },
     settings = {
         { key = "snapshotMinutes", type = "number", name = L["Attendance snapshot every (minutes)"], default = 5, min = 1, max = 15, step = 1 },
         { key = "attendanceDays", type = "number", name = L["Raid nights shown in attendance"], default = 10, min = 3, max = 30, step = 1 },
+        { key = "calendarWeeks", type = "number", name = L["Weeks to export into the calendar"], default = 4, min = 1, max = 8, step = 1 },
     },
 })
 
@@ -29,7 +30,7 @@ function Raids:Teams()
     for id, item in pairs(TG.Store:Items(NS_TEAM)) do
         local v = item.v
         if type(v) == "table" then
-            out[#out + 1] = { id = id, name = v.n or id, size = v.s or 20, members = v.m or {}, groups = v.g or {} }
+            out[#out + 1] = { id = id, name = v.n or id, size = v.s or 20, members = v.m or {}, groups = v.g or {}, days = v.d or {} }
         end
     end
     table.sort(out, function(a, b) return a.name < b.name end)
@@ -39,7 +40,7 @@ end
 function Raids:Team(id)
     local v = TG.Store:Get(NS_TEAM, id)
     if type(v) ~= "table" then return nil end
-    return { id = id, name = v.n or id, size = v.s or 20, members = v.m or {}, groups = v.g or {} }
+    return { id = id, name = v.n or id, size = v.s or 20, members = v.m or {}, groups = v.g or {}, days = v.d or {} }
 end
 
 function Raids:CanEdit()
@@ -55,7 +56,7 @@ function Raids:CreateTeam(name, size)
 end
 
 local function save(team)
-    return TG.Store:Set(NS_TEAM, team.id, { n = team.name, s = team.size, m = team.members, g = team.groups })
+    return TG.Store:Set(NS_TEAM, team.id, { n = team.name, s = team.size, m = team.members, g = team.groups, d = team.days })
 end
 
 function Raids:RenameTeam(id, name)
@@ -386,6 +387,158 @@ function Raids:Attendance(limit)
         return a.entry.key < b.entry.key
     end)
     return rows, days
+end
+
+-- Raid schedule
+
+local MAX_DAYS = 7
+local WEEKDAYS = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
+local WEEKDAY_GLOBALS = { "WEEKDAY_SUNDAY", "WEEKDAY_MONDAY", "WEEKDAY_TUESDAY", "WEEKDAY_WEDNESDAY", "WEEKDAY_THURSDAY", "WEEKDAY_FRIDAY", "WEEKDAY_SATURDAY" }
+
+function Raids:WeekdayName(wday)
+    local name = _G[WEEKDAY_GLOBALS[wday] or ""]
+    return type(name) == "string" and name or WEEKDAYS[wday] or "?"
+end
+
+-- The calendar runs on server time, so the schedule does as well.
+function Raids:ServerTime()
+    if C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime then
+        local c = C_DateAndTime.GetCurrentCalendarTime()
+        if c and TG.usable(c.year) then
+            return { year = c.year, month = c.month, day = c.monthDay, hour = c.hour, min = c.minute, wday = c.weekday }
+        end
+    end
+    local d = date("*t")
+    return { year = d.year, month = d.month, day = d.day, hour = d.hour, min = d.min, wday = d.wday }
+end
+
+function Raids:Schedule(team)
+    local out = {}
+    for i, d in ipairs(team.days) do out[#out + 1] = { index = i, w = d.w, h = d.h, m = d.m } end
+    table.sort(out, function(a, b)
+        local wa, wb = (a.w + 5) % 7, (b.w + 5) % 7
+        if wa ~= wb then return wa < wb end
+        return a.h * 60 + a.m < b.h * 60 + b.m
+    end)
+    return out
+end
+
+function Raids:AddRaidDay(id, wday, hour, minute)
+    local team = self:Team(id)
+    if not team or wday < 1 or wday > 7 or #team.days >= MAX_DAYS then return false end
+    for _, d in ipairs(team.days) do
+        if d.w == wday and d.h == hour and d.m == minute then return false end
+    end
+    team.days[#team.days + 1] = { w = wday, h = hour, m = minute }
+    return save(team)
+end
+
+function Raids:RemoveRaidDay(id, index)
+    local team = self:Team(id)
+    if not team or not team.days[index] then return false end
+    table.remove(team.days, index)
+    return save(team)
+end
+
+function Raids:Upcoming(team, weeks)
+    local now = self:ServerTime()
+    local base = time({ year = now.year, month = now.month, day = now.day, hour = 12 })
+    local nowMinutes = now.hour * 60 + now.min
+    local out = {}
+    for _, d in ipairs(team.days) do
+        for offset = 0, weeks * 7 - 1 do
+            local day = date("*t", base + offset * 86400)
+            if day.wday == d.w and (offset > 0 or d.h * 60 + d.m > nowMinutes) then
+                out[#out + 1] = {
+                    team = team, year = day.year, month = day.month, day = day.day, wday = day.wday,
+                    hour = d.h, min = d.m, order = offset * 1440 + d.h * 60 + d.m,
+                }
+            end
+        end
+    end
+    table.sort(out, function(a, b) return a.order < b.order end)
+    return out
+end
+
+function Raids:NextRaid()
+    local best
+    for _, team in ipairs(self:Teams()) do
+        local first = self:Upcoming(team, 2)[1]
+        if first and (not best or first.order < best.order) then best = first end
+    end
+    return best
+end
+
+function Raids:FormatRaid(r, withTeam)
+    local text = ("%s %02d.%02d. %02d:%02d"):format(self:WeekdayName(r.wday), r.day, r.month, r.hour, r.min)
+    if withTeam then text = text .. "  " .. r.team.name end
+    return text
+end
+
+-- Calendar
+
+function Raids:CalendarTitle(team)
+    return L["Raid: %s"]:format(team.name):sub(1, 31)
+end
+
+local function monthOffset(r)
+    local month, year
+    if C_Calendar and C_Calendar.GetMonthInfo then
+        local info = C_Calendar.GetMonthInfo(0)
+        if info and TG.usable(info.month) then month, year = info.month, info.year end
+    end
+    if not month then
+        local now = Raids:ServerTime()
+        month, year = now.month, now.year
+    end
+    return (r.year - year) * 12 + (r.month - month)
+end
+
+function Raids:InCalendar(r)
+    if not (C_Calendar and C_Calendar.GetNumDayEvents and C_Calendar.GetDayEvent) then return false end
+    local title = self:CalendarTitle(r.team)
+    local offset = monthOffset(r)
+    local n = C_Calendar.GetNumDayEvents(offset, r.day)
+    if not TG.usable(n) then return false end
+    for i = 1, n do
+        local ev = C_Calendar.GetDayEvent(offset, r.day, i)
+        if ev and TG.usable(ev.title) and ev.title == title then return true end
+    end
+    return false
+end
+
+function Raids:CanExport()
+    if not (C_Calendar and C_Calendar.CreateGuildSignUpEvent and C_Calendar.AddEvent) then return false end
+    if C_Calendar.CanAddEvent then
+        local ok = C_Calendar.CanAddEvent()
+        return TG.usable(ok) and ok == true
+    end
+    return true
+end
+
+-- Creates guild sign up events for the coming raid nights. AddEvent needs a
+-- hardware event, so this only runs from a button click.
+function Raids:ExportCalendar(id, weeks)
+    local team = self:Team(id)
+    if not team or not self:CanExport() then return 0, 0 end
+    local title = self:CalendarTitle(team)
+    local created, existing = 0, 0
+    for _, r in ipairs(self:Upcoming(team, weeks)) do
+        if self:InCalendar(r) then
+            existing = existing + 1
+        else
+            local ok = pcall(function()
+                C_Calendar.CreateGuildSignUpEvent()
+                C_Calendar.EventSetTitle(title)
+                C_Calendar.EventSetDescription(L["Created by TheGuild"])
+                C_Calendar.EventSetDate(r.month, r.day, r.year)
+                C_Calendar.EventSetTime(r.hour, r.min)
+                C_Calendar.AddEvent()
+            end)
+            if ok then created = created + 1 end
+        end
+    end
+    return created, existing
 end
 
 function Raids:OnEnable()
