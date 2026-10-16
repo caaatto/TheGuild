@@ -514,6 +514,8 @@ function UI.TextDialog(title, text, onAccept, hint)
         edit:SetWidth(470)
         edit:SetScript("OnEscapePressed", function() f:Hide() end)
         scroll:SetScrollChild(edit)
+        scroll:EnableMouse(true)
+        scroll:SetScript("OnMouseDown", function() edit:SetFocus() end)
         f.edit = edit
         f.scroll = scroll
         f.accept = UI.Button(f.Inset, ACCEPT, 100, function()
@@ -538,4 +540,158 @@ function UI.TextDialog(title, text, onAccept, hint)
     textDialog:Show()
     textDialog.edit:HighlightText()
     textDialog.edit:SetFocus()
+end
+
+local formDialog
+
+local function formRow(f, i)
+    local row = f.rows[i]
+    if row then return row end
+    row = {}
+    row.label = UI.Label(f.Inset, "", "GameFontNormal")
+    row.label:SetWidth(116)
+    row.input = CreateFrame("EditBox", nil, f.Inset, "InputBoxTemplate")
+    row.input:SetHeight(22)
+    row.input:SetAutoFocus(false)
+    row.input:SetScript("OnEscapePressed", function() f:Hide() end)
+    row.input:SetScript("OnEnterPressed", function() f:Next(row.index) end)
+    row.input:SetScript("OnTabPressed", function() f:Next(row.index) end)
+    row.input:SetScript("OnTextChanged", function(self) row.hint:SetShown(row.hintText ~= nil and self:GetText() == "") end)
+    row.hint = UI.Label(row.input, "", "GameFontDisableSmall")
+    row.hint:SetPoint("LEFT", row.input, "LEFT", 4, 0)
+    f.rows[i] = row
+    return row
+end
+
+local function formText(f)
+    if f.text then return f.text end
+    local t = {}
+    t.label = UI.Label(f.Inset, "", "GameFontNormal")
+    t.box = UI.Card(f.Inset)
+    local scroll = CreateFrame("ScrollFrame", nil, t.box, "ScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", t.box, "TOPLEFT", 8, -8)
+    scroll:SetPoint("BOTTOMRIGHT", t.box, "BOTTOMRIGHT", -26, 8)
+    local edit = CreateFrame("EditBox", nil, scroll)
+    edit:SetMultiLine(true)
+    edit:SetAutoFocus(false)
+    edit:SetFontObject("ChatFontNormal")
+    edit:SetWidth(470)
+    edit:SetScript("OnEscapePressed", function() f:Hide() end)
+    edit:SetScript("OnTextChanged", function(self) t.hint:SetShown(t.hintText ~= nil and self:GetText() == "") end)
+    scroll:SetScrollChild(edit)
+    scroll:EnableMouse(true)
+    scroll:SetScript("OnMouseDown", function() edit:SetFocus() end)
+    t.hint = UI.Label(t.box, "", "GameFontDisableSmall")
+    t.hint:SetPoint("TOPLEFT", t.box, "TOPLEFT", 12, -10)
+    t.edit = edit
+    f.text = t
+    return t
+end
+
+function UI.FormDialog(title, fields, onAccept)
+    if not formDialog then
+        local f = CreateFrame("Frame", "TheGuildFormDialog", UIParent, "ButtonFrameTemplate")
+        f:SetSize(540, 440)
+        f:SetPoint("CENTER")
+        f:SetFrameStrata("DIALOG")
+        f:SetMovable(true)
+        f:EnableMouse(true)
+        f:RegisterForDrag("LeftButton")
+        f:SetScript("OnDragStart", f.StartMoving)
+        f:SetScript("OnDragStop", f.StopMovingOrSizing)
+        f:SetPortraitToAsset(TG.icon)
+        ButtonFrameTemplate_HideButtonBar(f)
+        f.Inset:SetPoint("BOTTOMRIGHT", -6, 4)
+        f.rows = {}
+        f.accept = UI.Button(f.Inset, ACCEPT, 100, function() f:Submit() end)
+        f.accept:SetPoint("BOTTOMRIGHT", f.Inset, "BOTTOMRIGHT", -8, 6)
+        f.cancel = UI.Button(f.Inset, CANCEL, 100, function() f:Hide() end)
+        f.cancel:SetPoint("RIGHT", f.accept, "LEFT", -6, 0)
+        f.error = UI.Label(f.Inset, "", "GameFontRedSmall")
+        f.error:SetPoint("BOTTOMLEFT", f.Inset, "BOTTOMLEFT", 10, 12)
+        f.error:SetPoint("RIGHT", f.cancel, "LEFT", -8, 0)
+        f.error:SetWordWrap(true)
+        function f:Values()
+            local out = {}
+            for _, field in ipairs(self.fields) do out[field.key] = TG.Trim(self.inputs[field.key]:GetText()) end
+            return out
+        end
+        function f:Next(index)
+            local field = self.fields[index + 1]
+            if field then self.inputs[field.key]:SetFocus() else self:Submit() end
+        end
+        function f:Submit()
+            local values = self:Values()
+            for _, field in ipairs(self.fields) do
+                if field.required and values[field.key] == "" then
+                    self.error:SetText(L["%s is required."]:format(field.label))
+                    self.inputs[field.key]:SetFocus()
+                    return false
+                end
+            end
+            local err = self.onAccept and self.onAccept(values)
+            if err then
+                self.error:SetText(err)
+                return false
+            end
+            self:Hide()
+            return true
+        end
+        tinsert(UISpecialFrames, "TheGuildFormDialog")
+        formDialog = f
+    end
+    local f = formDialog
+    f:SetTitle(title or TG.title)
+    f.fields, f.onAccept, f.inputs = fields, onAccept, {}
+    f.error:SetText("")
+    for _, row in ipairs(f.rows) do
+        row.label:Hide()
+        row.input:Hide()
+    end
+    if f.text then
+        f.text.label:Hide()
+        f.text.box:Hide()
+    end
+    local y, n = 10, 0
+    for index, field in ipairs(fields) do
+        if field.multiline then
+            local t = formText(f)
+            t.label:SetText(field.label)
+            t.label:ClearAllPoints()
+            t.label:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 10, -y)
+            t.box:ClearAllPoints()
+            t.box:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 8, -(y + 20))
+            t.box:SetPoint("BOTTOMRIGHT", f.Inset, "BOTTOMRIGHT", -8, 40)
+            t.hintText = field.hint
+            t.hint:SetText(field.hint or "")
+            t.edit:SetMaxLetters(field.max or 0)
+            t.edit:SetText("")
+            t.hint:SetShown(field.hint ~= nil)
+            t.label:Show()
+            t.box:Show()
+            f.inputs[field.key] = t.edit
+        else
+            n = n + 1
+            local row = formRow(f, n)
+            row.index = index
+            row.label:SetText(field.label)
+            row.label:ClearAllPoints()
+            row.label:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 10, -(y + 4))
+            row.input:ClearAllPoints()
+            row.input:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 140, -y)
+            row.input:SetPoint("RIGHT", f.Inset, "RIGHT", -12, 0)
+            row.input:SetMaxLetters(field.max or 0)
+            row.input:SetText("")
+            row.hintText = field.hint
+            row.hint:SetText(field.hint or "")
+            row.hint:SetShown(field.hint ~= nil)
+            row.label:Show()
+            row.input:Show()
+            f.inputs[field.key] = row.input
+            y = y + 30
+        end
+    end
+    f:Show()
+    if fields[1] then f.inputs[fields[1].key]:SetFocus() end
+    return f
 end

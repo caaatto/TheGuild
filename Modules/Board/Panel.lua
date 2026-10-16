@@ -13,10 +13,6 @@ local function authorText(name)
     return e and TG.ClassText(e.classFile, name) or name
 end
 
-local function compose(title, hint, onAccept)
-    UI.TextDialog(title, "", onAccept, hint)
-end
-
 local function build(panel)
     local viewTabs = UI.Tabs(panel, VIEWS, function(id)
         Board.view = id
@@ -25,54 +21,58 @@ local function build(panel)
     viewTabs:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -2)
 
     local newPost = UI.Button(panel, L["New post"], 120, function()
-        compose(L["New post"], L["The first line is the title."], function(text)
-            local lines = TG.Lines(text)
-            if #lines == 0 then return end
-            local title = table.remove(lines, 1)
-            local key = Board:Post(title, table.concat(lines, "\n"))
-            if key then selectedPost = key end
+        UI.FormDialog(L["New post"], {
+            { key = "title", label = L["Title"], required = true, max = 60 },
+            { key = "body", label = L["Text"], multiline = true, max = 1500 },
+        }, function(v)
+            local key = Board:Post(v.title, v.body)
+            if not key then return L["The post could not be saved."] end
+            selectedPost = key
             panel:OnShow()
         end)
     end)
     newPost:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
 
     local newPoll = UI.Button(panel, L["New poll"], 120, function()
-        compose(L["New poll"], L["First line is the question, every further line one option (2 to 8)."], function(text)
-            local lines = TG.Lines(text)
-            if #lines < 3 then return end
-            local question = table.remove(lines, 1)
-            local key = Board:CreatePoll(question, lines)
-            if key then selectedPoll = key end
+        UI.FormDialog(L["New poll"], {
+            { key = "question", label = L["Question"], required = true, max = 120 },
+            { key = "options", label = L["Options"], required = true, multiline = true, hint = L["One option per line, 2 to 8."] },
+        }, function(v)
+            local options = TG.Lines(v.options)
+            if #options < 2 or #options > 8 then return L["One option per line, 2 to 8."] end
+            local key = Board:CreatePoll(v.question, options)
+            if not key then return L["The poll could not be saved."] end
+            selectedPoll = key
             panel:OnShow()
         end)
     end)
     newPoll:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
 
     local newEvent = UI.Button(panel, L["New event"], 120, function()
-        compose(L["New event"], L["First line is the title, second line date and time like 24.12.2026 19:30, the rest is the description."], function(text)
-            local lines = TG.Lines(text)
-            if #lines < 2 then return end
-            local eventTitle = table.remove(lines, 1)
-            local y, m, d, h, mi = Board:ParseEventDate(table.remove(lines, 1))
-            if not y then
-                TG:Print(L["Date not understood. Use 24.12.2026 19:30."])
-                return
-            end
-            local key = Board:CreateEvent(eventTitle, table.concat(lines, "\n"), y, m, d, h, mi)
-            if key then selectedEvent = key end
+        UI.FormDialog(L["New event"], {
+            { key = "title", label = L["Title"], required = true, max = 60 },
+            { key = "when", label = L["Date and time"], required = true, max = 20, hint = L["For example 24.12.2026 19:30"] },
+            { key = "desc", label = L["Description"], multiline = true, max = 1000 },
+        }, function(v)
+            local y, m, d, h, mi = Board:ParseEventDate(v.when)
+            if not y then return L["Date not understood. Use 24.12.2026 19:30."] end
+            local key = Board:CreateEvent(v.title, v.desc, y, m, d, h, mi)
+            if not key then return L["The event could not be saved."] end
+            selectedEvent = key
             panel:OnShow()
         end)
     end)
     newEvent:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
 
     local newBounty = UI.Button(panel, L["New bounty"], 120, function()
-        compose(L["New bounty"], L["First line is the title, second line the reward, the rest is the description."], function(text)
-            local lines = TG.Lines(text)
-            if #lines < 2 then return end
-            local bountyTitle = table.remove(lines, 1)
-            local reward = table.remove(lines, 1)
-            local key = Board:CreateBounty(bountyTitle, reward, table.concat(lines, "\n"))
-            if key then selectedBounty = key end
+        UI.FormDialog(L["New bounty"], {
+            { key = "title", label = L["Title"], required = true, max = 60 },
+            { key = "reward", label = L["Reward"], required = true, max = 60 },
+            { key = "desc", label = L["Description"], multiline = true, max = 1000 },
+        }, function(v)
+            local key = Board:CreateBounty(v.title, v.reward, v.desc)
+            if not key then return L["The bounty could not be saved."] end
+            selectedBounty = key
             panel:OnShow()
         end)
     end)
