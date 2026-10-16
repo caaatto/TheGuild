@@ -3,7 +3,7 @@
 ## Notes: Guild statistics: members, classes, levels, deaths, loot and raids.
 ## Notes-deDE: Gildenstatistik: Mitglieder, Klassen, Stufen, Tode, Beute und Raids.
 ## Author: Catto
-## Version: 0.2.3
+## Version: 0.2.4
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
