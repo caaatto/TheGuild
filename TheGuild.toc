@@ -43,16 +43,5 @@ Core\Blizzard.lua
 Core\Slash.lua
 
 Modules\Dashboard\Dashboard.lua
-Modules\Map\Map.lua
-Modules\Map\WorldMap.lua
-Modules\Map\MapPins.xml
-Modules\Map\MinimapPins.lua
-Modules\Map\SharedPins.lua
-Modules\Map\Deaths.lua
-Modules\Map\Panel.lua
-Modules\Roster\Roster.lua
-Modules\Alerts\Alerts.lua
-Modules\Social\Social.lua
-Modules\Professions\Professions.lua
 
 Bindings.xml

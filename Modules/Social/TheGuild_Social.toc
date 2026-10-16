@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffMessages|r
+## Notes: Welcomes new members, greets logins, congratulates level ups and hides muted players.
+## Notes-deDE: Begrüßt neue Mitglieder und Logins, gratuliert zu Stufen und blendet stummgeschaltete Spieler aus.
+## Author: Catto
+## Version: 0.1.0
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\UI_Chat
+
+Social.lua

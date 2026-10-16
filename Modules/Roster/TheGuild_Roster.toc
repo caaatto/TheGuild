@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffMembers|r
+## Notes: Searchable guild roster with shared roles and main/alt links.
+## Notes-deDE: Durchsuchbare Gildenliste mit geteilten Rollen und Main/Twink-Verknüpfungen.
+## Author: Catto
+## Version: 0.1.0
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\Achievement_GuildPerk_EverybodysFriend
+
+Roster.lua

@@ -6,7 +6,9 @@ Everything the guild shares travels over the guild addon channel between members
 
 ## Modules
 
-Each module can be switched off in the settings (`/tg config`).
+Every module is its own addon (`TheGuild_Map`, `TheGuild_Roster`, `TheGuild_Alerts`, `TheGuild_Social`, `TheGuild_Professions`) grouped under TheGuild in the AddOn list, so a module can be disabled there like any other addon. Loaded modules also have a runtime switch in the settings (`/tg config`). The core addon with the overview runs on its own.
+
+The module folders live under `TheGuild/Modules/`. Release packages (see `.pkgmeta`) move them next to the core addon. For a checkout inside `Interface\AddOns`, run `tools\link-modules.cmd` once to create junctions named after the modules.
 
 - **Overview**: guild emblem, message of the day, counts, quick actions and a live activity feed (logins, joins, level ups, deaths, calls to arms).
 - **Map**: guild members on the world map and the minimap with class icon or class colored dot, name, rank badge, health and tooltip. Positions are sent every few seconds while moving, never from inside an instance, and can be hidden while stealthed. Ctrl + right click on the world map places a guild pin for everyone (temporary or permanent). Deaths show up as skulls. Toggles live in the world map and minimap tracking menus.

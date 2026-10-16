@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffProfessions|r
+## Notes: Guild wide recipe directory with crafters in item tooltips.
+## Notes-deDE: Gildenweites Rezeptverzeichnis mit Herstellern im Gegenstandstooltip.
+## Author: Catto
+## Version: 0.1.0
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\INV_Misc_Book_09
+
+Professions.lua

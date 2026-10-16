@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffCall to Arms|r
+## Notes: Rally the guild to your position with a raid warning, sound and waypoint.
+## Notes-deDE: Ruft die Gilde mit Schlachtzugswarnung, Ton und Wegpunkt zu deiner Position.
+## Author: Catto
+## Version: 0.1.0
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\Ability_Warrior_RallyingCry
+
+Alerts.lua

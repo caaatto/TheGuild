@@ -1,0 +1,13 @@
+package-as: TheGuild
+
+move-folders:
+  TheGuild/Modules/Map: TheGuild_Map
+  TheGuild/Modules/Roster: TheGuild_Roster
+  TheGuild/Modules/Alerts: TheGuild_Alerts
+  TheGuild/Modules/Social: TheGuild_Social
+  TheGuild/Modules/Professions: TheGuild_Professions
+
+ignore:
+  - tools
+  - README.md
+  - ROADMAP.md

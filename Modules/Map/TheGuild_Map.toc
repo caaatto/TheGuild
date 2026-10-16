@@ -1,0 +1,18 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffMap|r
+## Notes: Guild members on the world map and minimap, shared guild pins and the death map.
+## Notes-deDE: Gildenmitglieder auf Weltkarte und Minikarte, Gildenmarkierungen und Todeskarte.
+## Author: Catto
+## Version: 0.1.0
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\INV_Misc_Map_01
+
+Map.lua
+WorldMap.lua
+MapPins.xml
+MinimapPins.lua
+SharedPins.lua
+Deaths.lua
+Panel.lua

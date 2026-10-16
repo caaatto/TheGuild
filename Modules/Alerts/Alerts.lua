@@ -1,4 +1,4 @@
-local _, TG = ...
+local TG = TheGuild
 local L = TG.L
 
 local COOLDOWN = 900

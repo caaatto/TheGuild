@@ -1,0 +1,72 @@
+# Roadmap
+
+TheGuild wants to be the one guild addon a Forever guild installs. The measure is simple: a guild master should be able to say "install TheGuild" and never need a second guild addon, and a member who dislikes a feature should be able to turn exactly that feature off.
+
+## Principles
+
+1. **Blizzard look, Blizzard places.** Features live where players already look: the guild window, the world map, unit menus, tooltips, the options panel. No second UI language.
+2. **Every feature is a module.** Each module is its own addon under the TheGuild group in the AddOn list and has a runtime switch in the settings. The core runs alone.
+3. **Works with one user, better with many.** Nothing requires the whole guild to install it. Shared data degrades gracefully to local data.
+4. **No external services, no officer notes.** Forever does not let addons write guild notes or guild info. All shared state travels over the guild addon channel with revision merging and rank checks on every client.
+5. **Secret values first.** Every value from chat, units or the roster is checked before it is compared or shown. Combat restrictions never break a feature, they only pause it.
+6. **Low traffic.** Positions only when moved, heartbeat every 25 seconds, bulk data compressed and chunked, sync answers staggered by name order.
+
+## What the field does well, and what we take from it
+
+| Addon | Strength | TheGuild |
+| --- | --- | --- |
+| GuildMap | Live member pins, health alerts, layer filter | Map module, native data provider instead of overlay frames, pins translate to continent maps |
+| GuildOS | Everything in one window, attendance, loot, professions, alliances | Module system, professions, roster roles, planned raid tools |
+| Guild Roster Manager | Join and promotion history, alt grouping, event log, ban list, decentral sync | Alt links and roles today, join history and audit log planned |
+| SystematicGuild | Call to arms, raid groups, bounties, no server | Call to Arms module, planned raid groups |
+| Moose Guild | Death map, shared pins, guild stats | Death map and shared pins in the Map module, stats planned |
+| WinterSocial | Fast online panel, no setup | Members tab, overview |
+| ForeverCodex | Recipe database with sync and tooltips | Professions module |
+| RCLootCouncil | Loot session with votes, history, trade helper | Planned loot module with the same flow |
+| Guild Greeter, GuildMute | Small quality of life | Messages module |
+
+## Milestones
+
+### 0.1 Foundation (done)
+
+Core, comm, store, settings, window, map, members, call to arms, messages, professions. Modules as separate addons with junction tooling and packager metadata.
+
+### 0.2 Daily life
+
+- Member history: join date, promotions, last seen, name changes, stored in the guild store with officer write access.
+- Guild event log in the overview with filters and export to text.
+- Alt detection suggestions (same note, same login pattern) that officers confirm.
+- Public note editing for officers from the members tab (`C_GuildInfo.SetNote` is allowed for public notes, officer notes are not).
+- Minimap and world map pin options per rank (show officers always, hide members below a level).
+- Position sharing per zone type: open world, cities, battlegrounds.
+- Layer awareness if an API or a reliable heuristic appears.
+
+### 0.3 Raids
+
+- Raid groups and raid builder with saved teams and one click invites (SystematicGuild model, 10 and 20 player sizes).
+- Attendance tracking per raid night, synced between officers.
+- Loot session module: tradable items, responses, council votes, award, history, trade helper. Soft reserve import from softres.it.
+- Consumable and gear readiness overview using inspect data outside combat.
+- Calendar export of raid nights into the Blizzard calendar.
+
+### 0.4 Community
+
+- Guild bulletin board and polls stored in the guild store.
+- Bounties and events with sign up.
+- Guild statistics: deaths, levels, play time milestones, with opt in per member.
+- Recruitment helper: candidate list, prepared invite button (invites stay a manual click as Blizzard requires), welcome flow.
+- Allied guilds: shared crafter directory and pins between two guilds over whisper relays.
+
+### 1.0 Launch quality
+
+- Localization for all client languages Forever ships.
+- Profile export and import for guild settings.
+- Full keyboard and gamepad navigation in the window.
+- Load and memory audit with 500 member guilds, traffic audit with 100 online users.
+- Documentation site and in game help.
+
+## Open questions
+
+- Guild bank API on Forever: readable for tabs and items, used by Guild Self Forever. A bank snapshot module is possible once the launch client confirms the API.
+- Whether Blizzard adds a layer identifier. Until then no layer filter.
+- Launch interface number and whether `_Camelot` stays the TOC suffix.
