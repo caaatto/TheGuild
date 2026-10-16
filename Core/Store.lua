@@ -34,6 +34,11 @@ local function canWrite(ns, key, author)
         if TG.IsMe(author) then return roster:AmOfficer() end
         return roster:IsOfficer(author)
     end
+    if policy == "own" then
+        if type(key) == "string" and key:sub(1, #author + 1) == author .. "#" then return true end
+        if TG.IsMe(author) then return roster:AmOfficer() end
+        return roster:IsOfficer(author)
+    end
     if policy == "self" then
         if TG.StripRealm(key) == author then return true end
         if TG.IsMe(author) then return roster:AmOfficer() end

@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffBoard|r
+## Notes: Guild bulletin board and polls, shared through the guild store.
+## Notes-deDE: Schwarzes Brett und Umfragen der Gilde, geteilt über den Gildenspeicher.
+## Author: Catto
+## Version: 0.2.0
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\INV_Misc_Note_02
+
+Board.lua
+Panel.lua

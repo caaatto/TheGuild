@@ -8,6 +8,7 @@ move-folders:
   TheGuild/Modules/Professions: TheGuild_Professions
   TheGuild/Modules/Raids: TheGuild_Raids
   TheGuild/Modules/Loot: TheGuild_Loot
+  TheGuild/Modules/Board: TheGuild_Board
 
 ignore:
   - tools

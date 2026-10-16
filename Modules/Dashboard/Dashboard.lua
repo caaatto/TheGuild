@@ -12,7 +12,7 @@ local Dashboard = TG:NewModule("Dashboard", {
 local LOG_FILTERS = {
     { "all", L["Everything"], nil },
     { "presence", L["Logins"], { online = true, offline = true } },
-    { "guild", L["Guild changes"], { joined = true, left = true, rejoined = true, rank = true, note = true } },
+    { "guild", L["Guild changes"], { joined = true, left = true, rejoined = true, rank = true, note = true, post = true, poll = true } },
     { "level", L["Level ups"], { level = true } },
     { "death", L["Deaths"], { death = true } },
     { "found", L["Loot finds"], { found = true } },
