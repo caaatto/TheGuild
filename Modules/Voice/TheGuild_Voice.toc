@@ -1,0 +1,14 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffVoice|r
+## Notes: Proximity voice and voice groups on the Blizzard guild voice channel.
+## Notes-deDE: Proximity-Voice und Voice-Gruppen über den Blizzard-Gildensprachkanal.
+## Author: Catto
+## Version: 0.2.0
+## Dependencies: TheGuild
+## OptionalDeps: TheGuild_Map
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\INV_Misc_Horn_01
+
+Voice.lua
+Panel.lua

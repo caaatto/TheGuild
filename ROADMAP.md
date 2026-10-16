@@ -55,6 +55,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 
 ### 0.4 Community
 
+- Done: voice module with proximity volume and voice groups on the Blizzard guild voice channel. Needs Blizzard voice on Forever, to be confirmed on the live client.
 - Done: guild bulletin board and polls stored in the guild store (Board module).
 - Done: events with sign up and bounties with claims and awards in the Board module.
 - Done: guild statistics with deaths, levels, loot and raids, opt out per character for rankings. Play time milestones wait for an API that does not print to chat.
