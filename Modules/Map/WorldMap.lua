@@ -79,6 +79,18 @@ function TheGuildMapDataProviderMixin:OnRemoved(mapCanvas)
     MapCanvasDataProviderMixin.OnRemoved(self, mapCanvas)
 end
 
+-- The ping helper of the base mixin looks pins up by template and id key.
+function TheGuildMapDataProviderMixin:GetPinTemplate()
+    return MEMBER_TEMPLATE
+end
+
+function TheGuildMapDataProviderMixin:GetPingTargetPin(idKey, id)
+    for pin in self:GetMap():EnumeratePinsByTemplate(MEMBER_TEMPLATE) do
+        if pin[idKey] == id then return pin end
+    end
+    return nil
+end
+
 function TheGuildMapDataProviderMixin:RemoveAllData()
     local map = self:GetMap()
     map:RemoveAllPinsByTemplate(MEMBER_TEMPLATE)
@@ -228,7 +240,7 @@ function WM:Ping(key)
     provider:RefreshAllData()
     for pin in WorldMapFrame:EnumeratePinsByTemplate(MEMBER_TEMPLATE) do
         if pin.key == key then
-            provider:PingPin(pin)
+            provider:PingPin("key", key, "PIN_FRAME_LEVEL_TOPMOST")
             return
         end
     end
