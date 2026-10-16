@@ -67,7 +67,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Done: profile export and import for module settings as text.
 - Full keyboard and gamepad navigation in the window.
 - Done in the simulator: 500 member guild loads in milliseconds, first seen records and sync answers travel in batches of 40 items, welcome messages stop after three joins per minute. With 100 online users only the three lowest names answer a sync request. Moving members send a position every 3 seconds, idle ones every 25 seconds, so 100 moving users mean about 33 small messages per second for every client. Still open: in game memory profile.
-- Documentation site and in game help.
+- Done: in game help from the overview. A documentation site waits for the launch.
 
 ## Open questions
 

@@ -90,6 +90,7 @@ local function build(panel)
         if map and map.enabled then map:ToggleSharing() panel:OnShow() end
     end)
     addButton(L["Open settings"], function() TG:OpenSettings() end)
+    addButton(L["Help"], function() UI.TextDialog(L["Help"], TG:HelpText()) end)
 
     local right = CreateFrame("Frame", nil, panel)
     right:SetPoint("TOPLEFT", left, "TOPRIGHT", 12, 0)

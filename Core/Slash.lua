@@ -18,6 +18,38 @@ local function help()
     end
 end
 
+local TIPS = {
+    L["Right click a member anywhere in the window for whisper, invite, roles and alt links."],
+    L["Ctrl + right click on the world map places a shared guild pin."],
+    L["Officers edit public notes, raid teams, loot history and the candidate list. Everyone else sees them."],
+    L["Every module is its own addon in the AddOn list and can be disabled there or in the settings."],
+    L["Shared data lives only on the clients of guild members with the addon. Nothing is written into the guild itself."],
+}
+
+function TG:HelpText()
+    local lines = { ("%s %s"):format(TG.title, TG.version), "" }
+    lines[#lines + 1] = L["Commands"]
+    for _, cmd in ipairs(order) do
+        local c = commands[cmd]
+        if c.help then lines[#lines + 1] = ("  /tg %s   %s"):format(cmd, c.help) end
+    end
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = L["Modules"]
+    for _, mod in ipairs(TG.moduleOrder or {}) do
+        local state = mod.enabled and L["Enabled"] or L["Disabled"]
+        lines[#lines + 1] = ("  %s (%s)   %s"):format(mod.title or mod.name, state, mod.desc or "")
+    end
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = L["Key bindings"]
+    lines[#lines + 1] = "  " .. L["Toggle window"]
+    lines[#lines + 1] = "  " .. L["Call to Arms"]
+    lines[#lines + 1] = "  " .. L["Toggle position sharing"]
+    lines[#lines + 1] = ""
+    lines[#lines + 1] = L["Tips"]
+    for _, tip in ipairs(TIPS) do lines[#lines + 1] = "  " .. tip end
+    return table.concat(lines, "\n")
+end
+
 SLASH_THEGUILD1 = "/tg"
 SLASH_THEGUILD2 = "/theguild"
 SlashCmdList.THEGUILD = function(msg)
