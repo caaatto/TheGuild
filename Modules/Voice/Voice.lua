@@ -48,7 +48,8 @@ function Voice:LoggedIn()
     return self:Available() and C_VoiceChat.IsLoggedIn() == true
 end
 
-function Voice:GuildStream()
+-- Club calls throw while the club list is still loading, so they run guarded.
+local function guildStream()
     if type(C_Club) ~= "table" or not C_Club.GetGuildClubId then return nil end
     local clubId = C_Club.GetGuildClubId()
     if not TG.usable(clubId) or not clubId then return nil end
@@ -61,13 +62,28 @@ function Voice:GuildStream()
     return clubId, fallback
 end
 
+function Voice:GuildStream()
+    local ok, clubId, streamId = pcall(guildStream)
+    if not ok then return nil end
+    return clubId, streamId
+end
+
 function Voice:Channel()
     if not self:LoggedIn() then return nil end
     local clubId, streamId = self:GuildStream()
     if not clubId or not streamId then return nil end
-    local channel = C_VoiceChat.GetChannelForCommunityStream(clubId, streamId)
-    if type(channel) ~= "table" then return nil end
+    local ok, channel = pcall(C_VoiceChat.GetChannelForCommunityStream, clubId, streamId)
+    if not ok or type(channel) ~= "table" then return nil end
     return channel
+end
+
+function Voice:JoinPending()
+    if not self:LoggedIn() or not C_VoiceChat.IsChannelJoinPending then return false end
+    local clubId, streamId = self:GuildStream()
+    if not clubId or not streamId then return false end
+    local channelType = Enum.ChatChannelType and Enum.ChatChannelType.Communities or 2
+    local ok, pending = pcall(C_VoiceChat.IsChannelJoinPending, channelType, clubId, streamId)
+    return ok and pending == true
 end
 
 function Voice:IsJoined()
@@ -152,9 +168,16 @@ end
 
 function Voice:CreateGroup(name)
     name = TG.Trim(name or ""):sub(1, MAX_NAME)
-    if name == "" or not IsInGuild() then return nil end
+    if name == "" then return nil end
+    if not IsInGuild() or not TG.MyName() then
+        TG:Print(L["Voice groups need a guild and a loaded roster."])
+        return nil
+    end
     local id = ("g%d%d"):format(TG.Now(), math.random(10, 99))
-    if not TG.Store:Set(NS_GROUP, id, { n = name, o = TG.MyName(), ts = TG.Now() }) then return nil end
+    if not TG.Store:Set(NS_GROUP, id, { n = name, o = TG.MyName(), ts = TG.Now() }) then
+        TG:Print(L["The voice group could not be saved."])
+        return nil
+    end
     self:JoinGroup(id)
     return id
 end
@@ -337,7 +360,10 @@ function Voice:StatusText()
     if not self:Available() then return GRAY_FONT_COLOR:WrapTextInColorCode(L["Blizzard voice chat is not available on this account."]) end
     if not self:LoggedIn() then return L["Voice chat is logged out."] end
     local channel = self:Channel()
-    if not channel then return L["Not in the guild voice channel."] end
+    if not channel then
+        if self:JoinPending() then return YELLOW_FONT_COLOR:WrapTextInColorCode(L["Join requested, waiting for the voice service."]) end
+        return L["Not in the guild voice channel."]
+    end
     return GREEN_FONT_COLOR:WrapTextInColorCode(L["In the guild voice channel with %d members"]:format(#(channel.members or {})))
 end
 
@@ -384,6 +410,11 @@ function Voice:OnEnable()
         TG:Fire("VOICE_UPDATED")
     end)
     self:RegisterEvent("VOICE_CHAT_LOGOUT", function() wipe(applied) wipe(original) TG:Fire("VOICE_UPDATED") end)
+    self:RegisterEvent("VOICE_CHAT_PENDING_CHANNEL_JOIN_STATE", function() TG:Fire("VOICE_UPDATED") end)
+    self:RegisterEvent("VOICE_CHAT_ERROR", function(_, platformCode, statusCode)
+        TG:Print(L["Voice chat error %s (%s)"], self:StatusName(statusCode), tostring(platformCode))
+        TG:Fire("VOICE_UPDATED")
+    end)
     self:On("STORE_CHANGED", function(ns, key, value) self:OnStoreChanged(ns, key, value) end)
     self:Ticker(TICK, function() if self.db.mode ~= "all" then self:Apply(false) end end)
     if self.cdb.autoJoin then
@@ -395,10 +426,50 @@ function Voice:OnDisable()
     self:Restore()
 end
 
+function Voice:StatusName(code)
+    if Enum.VoiceChatStatusCode then
+        for name, value in pairs(Enum.VoiceChatStatusCode) do
+            if value == code then return name end
+        end
+    end
+    return tostring(code)
+end
+
+-- Prints everything needed to tell why voice does not come up.
+function Voice:PrintDiagnostics()
+    TG:Print(L["Voice"])
+    local lines = {}
+    lines[#lines + 1] = ("  C_VoiceChat: %s"):format(type(C_VoiceChat) == "table" and "yes" or "no")
+    if type(C_VoiceChat) == "table" then
+        lines[#lines + 1] = ("  can use: %s, enabled: %s, logged in: %s, connected: %s"):format(
+            tostring(C_VoiceChat.CanPlayerUseVoiceChat and C_VoiceChat.CanPlayerUseVoiceChat()),
+            tostring(C_VoiceChat.IsEnabled and C_VoiceChat.IsEnabled()),
+            tostring(C_VoiceChat.IsLoggedIn and C_VoiceChat.IsLoggedIn()),
+            tostring(C_VoiceChat.IsVoiceChatConnected and C_VoiceChat.IsVoiceChatConnected()))
+        if C_VoiceChat.GetCurrentVoiceChatConnectionStatusCode then
+            lines[#lines + 1] = ("  connection status: %s"):format(self:StatusName(C_VoiceChat.GetCurrentVoiceChatConnectionStatusCode()))
+        end
+        if C_VoiceChat.GetActiveVoiceProviderID then
+            lines[#lines + 1] = ("  provider: %s"):format(tostring(C_VoiceChat.GetActiveVoiceProviderID()))
+        end
+    end
+    local clubId, streamId = self:GuildStream()
+    lines[#lines + 1] = ("  guild club: %s, stream: %s"):format(tostring(clubId), tostring(streamId))
+    if clubId and C_VoiceChat.GetJoinClubVoiceChannelError then
+        local ok, err = pcall(C_VoiceChat.GetJoinClubVoiceChannelError, clubId)
+        lines[#lines + 1] = ("  join error: %s"):format(ok and tostring(err) or "call failed")
+    end
+    lines[#lines + 1] = ("  join pending: %s"):format(tostring(self:JoinPending()))
+    local channel = self:Channel()
+    lines[#lines + 1] = ("  channel: %s"):format(channel and ("%s (%d members)"):format(tostring(channel.name), #(channel.members or {})) or "none")
+    for _, line in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(line) end
+end
+
 TG:RegisterSlash("voice", function(rest)
     local cmd, arg = tostring(rest or ""):match("^(%S*)%s*(.-)$")
     cmd = cmd:lower()
-    if cmd == "join" then Voice:Join()
+    if cmd == "status" then Voice:PrintDiagnostics()
+    elseif cmd == "join" then Voice:Join()
     elseif cmd == "leave" then Voice:Leave()
     elseif cmd == "group" and arg ~= "" then
         for _, g in ipairs(Voice:Groups()) do
@@ -409,4 +480,4 @@ TG:RegisterSlash("voice", function(rest)
     else
         TG.Window:ShowTab("voice")
     end
-end, L["voice: join, leave, group <name>, leavegroup"])
+end, L["voice: status, join, leave, group <name>, leavegroup"])

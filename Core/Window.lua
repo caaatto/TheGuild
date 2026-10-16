@@ -41,7 +41,7 @@ local function buildSideTabs()
             button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         end
         if i == 1 then
-            button:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, -60)
+            button:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, -28)
         else
             button:SetPoint("TOPLEFT", tabButtons[i - 1], "BOTTOMLEFT", 0, -2)
         end
