@@ -43,10 +43,11 @@ end
 local function candidates(item)
     local rows = {}
     for name, resp in pairs(item.responses) do
-        rows[#rows + 1] = { name = name, r = resp.r, roll = resp.roll or 0, votes = Loot:VoteCount(item, name) }
+        rows[#rows + 1] = { name = name, r = resp.r, roll = resp.roll or 0, votes = Loot:VoteCount(item, name), sr = Loot:IsReserved(item, name) }
     end
     table.sort(rows, function(a, b)
         if a.votes ~= b.votes then return a.votes > b.votes end
+        if a.sr ~= b.sr then return a.sr end
         if a.r ~= b.r then return a.r < b.r end
         return a.roll > b.roll
     end)
@@ -108,7 +109,7 @@ local function buildOwner()
     f.list = UI.List(listFrame, 24, function(button, row)
         button.row = row
         local entry = TG.Roster:Get(row.name)
-        button.cells.name:SetText(entry and TG.ClassText(entry.classFile, row.name) or row.name)
+        button.cells.name:SetText((row.sr and "|cff00ccff[SR]|r " or "") .. (entry and TG.ClassText(entry.classFile, row.name) or row.name))
         button.cells.response:SetText((Loot:ResponseText(row.r)))
         button.cells.roll:SetText(row.roll > 0 and row.roll or "")
         button.cells.votes:SetText(row.votes > 0 and row.votes or "")
@@ -154,6 +155,7 @@ function Frames:RefreshOwner()
     local item = s.items[selected]
     if item then
         local text = item.link
+        if item.reserves then text = text .. "  |cff00ccffSR:|r " .. table.concat(item.reserves, ", ") end
         if item.awarded then text = text .. "  " .. GREEN_FONT_COLOR:WrapTextInColorCode(L["Awarded to %s"]:format(item.awarded.winner)) end
         owner.selectedName:SetText(text)
         local rows = candidates(item)
@@ -234,11 +236,16 @@ function Frames:RefreshResponse()
             setItem(row.item, item)
             row.name:SetText(item.link)
             local mine = item.responses[me]
-            if mine then
-                row.status:SetText(L["Your response: %s"]:format((Loot:ResponseText(mine.r))))
+            local status
+            if mine and mine.auto then
+                status = L["Passed automatically"]
+            elseif mine then
+                status = L["Your response: %s"]:format((Loot:ResponseText(mine.r)))
             else
-                row.status:SetText(L["%d responses"]:format(TG.Count(item.responses)))
+                status = L["%d responses"]:format(TG.Count(item.responses))
             end
+            if item.reserves then status = status .. "  |cff00ccffSR:|r " .. table.concat(item.reserves, ", ") end
+            row.status:SetText(status)
             for id, b in pairs(row.buttons) do b:SetEnabled(not mine or mine.r ~= id) end
             row:Show()
         end

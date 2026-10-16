@@ -4,18 +4,21 @@ local L = TG.L
 local NS_HISTORY = "loot"
 local MAX_ITEMS = 20
 local LOOT_SLOT_ITEM = 1
+local RESPONSE_PASS = 4
 
 local Loot = TG:NewModule("Loot", {
     title = L["Loot"],
     desc = L["Loot sessions with responses, council votes and a shared history."],
     order = 27,
-    defaults = { autoAdd = true, minQuality = 3, announce = true, findShare = true, findChat = true, findQuality = 3, findBopOnly = false },
+    defaults = { autoAdd = true, minQuality = 3, announce = true, autoPass = true, findShare = true, findChat = true, findQuality = 3, findBopOnly = false },
+    charDefaults = { reserves = {}, reservesTime = 0, trades = {} },
     settings = {
         { type = "header", name = L["Loot session"] },
         { key = "autoAdd", type = "boolean", name = L["Add loot from the loot window to the session"], tooltip = L["Only while you lead the group."], default = true },
         { key = "minQuality", type = "select", name = L["Minimum quality"], default = 3,
           options = { { 2, ITEM_QUALITY2_DESC or "Uncommon" }, { 3, ITEM_QUALITY3_DESC or "Rare" }, { 4, ITEM_QUALITY4_DESC or "Epic" } } },
         { key = "announce", type = "boolean", name = L["Announce awards in group chat"], default = true },
+        { key = "autoPass", type = "boolean", name = L["Pass automatically on items your class cannot use"], default = true },
         { type = "header", name = L["Guild finds"] },
         { key = "findShare", type = "boolean", name = L["Tell the guild when I find a rare or better item"], default = true },
         { key = "findChat", type = "boolean", name = L["Show finds of guild members in chat"], default = true },
@@ -44,8 +47,10 @@ end
 Loot.session = nil
 
 local function newItem(link)
+    local id = tonumber(link:match("item:(%d+)"))
+    if id and C_Item.RequestLoadItemDataByID then C_Item.RequestLoadItemDataByID(id) end
     local name, _, quality, _, _, _, _, _, _, icon = C_Item.GetItemInfo(link)
-    return { link = link, name = name or link:match("%[(.-)%]") or link, quality = quality, icon = icon, responses = {}, votes = {} }
+    return { link = link, name = name or link:match("%[(.-)%]") or link, quality = quality, icon = icon, responses = {}, votes = {}, reserves = Loot.Reserves:Names(link) }
 end
 
 function Loot:IsOwner()
@@ -88,12 +93,38 @@ function Loot:Start(links)
         end
     end
     if #added > 0 then
-        TG.Comm:SendGroup("LS", { id = self.session.id, items = itemLinks(added) }, "ALERT")
+        local sr = {}
+        for i, item in ipairs(added) do sr[i] = item.reserves end
+        TG.Comm:SendGroup("LS", { id = self.session.id, items = itemLinks(added), sr = sr }, "ALERT")
     end
+    self:AutoPass()
     TG:Fire("LOOT_SESSION")
     self.Frames:ShowOwner()
     self.Frames:ShowResponse()
     return true
+end
+
+function Loot:IsReserved(item, name)
+    return self.Reserves:Matches(item.reserves, name)
+end
+
+-- Item data can arrive late, so this runs again shortly after a session starts.
+function Loot:AutoPass(isRetry)
+    local s = self.session
+    if not s or not self.db.autoPass then return end
+    local me = TG.MyName()
+    for i, item in ipairs(s.items) do
+        if not item.awarded and not item.responses[me] and self.Usable:CanUse(item.link) == false then
+            self:Respond(i, RESPONSE_PASS, true)
+        end
+    end
+    if not isRetry and not self.autoPassTimer then
+        self.autoPassTimer = true
+        TG.After(2, function()
+            self.autoPassTimer = nil
+            if self.session then self:AutoPass(true) end
+        end)
+    end
 end
 
 function Loot:End()
@@ -104,19 +135,19 @@ function Loot:End()
     self.Frames:Hide()
 end
 
-function Loot:Respond(index, responseID)
+function Loot:Respond(index, responseID, auto)
     local s = self.session
     if not s or not s.items[index] or s.items[index].awarded then return end
     local roll = math.random(1, 100)
-    self:RecordResponse(TG.MyName(), index, responseID, roll)
+    self:RecordResponse(TG.MyName(), index, responseID, roll, auto)
     TG.Comm:SendGroup("LR", { id = s.id, n = index, r = responseID, roll = roll }, "ALERT")
 end
 
-function Loot:RecordResponse(name, index, responseID, roll)
+function Loot:RecordResponse(name, index, responseID, roll, auto)
     local s = self.session
     local item = s and s.items[index]
     if not item then return end
-    item.responses[name] = { r = responseID, roll = roll, t = GetTime() }
+    item.responses[name] = { r = responseID, roll = roll, t = GetTime(), auto = auto or nil }
     TG:Fire("LOOT_SESSION")
 end
 
@@ -148,6 +179,7 @@ function Loot:Award(index, winner, responseID)
         SendChatMessage((L["%s awarded to %s (%s)"]:format(item.link, TG.ShortName(winner), plain)):sub(1, 255), chatType)
     end
     self:RecordHistory(item, winner, responseID, TG.MyName())
+    self.Trade:Add(item.link, winner)
     TG:Fire("LOOT_SESSION")
 end
 
@@ -182,11 +214,15 @@ function Loot:OnStart(sender, data)
     if not self.session then
         self.session = { id = data.id, owner = sender, items = {}, started = TG.Now() }
     end
-    for _, link in ipairs(data.items) do
+    for i, link in ipairs(data.items) do
         if #self.session.items < MAX_ITEMS and type(link) == "string" and link:find("|Hitem:") then
-            self.session.items[#self.session.items + 1] = newItem(link)
+            local item = newItem(link)
+            local sr = type(data.sr) == "table" and data.sr[i]
+            if type(sr) == "table" and #sr > 0 then item.reserves = sr end
+            self.session.items[#self.session.items + 1] = item
         end
     end
+    self:AutoPass()
     TG:Fire("LOOT_SESSION")
     self.Frames:ShowResponse()
     if self:IsCouncil() then self.Frames:ShowOwner() end
@@ -221,6 +257,8 @@ function Loot:OnAward(sender, data)
     if TG.IsMe(data.w) then
         TG:Print(L["You received %s"], item.link)
         PlaySound(SOUNDKIT.LOOT_WINDOW_COIN_SOUND)
+    else
+        self.Trade:Add(item.link, data.w)
     end
     TG:Fire("LOOT_SESSION")
 end
@@ -263,8 +301,9 @@ function Loot:OnInitialize()
         if not self.enabled then return end
         rest = TG.Trim(rest)
         if rest == "end" then self:End() return end
+        if rest == "sr" then self.Reserves:OpenImport() return end
         if rest == "" then
-            if self.session then self.Frames:ShowOwner() self.Frames:ShowResponse() else TG:Print(L["Usage: /tg loot <item link>, /tg loot end"]) end
+            if self.session then self.Frames:ShowOwner() self.Frames:ShowResponse() else TG:Print(L["Usage: /tg loot <item link>, /tg loot end, /tg loot sr"]) end
             return
         end
         local links = {}
@@ -281,6 +320,7 @@ function Loot:OnEnable()
     self:RegisterComm("LE", "OnEnd")
     self:RegisterEvent("LOOT_OPENED", "OnLootOpened")
     self.Finds:Enable(self)
+    self.Trade:Enable(self)
     self:RegisterEvent("GROUP_LEFT", function() if self.session then self.session = nil TG:Fire("LOOT_SESSION") self.Frames:Hide() end end)
 end
 

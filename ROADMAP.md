@@ -49,7 +49,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Done: loot sessions with responses, council votes, awards, group chat announcements and shared history, items captured from the loot window.
 - Done: guild finds, rare or better loot of members reported with bind type.
 - Done: raid builder with group assignments per team, role counts, auto fill and apply to the live raid.
-- Loot: trade helper, soft reserve import from softres.it, auto pass for unusable items.
+- Done: loot trade helper, soft reserve import from softres.it, auto pass for unusable items.
 - Consumable and gear readiness overview using inspect data outside combat.
 - Done: raid days per team, upcoming raid nights, export as guild sign up events into the Blizzard calendar.
 

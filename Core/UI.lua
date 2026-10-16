@@ -204,7 +204,7 @@ end
 
 local textDialog
 
-function UI.TextDialog(title, text)
+function UI.TextDialog(title, text, onAccept, hint)
     if not textDialog then
         local f = CreateFrame("Frame", "TheGuildTextDialog", UIParent, "ButtonFrameTemplate")
         f:SetSize(520, 420)
@@ -229,10 +229,24 @@ function UI.TextDialog(title, text)
         edit:SetScript("OnEscapePressed", function() f:Hide() end)
         scroll:SetScrollChild(edit)
         f.edit = edit
+        f.scroll = scroll
+        f.accept = UI.Button(f.Inset, ACCEPT, 100, function()
+            if f.onAccept then f.onAccept(f.edit:GetText()) end
+            f:Hide()
+        end)
+        f.accept:SetPoint("BOTTOMRIGHT", f.Inset, "BOTTOMRIGHT", -8, 6)
+        f.hint = UI.Label(f.Inset, "", "GameFontDisableSmall")
+        f.hint:SetPoint("BOTTOMLEFT", f.Inset, "BOTTOMLEFT", 10, 10)
+        f.hint:SetPoint("RIGHT", f.accept, "LEFT", -8, 0)
         tinsert(UISpecialFrames, "TheGuildTextDialog")
         textDialog = f
     end
     textDialog:SetTitle(title or TG.title)
+    textDialog.onAccept = onAccept
+    textDialog.accept:SetShown(onAccept ~= nil)
+    textDialog.hint:SetText(hint or "")
+    textDialog.hint:SetShown(hint ~= nil)
+    textDialog.scroll:SetPoint("BOTTOMRIGHT", textDialog.Inset, "BOTTOMRIGHT", -28, onAccept and 34 or 8)
     textDialog.edit:SetText(text or "")
     textDialog:Show()
     textDialog.edit:HighlightText()

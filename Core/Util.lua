@@ -277,6 +277,23 @@ function TG.GroupMembers()
     return names
 end
 
+-- Group unit id for a member name, matched by first name because UnitName
+-- on Forever only returns the first name.
+function TG.UnitForName(name)
+    local first = TG.FirstName(name)
+    if not first then return nil end
+    first = first:lower()
+    local n = GetNumGroupMembers()
+    if not TG.usable(n) then return nil end
+    local prefix = IsInRaid() and "raid" or "party"
+    for i = 1, n do
+        local unit = prefix .. i
+        local uname = UnitName(unit)
+        if TG.usable(uname) and uname and TG.FirstName(uname):lower() == first then return unit end
+    end
+    return nil
+end
+
 function TG.InGroup(key)
     return TG.GroupMembers()[TG.StripRealm(key) or key] == true
 end

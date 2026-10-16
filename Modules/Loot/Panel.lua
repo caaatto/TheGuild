@@ -27,6 +27,18 @@ local function build(panel)
     end)
     session:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
 
+    local reserves = UI.Button(panel, L["Soft reserves"], 110, function() Loot.Reserves:OpenImport() end)
+    reserves:SetPoint("RIGHT", session, "LEFT", -4, 0)
+
+    local trades = UI.Dropdown(panel, 150, function(_, root)
+        for i, t in ipairs(Loot.Trade:Pending()) do
+            root:CreateButton(L["%s for %s"]:format(t.link, TG.ShortName(t.to)), function() Loot.Trade:Open(i) end)
+        end
+        root:CreateDivider()
+        root:CreateButton(L["Clear list"], function() Loot.Trade:Clear() end)
+    end)
+    trades:SetPoint("RIGHT", reserves, "LEFT", -4, 0)
+
     local info = UI.Label(panel, "", "GameFontHighlightSmall")
     info:SetPoint("LEFT", search, "RIGHT", 12, 0)
 
@@ -71,11 +83,15 @@ local function build(panel)
         end
         info:SetText(L["%d awards"]:format(#rows))
         session:SetText(Loot.session and L["Loot session"] or L["No session"])
+        local pending = #Loot.Trade:Pending()
+        trades:SetShown(pending > 0)
+        trades:SetDefaultText(L["To trade: %d"]:format(pending))
         list:SetData(rows)
     end
 
     TG:On("STORE_CHANGED", function(ns) if ns == "loot" and panel:IsShown() then panel:OnShow() end end, Loot)
     TG:On("LOOT_SESSION", function() if panel:IsShown() then panel:OnShow() end end, Loot)
+    TG:On("LOOT_TRADES", function() if panel:IsShown() then panel:OnShow() end end, Loot)
 end
 
 TG.Window:RegisterTab("loot", L["Loot"], build, 27)
