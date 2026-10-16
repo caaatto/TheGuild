@@ -3,7 +3,7 @@
 ## Notes: Guild wide recipe directory with crafters in item tooltips.
 ## Notes-deDE: Gildenweites Rezeptverzeichnis mit Herstellern im Gegenstandstooltip.
 ## Author: Catto
-## Version: 0.2.2
+## Version: 0.2.3
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
