@@ -68,9 +68,27 @@ local function memberFromContext(contextData)
     return TG.Roster:Find(name)
 end
 
+local function outsiderName(contextData)
+    local unit = contextData and contextData.unit
+    if not (unit and TG.usable(unit) and UnitIsPlayer(unit)) or UnitIsUnit(unit, "player") then return nil end
+    local first, second = UnitFullName(unit)
+    if not TG.usable(first) or not first then return nil end
+    if TG.usable(second) and type(second) == "string" and second ~= "" then return first .. " " .. second end
+    return first
+end
+
 local function modifyUnitMenu(owner, root, contextData)
     local entry = memberFromContext(contextData)
-    if not entry or TG.IsMe(entry.key) then return end
+    if not entry then
+        local name = outsiderName(contextData)
+        if name then
+            root:CreateDivider()
+            root:CreateTitle(TG.title)
+            TG:Fire("UNIT_MENU", root, name)
+        end
+        return
+    end
+    if TG.IsMe(entry.key) then return end
     local map = TG:GetModule("Map")
     local hasPos = map and map.enabled and map:HasPosition(entry.key)
     root:CreateDivider()

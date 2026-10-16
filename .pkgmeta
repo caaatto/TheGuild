@@ -10,6 +10,7 @@ move-folders:
   TheGuild/Modules/Loot: TheGuild_Loot
   TheGuild/Modules/Board: TheGuild_Board
   TheGuild/Modules/Stats: TheGuild_Stats
+  TheGuild/Modules/Recruit: TheGuild_Recruit
 
 ignore:
   - tools

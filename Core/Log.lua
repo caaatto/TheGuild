@@ -8,7 +8,7 @@ TG.Log = Log
 
 local MAX_ENTRIES = 500
 
-Log.KINDS = { "online", "offline", "joined", "left", "rejoined", "renamed", "level", "rank", "death", "cta", "note", "raid", "found", "post", "poll", "event" }
+Log.KINDS = { "online", "offline", "joined", "left", "rejoined", "renamed", "level", "rank", "death", "cta", "note", "raid", "found", "post", "poll", "event", "recruited" }
 
 local function entries()
     local g = TG:GuildDB()
@@ -65,6 +65,7 @@ function Log:Text(item)
     if kind == "post" then return L["%s posted on the board: %s"]:format(colored, item.title or "") end
     if kind == "poll" then return L["%s started a poll: %s"]:format(colored, item.title or "") end
     if kind == "event" then return L["%s created an event: %s"]:format(colored, item.title or "") end
+    if kind == "recruited" then return L["%s joined from the candidate list"]:format(colored) end
     return colored
 end
 
