@@ -40,7 +40,7 @@ local function build(panel)
     header:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -60)
 
     local listFrame = CreateFrame("Frame", nil, panel)
-    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -2)
+    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -1)
     listFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
 
     local list = UI.List(listFrame, 22, function(button, data)
@@ -56,6 +56,7 @@ local function build(panel)
         button.cells.age:SetText(TG.FormatAge(GetTime() - peer.ts))
         button.data = data
     end, {
+        inset = true,
         buildRow = function(button)
             button.icon = UI.ClassIcon(button, 16)
             button.icon:SetPoint("LEFT", button, "LEFT", 6, 0)
@@ -96,4 +97,4 @@ local function build(panel)
     TG:On("MAP_SHARING", function() if panel:IsShown() then share:SetChecked(Map.cdb.share) end end, Map)
 end
 
-TG.Window:RegisterTab("map", L["Map"], build, 20)
+TG.Window:RegisterTab("map", L["Map"], build, 20, "Interface\\Icons\\INV_Misc_Map_01")

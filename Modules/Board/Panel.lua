@@ -8,11 +8,6 @@ Board.view = "posts"
 local VIEWS = { { "posts", L["Posts"] }, { "polls", L["Polls"] }, { "events", L["Events"] }, { "bounties", L["Bounties"] } }
 local selectedPost, selectedPoll, selectedEvent, selectedBounty
 
-local function viewName()
-    for _, v in ipairs(VIEWS) do if v[1] == Board.view then return v[2] end end
-    return ""
-end
-
 local function authorText(name)
     local e = TG.Roster:Get(name)
     return e and TG.ClassText(e.classFile, name) or name
@@ -23,15 +18,11 @@ local function compose(title, hint, onAccept)
 end
 
 local function build(panel)
-    local viewDropdown = UI.Dropdown(panel, 130, function(_, root)
-        for _, v in ipairs(VIEWS) do
-            root:CreateRadio(v[2], function() return Board.view == v[1] end, function()
-                Board.view = v[1]
-                panel:OnShow()
-            end)
-        end
+    local viewTabs = UI.Tabs(panel, VIEWS, function(id)
+        Board.view = id
+        panel:OnShow()
     end)
-    viewDropdown:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
+    viewTabs:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -2)
 
     local newPost = UI.Button(panel, L["New post"], 120, function()
         compose(L["New post"], L["The first line is the title."], function(text)
@@ -89,7 +80,7 @@ local function build(panel)
 
     -- left list
     local listFrame = CreateFrame("Frame", nil, panel)
-    listFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -36)
+    listFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
     listFrame:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 4, 4)
     listFrame:SetWidth(310)
     local empty = UI.Label(listFrame, "", "GameFontDisableSmall", "CENTER")
@@ -115,6 +106,7 @@ local function build(panel)
             button.meta:SetText(("%s  %s  %s"):format(row.closed and GRAY_FONT_COLOR:WrapTextInColorCode(L["Closed"]) or GREEN_FONT_COLOR:WrapTextInColorCode(L["Open"]), L["%d votes"]:format(total), date("%d.%m.%y", row.time)))
         end
     end, {
+        inset = true,
         buildRow = function(button)
             button.title = UI.Cell(button, 280, "LEFT", "GameFontNormal")
             button.title:SetPoint("TOPLEFT", button, "TOPLEFT", 6, -4)
@@ -131,7 +123,7 @@ local function build(panel)
     })
 
     -- right detail
-    local detail = CreateFrame("Frame", nil, panel)
+    local detail = UI.Card(panel)
     detail:SetPoint("TOPLEFT", listFrame, "TOPRIGHT", 8, 0)
     detail:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
     local hint = UI.Label(detail, "", "GameFontDisableSmall", "CENTER")
@@ -223,6 +215,7 @@ local function build(panel)
         button.when:SetText(date("%d.%m.%y %H:%M", row.time))
         button.award:SetShown(row.canAward)
     end, {
+        inset = true,
         buildRow = function(button)
             button.text = UI.Cell(button, 200, "LEFT", "GameFontHighlight")
             button.text:SetPoint("LEFT", button, "LEFT", 8, 0)
@@ -244,6 +237,7 @@ local function build(panel)
         button.bar:SetText(GREEN_FONT_COLOR:WrapTextInColorCode(string.rep("|", bar)) .. GRAY_FONT_COLOR:WrapTextInColorCode(string.rep("|", 20 - bar)))
         button.vote:SetShown(row.open and not row.mine)
     end, {
+        inset = true,
         buildRow = function(button)
             button.text = UI.Cell(button, 220, "LEFT", "GameFontHighlight")
             button.text:SetPoint("LEFT", button, "LEFT", 8, 0)
@@ -437,7 +431,7 @@ local function build(panel)
     end
 
     function panel:OnShow()
-        viewDropdown:SetDefaultText(viewName())
+        viewTabs:Select(Board.view)
         newPost:SetShown(Board.view == "posts" and Board:CanPost())
         newPoll:SetShown(Board.view == "polls" and Board:CanManage())
         newEvent:SetShown(Board.view == "events" and Board:CanPost())
@@ -454,4 +448,4 @@ local function build(panel)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Board)
 end
 
-TG.Window:RegisterTab("board", L["Board"], build, 28)
+TG.Window:RegisterTab("board", L["Board"], build, 28, "Interface\\Icons\\INV_Misc_Note_02")

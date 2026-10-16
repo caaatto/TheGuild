@@ -195,7 +195,7 @@ local function build(panel)
     header:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -36)
 
     local listFrame = CreateFrame("Frame", nil, panel)
-    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -2)
+    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -1)
     listFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
 
     local list = UI.List(listFrame, 20, function(button, e)
@@ -219,6 +219,7 @@ local function build(panel)
             button.addon:Hide()
         end
     end, {
+        inset = true,
         buildRow = function(button)
             button.icon = UI.ClassIcon(button, 16)
             button.icon:SetPoint("LEFT", button, "LEFT", 6, 0)
@@ -256,13 +257,7 @@ local function build(panel)
         suggest:SetShown(TG.Roster:AmOfficer())
         local total, online = TG.Roster:Counts()
         counts:SetText(L["%d of %d online"]:format(online, total))
-        for _, b in ipairs(header.buttons) do
-            local arrow = ""
-            if b.key == Roster.db.sort then arrow = Roster.db.asc and " |A:uitools-arrow-up:8:8|a" or " |A:uitools-arrow-down:8:8|a" end
-            local col
-            for _, c in ipairs(columns) do if c.key == b.key then col = c end end
-            b.Text:SetText(col.text .. arrow)
-        end
+        header:SetSort(Roster.db.sort, Roster.db.asc)
         list:SetData(Roster:Rows())
     end
 
@@ -299,4 +294,4 @@ function Roster:OnEnable()
     end)
 end
 
-TG.Window:RegisterTab("members", L["Members"], build, 10)
+TG.Window:RegisterTab("members", L["Members"], build, 10, "Interface\\Icons\\INV_Misc_GroupLooking")

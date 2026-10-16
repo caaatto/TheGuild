@@ -68,6 +68,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Done: Ctrl + Tab and gamepad shoulder buttons switch tabs, Ctrl + F focuses the search field, Escape closes. Lists stay mouse driven.
 - Done in the simulator: 500 member guild loads in milliseconds, first seen records and sync answers travel in batches of 40 items, welcome messages stop after three joins per minute. With 100 online users only the three lowest names answer a sync request. Moving members send a position every 3 seconds, idle ones every 25 seconds, so 100 moving users mean about 33 small messages per second for every client. `/tg memory` prints the memory of every loaded part and the size of the shared data.
 - Done: in game help from the overview. A documentation site waits for the launch.
+- Done: window rebuilt on the Forever templates (side tabs, column headers, inset lists, tab strips, banner, cards, status bars).
 
 ## Open questions
 

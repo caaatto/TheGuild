@@ -46,20 +46,30 @@ local function build(panel)
     header:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -36)
 
     local listFrame = CreateFrame("Frame", nil, panel)
-    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -2)
+    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -1)
     listFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
 
-    local list = UI.List(listFrame, 22, function(button, row)
+    local list = UI.List(listFrame, 24, function(button, row)
         button.row = row
         button.cells.time:SetText(date("%d.%m.%y %H:%M", row.t))
         button.cells.item:SetText(row.link or "")
+        local itemID = row.link and C_Item.GetItemInfoInstant and C_Item.GetItemInfoInstant(row.link)
+        button.icon:SetTexture(itemID and C_Item.GetItemIconByID(itemID) or 134400)
         local entry = TG.Roster:Get(row.winner or "")
         button.cells.winner:SetText(entry and TG.ClassText(entry.classFile, row.winner) or (row.winner or ""))
         button.cells.response:SetText((Loot:ResponseText(row.r)))
         button.cells.by:SetText(row.by or "")
     end, {
+        inset = true,
         buildRow = function(button)
             button.cells = UI.Cells(button, columns)
+            button.icon = button:CreateTexture(nil, "ARTWORK")
+            button.icon:SetSize(18, 18)
+            button.icon:SetPoint("LEFT", button, "LEFT", columns[1].width + 6, 0)
+            button.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            button.cells.item:ClearAllPoints()
+            button.cells.item:SetPoint("LEFT", button.icon, "RIGHT", 4, 0)
+            button.cells.item:SetWidth(columns[2].width - 36)
             button:SetScript("OnEnter", function(self)
                 if self.row and self.row.link then
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -94,4 +104,4 @@ local function build(panel)
     TG:On("LOOT_TRADES", function() if panel:IsShown() then panel:OnShow() end end, Loot)
 end
 
-TG.Window:RegisterTab("loot", L["Loot"], build, 27)
+TG.Window:RegisterTab("loot", L["Loot"], build, 27, "Interface\\Icons\\INV_Misc_Bag_10")

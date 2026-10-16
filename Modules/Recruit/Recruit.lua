@@ -220,12 +220,10 @@ local function build(panel)
     header:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -36)
 
     local listFrame = CreateFrame("Frame", nil, panel)
-    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -2)
+    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -1)
     listFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
-    local empty = UI.Label(listFrame, L["No candidates. Add players you talked to, or use the unit menu."], "GameFontDisableSmall", "CENTER")
-    empty:SetPoint("CENTER")
-    local locked = UI.Label(panel, L["Recruitment is for officers and members who may invite."], "GameFontDisableSmall", "CENTER")
-    locked:SetPoint("CENTER")
+    local empty = UI.Empty(listFrame, L["No candidates. Add players you talked to, or use the unit menu."])
+    local locked = UI.Empty(panel, L["Recruitment is for officers and members who may invite."])
 
     local function menu(owner, row)
         MenuUtil.CreateContextMenu(owner, function(_, root)
@@ -253,6 +251,7 @@ local function build(panel)
         button.cells.by:SetText(("%s %s"):format(TG.ShortName(row.by or "?"), date("%d.%m.", row.time)))
         button.invite:SetEnabled(row.status ~= 4)
     end, {
+        inset = true,
         buildRow = function(button)
             button.cells = UI.Cells(button, columns)
             button.whisper = UI.Button(button, L["Whisper"], 70, function() TG.Whisper(button.row.key) end)
@@ -290,4 +289,4 @@ local function build(panel)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Recruit)
 end
 
-TG.Window:RegisterTab("recruit", L["Recruitment"], build, 17)
+TG.Window:RegisterTab("recruit", L["Recruitment"], build, 17, "Interface\\Icons\\Achievement_GuildPerk_FastTrack")

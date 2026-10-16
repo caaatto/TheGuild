@@ -315,6 +315,7 @@ local function build(panel)
         button.prof:SetText(group.profName or "")
         button.crafters:SetText(crafterText(group.list, 6))
     end, {
+        inset = true,
         buildRow = function(button)
             button.icon = button:CreateTexture(nil, "ARTWORK")
             button.icon:SetSize(18, 18)
@@ -416,4 +417,4 @@ function Prof:OnEnable()
     end
 end
 
-TG.Window:RegisterTab("professions", L["Professions"], build, 30)
+TG.Window:RegisterTab("professions", L["Professions"], build, 30, "Interface\\Icons\\Trade_Engineering")

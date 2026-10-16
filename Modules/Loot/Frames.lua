@@ -104,7 +104,7 @@ local function buildOwner()
     f.columns = header.columns
 
     local listFrame = CreateFrame("Frame", nil, f.Inset)
-    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -2)
+    listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -1)
     listFrame:SetPoint("BOTTOMRIGHT", f.Inset, "BOTTOMRIGHT", -4, 4)
     f.list = UI.List(listFrame, 24, function(button, row)
         button.row = row
@@ -121,6 +121,7 @@ local function buildOwner()
         button.vote:SetText(item and item.votes[row.name] and item.votes[row.name][me] and L["Unvote"] or L["Vote"])
         button.award:SetShown(Loot:IsOwner() and item ~= nil and not item.awarded)
     end, {
+        inset = true,
         buildRow = function(button)
             button.cells = UI.Cells(button, f.columns)
             button.vote = UI.Button(button, L["Vote"], 70, function() Loot:Vote(selected, button.row.name) end)

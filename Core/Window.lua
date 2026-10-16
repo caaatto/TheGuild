@@ -7,13 +7,69 @@ TG.Window = Window
 
 local tabs = {}
 local frame
+local tabButtons = {}
+local sideTabs = false
 
-local WIDTH, HEIGHT = 840, 560
+local WIDTH, HEIGHT = 920, 610
 
 local function savePosition()
     local point, _, _, x, y = frame:GetPoint(1)
     local w = TG.db.global.window
     w.point, w.x, w.y = point, x, y
+end
+
+local function updateTabVisuals(index)
+    if sideTabs then
+        for i, button in ipairs(tabButtons) do
+            if button.SetChecked then button:SetChecked(i == index) end
+        end
+    else
+        PanelTemplates_SetTab(frame, index)
+    end
+end
+
+-- Forever shows module tabs as icon tabs on the right side of a frame, like the
+-- professions and collections windows. Older clients fall back to bottom tabs.
+local function buildSideTabs()
+    for i, tab in ipairs(tabs) do
+        local button = CreateFrame("Button", "TheGuildFrameTab" .. i, frame, "LargeSideTabButtonTemplate")
+        button:SetID(i)
+        button.tooltipText = tab.title
+        if button.SetFillToInterior then button:SetFillToInterior(true, 50) end
+        if button.Icon then
+            button.Icon:SetTexture(tab.icon or TG.icon)
+            button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        end
+        if i == 1 then
+            button:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, -60)
+        else
+            button:SetPoint("TOPLEFT", tabButtons[i - 1], "BOTTOMLEFT", 0, -2)
+        end
+        button:SetScript("OnClick", function(self)
+            Window:SelectTab(self:GetID())
+        end)
+        tabButtons[i] = button
+    end
+end
+
+local function buildBottomTabs()
+    for i, tab in ipairs(tabs) do
+        local button = CreateFrame("Button", "TheGuildFrameTab" .. i, frame, "PanelTabButtonTemplate")
+        button:SetID(i)
+        button:SetText(tab.title)
+        if i == 1 then
+            button:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 11, 2)
+        else
+            button:SetPoint("LEFT", tabButtons[i - 1], "RIGHT", 3, 0)
+        end
+        tabButtons[i] = button
+        PanelTemplates_TabResize(button, 0)
+        button:SetScript("OnClick", function(self)
+            PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
+            Window:SelectTab(self:GetID())
+        end)
+    end
+    PanelTemplates_SetNumTabs(frame, #tabs)
 end
 
 local function build()
@@ -27,6 +83,7 @@ local function build()
     frame:SetTitle(TG.title)
     frame:SetPortraitToAsset(TG.icon)
     ButtonFrameTemplate_HideButtonBar(frame)
+    frame.Inset:SetPoint("TOPLEFT", 4, -60)
     frame.Inset:SetPoint("BOTTOMRIGHT", -6, 4)
 
     local w = TG.db.global.window
@@ -40,9 +97,13 @@ local function build()
     frame:SetScript("OnDragStart", function(self) self:StartMoving() end)
     frame:SetScript("OnDragStop", function(self) self:StopMovingOrSizing() savePosition() end)
 
+    frame.guildName = UI.Label(frame, "", "GameFontNormalLarge")
+    frame.guildName:SetPoint("TOPLEFT", frame, "TOPLEFT", 64, -28)
     frame.subtitle = UI.Label(frame, "", "GameFontHighlightSmall")
-    frame.subtitle:SetPoint("TOPLEFT", frame, "TOPLEFT", 64, -32)
+    frame.subtitle:SetPoint("LEFT", frame.guildName, "RIGHT", 14, -1)
     frame.subtitle:SetPoint("RIGHT", frame, "RIGHT", -40, 0)
+    frame.tabTitle = UI.Label(frame, "", "GameFontDisableSmall", "RIGHT")
+    frame.tabTitle:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -14, -32)
 
     frame:SetScript("OnShow", function()
         PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN)
@@ -82,29 +143,13 @@ local function build()
     TG:RegisterEvent("PLAYER_REGEN_DISABLED", function() frame:EnableKeyboard(false) end)
     TG:RegisterEvent("PLAYER_REGEN_ENABLED", function() frame:EnableKeyboard(true) end)
 
-    local buttons = {}
-    for i, tab in ipairs(tabs) do
-        local button = CreateFrame("Button", "TheGuildFrameTab" .. i, frame, "PanelTabButtonTemplate")
-        button:SetID(i)
-        button:SetText(tab.title)
-        if i == 1 then
-            button:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 11, 2)
-        else
-            button:SetPoint("LEFT", buttons[i - 1], "RIGHT", 3, 0)
-        end
-        buttons[i] = button
-        PanelTemplates_TabResize(button, 0)
-        button:SetScript("OnClick", function(self)
-            PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
-            Window:SelectTab(self:GetID())
-        end)
-    end
-    PanelTemplates_SetNumTabs(frame, #tabs)
+    sideTabs = UI.HasAtlas("common-sidetab")
+    if sideTabs then buildSideTabs() else buildBottomTabs() end
     frame:Hide()
 end
 
-function Window:RegisterTab(id, title, builder, order)
-    tabs[#tabs + 1] = { id = id, title = title, builder = builder, order = order or 100 }
+function Window:RegisterTab(id, title, builder, order, icon)
+    tabs[#tabs + 1] = { id = id, title = title, builder = builder, order = order or 100, icon = icon }
     table.sort(tabs, function(a, b)
         if a.order ~= b.order then return a.order < b.order end
         return a.id < b.id
@@ -120,11 +165,13 @@ function Window:UpdateSubtitle()
     if not frame then return end
     local guild = TG.Roster:GuildName()
     if not guild then
-        frame.subtitle:SetText(GRAY_FONT_COLOR:WrapTextInColorCode(L["No guild"]))
+        frame.guildName:SetText(GRAY_FONT_COLOR:WrapTextInColorCode(L["No guild"]))
+        frame.subtitle:SetText("")
         return
     end
     local total, online = TG.Roster:Counts()
-    frame.subtitle:SetText(("%s%s|r   %s   %s"):format(TG.gold, guild, L["%d of %d online"]:format(online, total), L["%d with TheGuild"]:format(TG.Comm:PeerCount() + 1)))
+    frame.guildName:SetText(TG.gold .. guild .. "|r")
+    frame.subtitle:SetText(("%s   %s"):format(L["%d of %d online"]:format(online, total), GRAY_FONT_COLOR:WrapTextInColorCode(L["%d with TheGuild"]:format(TG.Comm:PeerCount() + 1))))
 end
 
 function Window:SelectTab(index)
@@ -132,8 +179,9 @@ function Window:SelectTab(index)
     local tab = tabs[index]
     if not tab then index, tab = 1, tabs[1] end
     if not tab then return end
-    PanelTemplates_SetTab(frame, index)
+    updateTabVisuals(index)
     TG.db.global.window.tab = index
+    frame.tabTitle:SetText(tab.title)
     for _, t in ipairs(tabs) do
         if t.panel then t.panel:Hide() end
     end
@@ -189,7 +237,7 @@ end
 function Window:Refresh()
     if not frame or not frame:IsShown() then return end
     self:UpdateSubtitle()
-    local tab = tabs[PanelTemplates_GetSelectedTab(frame) or 1]
+    local tab = tabs[TG.db.global.window.tab or 1]
     if tab and tab.panel and tab.panel.OnShow then TG.SafeCall(tab.panel.OnShow, tab.panel) end
 end
 

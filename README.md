@@ -26,6 +26,8 @@ The module folders live under `TheGuild/Modules/`. Release packages (see `.pkgme
 
 ## Blizzard integration
 
+The window is built from the client's own templates: a portrait frame with the Forever side tabs for the modules, column headers in the who list style, inset lists, tab strips for the views inside a panel, tooltip style cards, status bars and the guild banner with the tabard on the overview.
+
 - Tab on the guild window (Communities frame) that opens TheGuild.
 - Entries in unit and guild member context menus.
 - Entries in the world map and minimap tracking menus.

@@ -11,11 +11,6 @@ Raids.view = "teams"
 
 local VIEWS = { { "teams", L["Teams"] }, { "builder", L["Raid builder"] }, { "schedule", L["Schedule"] }, { "attendance", L["Attendance"] } }
 
-local function viewName()
-    for _, v in ipairs(VIEWS) do if v[1] == Raids.view then return v[2] end end
-    return ""
-end
-
 local function roleIcon(role)
     local markup = TG.RoleIconMarkup(role, 12)
     if markup == "" then return TG.ROLE_NAMES[role]:sub(1, 1) end
@@ -31,7 +26,7 @@ local function build(panel)
             end)
         end
     end)
-    teamDropdown:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
+    teamDropdown:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -40)
     teamDropdown:SetDefaultText(L["Choose a team"])
 
     local newTeam = UI.Button(panel, L["New team"], 90, function()
@@ -81,26 +76,23 @@ local function build(panel)
         local n = Raids:InviteTeam(selectedTeam)
         TG:Print(L["%d invitations sent."], n)
     end)
-    invite:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
+    invite:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -39)
 
-    local viewDropdown = UI.Dropdown(panel, 130, function(_, root)
-        for _, v in ipairs(VIEWS) do
-            root:CreateRadio(v[2], function() return Raids.view == v[1] end, function()
-                Raids.view = v[1]
-                panel:OnShow()
-            end)
-        end
+    local viewTabs = UI.Tabs(panel, VIEWS, function(id)
+        Raids.view = id
+        panel:OnShow()
     end)
-    viewDropdown:SetPoint("RIGHT", invite, "LEFT", -6, 0)
+    viewTabs:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -2)
 
     -- team members
     local membersFrame = CreateFrame("Frame", nil, panel)
-    membersFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
+    membersFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -70)
     membersFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOM", -4, 4)
-    local membersTitle = UI.Label(membersFrame, L["Team members"], "GameFontNormal")
-    membersTitle:SetPoint("TOPLEFT", membersFrame, "TOPLEFT", 8, -2)
+    local membersTitle = UI.SectionHeader(membersFrame, L["Team members"])
+    membersTitle:SetPoint("TOPLEFT", membersFrame, "TOPLEFT", 0, 0)
+    membersTitle:SetPoint("RIGHT", membersFrame, "RIGHT", 0, 0)
     local membersList = CreateFrame("Frame", nil, membersFrame)
-    membersList:SetPoint("TOPLEFT", membersFrame, "TOPLEFT", 0, -20)
+    membersList:SetPoint("TOPLEFT", membersFrame, "TOPLEFT", 0, -22)
     membersList:SetPoint("BOTTOMRIGHT", membersFrame, "BOTTOMRIGHT", 0, 0)
     local members = UI.List(membersList, 22, function(button, key)
         local e = TG.Roster:Get(key)
@@ -112,6 +104,7 @@ local function build(panel)
         button.status:SetText(e and UI.StatusText(e) or "")
         button.remove:SetShown(Raids:CanEdit())
     end, {
+        inset = true,
         buildRow = function(button)
             button.icon = UI.ClassIcon(button, 16)
             button.icon:SetPoint("LEFT", button, "LEFT", 6, 0)
@@ -130,14 +123,16 @@ local function build(panel)
 
     -- roster picker
     local pickerFrame = CreateFrame("Frame", nil, panel)
-    pickerFrame:SetPoint("TOPLEFT", panel, "TOP", 4, -40)
+    pickerFrame:SetPoint("TOPLEFT", panel, "TOP", 4, -70)
     pickerFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
-    local pickerTitle = UI.Label(pickerFrame, L["Add members"], "GameFontNormal")
-    pickerTitle:SetPoint("TOPLEFT", pickerFrame, "TOPLEFT", 8, -2)
+    local pickerTitle = UI.SectionHeader(pickerFrame, L["Add members"])
+    pickerTitle:SetPoint("TOPLEFT", pickerFrame, "TOPLEFT", 0, 0)
+    pickerTitle:SetPoint("RIGHT", pickerFrame, "RIGHT", 0, 0)
     local search = UI.SearchBox(pickerFrame, 160, function(text) pickerText = text panel:OnShow() end)
-    search:SetPoint("LEFT", pickerTitle, "RIGHT", 12, 0)
+    search:SetPoint("RIGHT", pickerTitle, "RIGHT", -4, 0)
+    panel.search = search
     local pickerList = CreateFrame("Frame", nil, pickerFrame)
-    pickerList:SetPoint("TOPLEFT", pickerFrame, "TOPLEFT", 0, -20)
+    pickerList:SetPoint("TOPLEFT", pickerFrame, "TOPLEFT", 0, -22)
     pickerList:SetPoint("BOTTOMRIGHT", pickerFrame, "BOTTOMRIGHT", 0, 0)
     local picker = UI.List(pickerList, 22, function(button, e)
         button.key = e.key
@@ -145,6 +140,7 @@ local function build(panel)
         local role = TG.Store:Get("role", e.key)
         button.name:SetText((role and (TG.RoleIconMarkup(role, 14) .. " ") or "") .. TG.ClassText(e.classFile, e.key) .. GRAY_FONT_COLOR:WrapTextInColorCode(" " .. (e.level or "")))
     end, {
+        inset = true,
         buildRow = function(button)
             button.icon = UI.ClassIcon(button, 16)
             button.icon:SetPoint("LEFT", button, "LEFT", 6, 0)
@@ -157,7 +153,7 @@ local function build(panel)
 
     -- raid builder
     local builderFrame = CreateFrame("Frame", nil, panel)
-    builderFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
+    builderFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -70)
     builderFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
     local builderHint = UI.Label(builderFrame, L["Click a slot to place a member, right click to clear it."], "GameFontDisableSmall")
     builderHint:SetPoint("TOPLEFT", builderFrame, "TOPLEFT", 8, -2)
@@ -233,15 +229,17 @@ local function build(panel)
     local freeFrame = CreateFrame("Frame", nil, builderFrame)
     freeFrame:SetPoint("TOPLEFT", builderFrame, "TOPLEFT", 12 + COLS * (BOX_W + BOX_GAP), -2)
     freeFrame:SetPoint("BOTTOMRIGHT", builderFrame, "BOTTOMRIGHT", 0, 34)
-    local freeTitle = UI.Label(freeFrame, L["Unassigned"], "GameFontNormal")
-    freeTitle:SetPoint("TOPLEFT", freeFrame, "TOPLEFT", 8, 0)
+    local freeTitle = UI.SectionHeader(freeFrame, L["Unassigned"])
+    freeTitle:SetPoint("TOPLEFT", freeFrame, "TOPLEFT", 0, 0)
+    freeTitle:SetPoint("RIGHT", freeFrame, "RIGHT", -4, 0)
     local freeListFrame = CreateFrame("Frame", nil, freeFrame)
-    freeListFrame:SetPoint("TOPLEFT", freeFrame, "TOPLEFT", 0, -18)
+    freeListFrame:SetPoint("TOPLEFT", freeFrame, "TOPLEFT", 0, -22)
     freeListFrame:SetPoint("BOTTOMRIGHT", freeFrame, "BOTTOMRIGHT", 0, 0)
     local freeList = UI.List(freeListFrame, 20, function(button, key)
         button.key = key
         button.text:SetText(memberText(key))
     end, {
+        inset = true,
         buildRow = function(button)
             button.text = UI.Cell(button, 180)
             button.text:SetPoint("LEFT", button, "LEFT", 6, 0)
@@ -309,12 +307,12 @@ local function build(panel)
 
     -- schedule
     local scheduleFrame = CreateFrame("Frame", nil, panel)
-    scheduleFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
+    scheduleFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -70)
     scheduleFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
-    local daysTitle = UI.Label(scheduleFrame, L["Raid days"], "GameFontNormal")
-    daysTitle:SetPoint("TOPLEFT", scheduleFrame, "TOPLEFT", 8, -2)
-    local serverHint = UI.Label(scheduleFrame, L["Times are server time."], "GameFontDisableSmall")
-    serverHint:SetPoint("LEFT", daysTitle, "RIGHT", 10, 0)
+    local daysTitle = UI.SectionHeader(scheduleFrame, L["Raid days"])
+    daysTitle:SetPoint("TOPLEFT", scheduleFrame, "TOPLEFT", 0, 0)
+    daysTitle:SetPoint("RIGHT", scheduleFrame, "CENTER", -4, 0)
+    daysTitle:SetRightText(GRAY_FONT_COLOR:WrapTextInColorCode(L["Times are server time."]))
 
     local newDay = { w = 5, h = 20, m = 0 }
     local dayDropdown = UI.Dropdown(scheduleFrame, 130, function(_, root)
@@ -323,7 +321,7 @@ local function build(panel)
             root:CreateRadio(Raids:WeekdayName(wday), function() return newDay.w == wday end, function() newDay.w = wday panel:OnShow() end)
         end
     end)
-    dayDropdown:SetPoint("TOPLEFT", daysTitle, "BOTTOMLEFT", 0, -6)
+    dayDropdown:SetPoint("TOPLEFT", daysTitle, "BOTTOMLEFT", 4, -6)
     local hourDropdown = UI.Dropdown(scheduleFrame, 64, function(_, root)
         for h = 0, 23 do
             root:CreateRadio(("%02d"):format(h), function() return newDay.h == h end, function() newDay.h = h panel:OnShow() end)
@@ -342,15 +340,15 @@ local function build(panel)
     addDay:SetPoint("LEFT", minuteDropdown, "RIGHT", 6, 0)
 
     local daysListFrame = CreateFrame("Frame", nil, scheduleFrame)
-    daysListFrame:SetPoint("TOPLEFT", scheduleFrame, "TOPLEFT", 0, -52)
+    daysListFrame:SetPoint("TOPLEFT", scheduleFrame, "TOPLEFT", 0, -54)
     daysListFrame:SetPoint("BOTTOMRIGHT", scheduleFrame, "BOTTOM", -4, 0)
-    local noDays = UI.Label(daysListFrame, L["No raid days yet."], "GameFontDisableSmall", "CENTER")
-    noDays:SetPoint("CENTER")
+    local noDays = UI.Empty(daysListFrame, L["No raid days yet."])
     local daysList = UI.List(daysListFrame, 22, function(button, row)
         button.index = row.index
         button.text:SetText(("%s %02d:%02d"):format(Raids:WeekdayName(row.w), row.h, row.m))
         button.remove:SetShown(Raids:CanEdit())
     end, {
+        inset = true,
         buildRow = function(button)
             button.text = UI.Cell(button, 240)
             button.text:SetPoint("LEFT", button, "LEFT", 6, 0)
@@ -359,26 +357,28 @@ local function build(panel)
         end,
     })
 
-    local upcomingTitle = UI.Label(scheduleFrame, L["Upcoming raid nights"], "GameFontNormal")
-    upcomingTitle:SetPoint("TOPLEFT", scheduleFrame, "TOP", 8, -2)
+    local upcomingTitle = UI.SectionHeader(scheduleFrame, L["Upcoming raid nights"])
+    upcomingTitle:SetPoint("TOPLEFT", scheduleFrame, "TOP", 4, 0)
+    upcomingTitle:SetPoint("RIGHT", scheduleFrame, "RIGHT", 0, 0)
     local export = UI.Button(scheduleFrame, L["Export to calendar"], 180, function()
         if not selectedTeam then return end
         local created, existing = Raids:ExportCalendar(selectedTeam, Raids.db.calendarWeeks)
         TG:Print(L["%d events created, %d already existed."], created, existing)
         panel:OnShow()
     end)
-    export:SetPoint("TOPRIGHT", scheduleFrame, "TOPRIGHT", -8, 0)
+    export:SetPoint("BOTTOMRIGHT", scheduleFrame, "BOTTOMRIGHT", -4, 2)
     UI.Tooltip(export, function(tooltip)
         GameTooltip_SetTitle(tooltip, L["Export to calendar"])
         GameTooltip_AddNormalLine(tooltip, L["Creates guild sign up events for the next weeks. Existing events are kept."], true)
     end)
     local upcomingListFrame = CreateFrame("Frame", nil, scheduleFrame)
-    upcomingListFrame:SetPoint("TOPLEFT", scheduleFrame, "TOP", 0, -28)
-    upcomingListFrame:SetPoint("BOTTOMRIGHT", scheduleFrame, "BOTTOMRIGHT", 0, 0)
+    upcomingListFrame:SetPoint("TOPLEFT", scheduleFrame, "TOP", 4, -22)
+    upcomingListFrame:SetPoint("BOTTOMRIGHT", scheduleFrame, "BOTTOMRIGHT", 0, 28)
     local upcomingList = UI.List(upcomingListFrame, 22, function(button, r)
         button.text:SetText(Raids:FormatRaid(r))
         button.status:SetText(r.inCalendar and GREEN_FONT_COLOR:WrapTextInColorCode(L["in calendar"]) or "")
     end, {
+        inset = true,
         buildRow = function(button)
             button.text = UI.Cell(button, 240)
             button.text:SetPoint("LEFT", button, "LEFT", 6, 0)
@@ -408,12 +408,13 @@ local function build(panel)
 
     -- attendance
     local attendanceFrame = CreateFrame("Frame", nil, panel)
-    attendanceFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -40)
+    attendanceFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -70)
     attendanceFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
-    local attendanceInfo = UI.Label(attendanceFrame, "", "GameFontHighlightSmall")
-    attendanceInfo:SetPoint("TOPLEFT", attendanceFrame, "TOPLEFT", 8, -2)
+    local attendanceInfo = UI.SectionHeader(attendanceFrame, L["Attendance"])
+    attendanceInfo:SetPoint("TOPLEFT", attendanceFrame, "TOPLEFT", 0, 0)
+    attendanceInfo:SetPoint("RIGHT", attendanceFrame, "RIGHT", 0, 0)
     local attendanceList = CreateFrame("Frame", nil, attendanceFrame)
-    attendanceList:SetPoint("TOPLEFT", attendanceFrame, "TOPLEFT", 0, -20)
+    attendanceList:SetPoint("TOPLEFT", attendanceFrame, "TOPLEFT", 0, -22)
     attendanceList:SetPoint("BOTTOMRIGHT", attendanceFrame, "BOTTOMRIGHT", 0, 0)
     local attendance = UI.List(attendanceList, 22, function(button, row)
         local e = row.entry
@@ -428,6 +429,7 @@ local function build(panel)
         end
         button.dots:SetText(table.concat(dots, " "))
     end, {
+        inset = true,
         buildRow = function(button)
             button.icon = UI.ClassIcon(button, 16)
             button.icon:SetPoint("LEFT", button, "LEFT", 6, 0)
@@ -458,7 +460,7 @@ local function build(panel)
         sizeDropdown:SetShown(canEdit and team ~= nil)
         delete:SetShown(canEdit and team ~= nil)
         invite:SetEnabled(team ~= nil)
-        viewDropdown:SetDefaultText(viewName())
+        viewTabs:Select(Raids.view)
         local view = Raids.view
         membersFrame:SetShown(view == "teams")
         pickerFrame:SetShown(view == "teams" and canEdit and team ~= nil)
@@ -488,7 +490,7 @@ local function build(panel)
         else
             local rows, days = Raids:Attendance(Raids.db.attendanceDays)
             for _, row in ipairs(rows) do row.allDays = days end
-            attendanceInfo:SetText(#days > 0 and L["%d raid nights, newest first"]:format(#days) or GRAY_FONT_COLOR:WrapTextInColorCode(L["No raid nights recorded yet. Officers in a raid record attendance automatically."]))
+            attendanceInfo:SetRightText(#days > 0 and L["%d raid nights, newest first"]:format(#days) or GRAY_FONT_COLOR:WrapTextInColorCode(L["No raid nights recorded yet. Officers in a raid record attendance automatically."]))
             attendance:SetData(rows)
         end
     end
@@ -499,4 +501,4 @@ local function build(panel)
     TG:RegisterEvent("CALENDAR_UPDATE_EVENT_LIST", function() if panel:IsShown() and Raids.view == "schedule" then panel:OnShow() end end, Raids)
 end
 
-TG.Window:RegisterTab("raids", L["Raids"], build, 25)
+TG.Window:RegisterTab("raids", L["Raids"], build, 25, "Interface\\Icons\\INV_Misc_Head_Dragon_01")

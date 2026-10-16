@@ -209,38 +209,45 @@ local function build(panel)
     listFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -34)
     listFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
 
-    local list = UI.List(listFrame, 20, function(button, row)
+    local list = UI.List(listFrame, 22, function(button, row)
         if row.kind == "header" then
-            button.label:SetFontObject("GameFontNormal")
+            button.strip:Show()
+            button.label:SetFontObject("GameFontNormalSmall")
+            button.label:ClearAllPoints()
+            button.label:SetPoint("LEFT", button, "LEFT", 8, 0)
             button.label:SetText(row.text)
             button.value:SetText("")
             button.bar:Hide()
             return
         end
+        button.strip:Hide()
         button.label:SetFontObject("GameFontHighlightSmall")
-        button.label:SetText("    " .. row.label)
+        button.label:ClearAllPoints()
+        button.label:SetPoint("LEFT", button, "LEFT", 22, 0)
+        button.label:SetText(row.label)
         if row.kind == "bar" then
             local pct = (row.max or 0) > 0 and row.value / row.max or 0
-            button.bar:SetWidth(math.max(1, BAR_W * pct))
-            local c = row.color
-            if c and c.r then button.bar:SetVertexColor(c.r, c.g, c.b, 0.8) else button.bar:SetVertexColor(0.3, 0.6, 1, 0.8) end
+            button.bar:Set(row.value, row.max, row.color)
+            button.bar.Right:SetText(("%d%%"):format(math.floor(pct * 100 + 0.5)))
             button.bar:Show()
-            button.value:SetText(("%d  (%d%%)"):format(row.value, math.floor(pct * 100 + 0.5)))
+            button.value:SetText(tostring(row.value))
         else
             button.bar:Hide()
             button.value:SetText(tostring(row.value))
         end
     end, {
         alternate = false,
+        inset = true,
         buildRow = function(button)
-            button.label = UI.Cell(button, 260)
-            button.label:SetPoint("LEFT", button, "LEFT", 6, 0)
-            button.bar = button:CreateTexture(nil, "ARTWORK")
-            button.bar:SetTexture("Interface\\Buttons\\WHITE8X8")
-            button.bar:SetHeight(12)
-            button.bar:SetPoint("LEFT", button.label, "RIGHT", 8, 0)
-            button.value = UI.Cell(button, 120)
-            button.value:SetPoint("LEFT", button.label, "RIGHT", BAR_W + 16, 0)
+            button.strip = button:CreateTexture(nil, "BACKGROUND")
+            button.strip:SetAllPoints()
+            button.strip:SetTexture("Interface\\GuildFrame\\GuildFrame")
+            button.strip:SetTexCoord(0.63183594, 0.94531250, 0.57617188, 0.61523438)
+            button.label = UI.Cell(button, 240)
+            button.bar = UI.Bar(button, BAR_W, 12)
+            button.bar:SetPoint("LEFT", button, "LEFT", 272, 0)
+            button.value = UI.Cell(button, 70, "RIGHT")
+            button.value:SetPoint("LEFT", button.bar, "RIGHT", 10, 0)
         end,
     })
 
@@ -252,4 +259,4 @@ local function build(panel)
     TG:On("STORE_CHANGED", function() if panel:IsShown() then panel:OnShow() end end, Stats)
 end
 
-TG.Window:RegisterTab("stats", L["Statistics"], build, 15)
+TG.Window:RegisterTab("stats", L["Statistics"], build, 15, "Interface\\Icons\\INV_Misc_Book_09")
