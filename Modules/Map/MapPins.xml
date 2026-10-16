@@ -1,0 +1,31 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ https://raw.githubusercontent.com/Gethe/wow-ui-source/live/Interface/AddOns/Blizzard_SharedXML/UI.xsd">
+	<Frame name="TheGuildMemberPinTemplate" mixin="TheGuildMemberPinMixin" enableMouseClicks="true" enableMouseMotion="true" virtual="true">
+		<Size x="22" y="22"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon" setAllPoints="true"/>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture parentKey="Badge" hidden="true">
+					<Size x="12" y="12"/>
+					<Anchors>
+						<Anchor point="CENTER" relativePoint="TOPRIGHT" x="-2" y="-2"/>
+					</Anchors>
+				</Texture>
+				<FontString parentKey="Label" inherits="GameFontNormalSmall" justifyH="CENTER">
+					<Anchors>
+						<Anchor point="TOP" relativePoint="BOTTOM" x="0" y="-1"/>
+					</Anchors>
+					<Shadow>
+						<Offset x="1" y="-1"/>
+						<Color r="0" g="0" b="0" a="1"/>
+					</Shadow>
+				</FontString>
+			</Layer>
+		</Layers>
+	</Frame>
+
+	<Frame name="TheGuildMarkerPinTemplate" inherits="TheGuildMemberPinTemplate" mixin="TheGuildMarkerPinMixin" virtual="true">
+		<Size x="20" y="20"/>
+	</Frame>
+</Ui>

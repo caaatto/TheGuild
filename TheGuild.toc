@@ -1,0 +1,58 @@
+## Interface: 16001
+## Title: |cffffd100The|r|cff4dc3ffGuild|r
+## Notes: Modular guild addon for World of Warcraft: Forever. Live guild map, roster, call to arms, professions, greeter and more.
+## Notes-deDE: Modulares Gildenaddon für World of Warcraft: Forever. Gildenkarte, Mitglieder, Ruf zu den Waffen, Berufe, Begrüßung und mehr.
+## Author: Catto
+## Version: 0.1.0
+## IconTexture: Interface\Icons\INV_Shirt_GuildTabard_01
+## SavedVariables: TheGuildDB
+## SavedVariablesPerCharacter: TheGuildCharDB
+## Category: Guild
+## AddonCompartmentFunc: TheGuild_OnCompartmentClick
+## AddonCompartmentFuncOnEnter: TheGuild_OnCompartmentEnter
+## AddonCompartmentFuncOnLeave: TheGuild_OnCompartmentLeave
+## X-Flavor: Forever
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\ChatThrottleLib\ChatThrottleLib.lua
+Libs\LibSerialize\LibSerialize.lua
+Libs\LibDeflate\LibDeflate.lua
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+Libs\HereBeDragons\HereBeDragons-2.0.lua
+Libs\HereBeDragons\HereBeDragons-Pins-2.0.lua
+
+Locales\enUS.lua
+Locales\deDE.lua
+
+Core\Init.lua
+Core\Util.lua
+Core\Events.lua
+Core\DB.lua
+Core\Modules.lua
+Core\Names.lua
+Core\Roster.lua
+Core\Comm.lua
+Core\Store.lua
+Core\UI.lua
+Core\Window.lua
+Core\Settings.lua
+Core\Minimap.lua
+Core\Blizzard.lua
+Core\Slash.lua
+
+Modules\Dashboard\Dashboard.lua
+Modules\Map\Map.lua
+Modules\Map\WorldMap.lua
+Modules\Map\MapPins.xml
+Modules\Map\MinimapPins.lua
+Modules\Map\SharedPins.lua
+Modules\Map\Deaths.lua
+Modules\Map\Panel.lua
+Modules\Roster\Roster.lua
+Modules\Alerts\Alerts.lua
+Modules\Social\Social.lua
+Modules\Professions\Professions.lua
+
+Bindings.xml

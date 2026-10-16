@@ -1,0 +1,11 @@
+<Bindings>
+    <Binding name="THEGUILD_TOGGLE" header="THEGUILD" category="ADDONS">
+        TheGuild_ToggleWindow()
+    </Binding>
+    <Binding name="THEGUILD_CTA" category="ADDONS">
+        TheGuild_CallToArms()
+    </Binding>
+    <Binding name="THEGUILD_SHARE" category="ADDONS">
+        TheGuild_ToggleSharing()
+    </Binding>
+</Bindings>
