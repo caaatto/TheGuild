@@ -54,7 +54,7 @@ Beiträge, Umfragen, Events und Aufträge im Gildenspeicher. Jeder schreibt, Off
 
 ![Voice](Screenshots/voice.jpg)
 
-Proximity-Voice über den Blizzard-Gildensprachkanal. Alle treten demselben Kanal bei, das Addon regelt auf deinem Client jedes Mitglied nach Entfernung lauter oder leiser: volle Lautstärke bis 30 Meter, stumm ab 90 Metern (beides einstellbar). Die Positionen liefert das Kartenmodul. Voice-Gruppen funktionieren wie die Gruppen der Minecraft-Proximity-Mods: eine erstellen, andere treten bei, Gruppenmitglieder bleiben überall voll hörbar. Der Modus "Nur Gruppe" schaltet alle anderen stumm. Der Tab zeigt, wer im Kanal ist, wer spricht, Entfernung und aktuelle Lautstärke.
+Proximity-Voice über den Blizzard-Gildensprachkanal. Alle treten demselben Kanal bei, das Addon regelt auf deinem Client jedes Mitglied nach Entfernung lauter oder leiser: volle Lautstärke bis 30 Meter, stumm ab 90 Metern (beides einstellbar). Die Positionen liefert das Kartenmodul. Voice-Gruppen funktionieren wie die Gruppen der Minecraft-Proximity-Mods: eine erstellen, andere treten bei, Gruppenmitglieder bleiben überall voll hörbar. Der Modus "Nur Gruppe" schaltet alle anderen stumm. Der Tab zeigt, wer im Kanal ist, wer spricht, Entfernung und aktuelle Lautstärke. Ein kleiner verschiebbarer Mikrofonknopf auf dem Bildschirm zeigt, ob du stumm oder auf Ton aus bist und wie viele Mitglieder du gerade hörst. Linksklick schaltet stumm, Rechtsklick öffnet ein Menü mit Modus, Beitreten und Verlassen.
 
 ### Statistik
 
@@ -98,7 +98,7 @@ Das Fenster besteht aus den Vorlagen des Clients: Porträtrahmen mit Seitentabs 
 /tg share        Positionsfreigabe umschalten
 /tg cta [Text]   Ruf zu den Waffen senden
 /tg loot <Link>  Lootsitzung starten, /tg loot end, /tg loot sr
-/tg voice        Voice-Tab, /tg voice join, /tg voice group <Name>
+/tg voice        Voice-Tab, /tg voice join, /tg voice mute, /tg voice group <Name>, /tg voice hud
 /tg mute <Name>  Spieler stumm schalten oder freigeben
 /tg export       Einstellungen als Text, /tg import fügt sie ein
 /tg demo         alles mit erfundenen Daten für eine Vorführung füllen

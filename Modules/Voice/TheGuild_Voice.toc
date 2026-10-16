@@ -11,4 +11,5 @@
 ## IconTexture: Interface\Icons\INV_Misc_Horn_01
 
 Voice.lua
+Hud.lua
 Panel.lua

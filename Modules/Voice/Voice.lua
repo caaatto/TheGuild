@@ -10,7 +10,7 @@ local Voice = TG:NewModule("Voice", {
     title = L["Voice"],
     desc = L["Proximity voice and voice groups on the Blizzard guild voice channel."],
     order = 26,
-    defaults = { mode = "proximity", nearRange = 30, farRange = 90, groupsAlways = true, announce = true },
+    defaults = { mode = "proximity", nearRange = 30, farRange = 90, groupsAlways = true, announce = true, hud = true, hudLock = false },
     charDefaults = { autoJoin = false },
     settings = {
         { key = "mode", type = "select", name = L["Voice mode"], default = "proximity",
@@ -21,6 +21,9 @@ local Voice = TG:NewModule("Voice", {
         { key = "groupsAlways", type = "boolean", name = L["Group members are always audible"], tooltip = L["Members of your voice group keep full volume no matter how far away they are."], default = true, onChange = function(mod) mod:Apply(true) end },
         { key = "announce", type = "boolean", name = L["Announce group changes in chat"], default = true },
         { key = "autoJoin", scope = "char", type = "boolean", name = L["Join the guild voice channel at login"], default = false },
+        { key = "hud", type = "boolean", name = L["Show the microphone button"], tooltip = L["A small movable button that shows whether you are muted. Left click mutes, right click opens the menu."], default = true,
+          onChange = function(mod) mod:RefreshHud() end },
+        { key = "hudLock", type = "boolean", name = L["Lock the microphone button"], default = false },
     },
 })
 
@@ -426,10 +429,12 @@ function Voice:OnEnable()
     if self.cdb.autoJoin then
         TG.After(20, function() if self.enabled and self:Available() and not self:IsJoined() then self:Join() end end)
     end
+    self:SetupHud()
 end
 
 function Voice:OnDisable()
     self:Restore()
+    self:HideHud()
 end
 
 function Voice:StatusName(code)
@@ -482,7 +487,15 @@ TG:RegisterSlash("voice", function(rest)
         end
         Voice:CreateGroup(arg)
     elseif cmd == "leavegroup" then Voice:LeaveGroup()
+    elseif cmd == "mute" then Voice:ToggleMute()
+    elseif cmd == "hud" then
+        if arg == "reset" then
+            Voice:ResetHud()
+        else
+            Voice.db.hud = not Voice.db.hud
+        end
+        Voice:RefreshHud()
     else
         TG.Window:ShowTab("voice")
     end
-end, L["voice: status, join, leave, group <name>, leavegroup"])
+end, L["voice: status, join, leave, mute, group <name>, leavegroup, hud, hud reset"])
