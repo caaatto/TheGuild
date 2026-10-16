@@ -90,6 +90,7 @@ local function build(panel)
         local current = Board.view == "posts" and selectedPost or Board.view == "polls" and selectedPoll or Board.view == "events" and selectedEvent or selectedBounty
         local selected = current == row.key
         button.title:SetText((row.pinned and (TG.gold .. "* |r") or "") .. (selected and TG.gold or "") .. (row.title or row.question) .. (selected and "|r" or ""))
+        UI.SetRowSelected(button, selected)
         if Board.view == "posts" then
             button.meta:SetText(("%s  %s"):format(authorText(row.author), date("%d.%m.%y %H:%M", row.time)))
         elseif Board.view == "events" then
@@ -411,7 +412,16 @@ local function build(panel)
             local rows = Board:Claimers(current)
             for _, row in ipairs(rows) do row.canAward = canEdit and not current.done end
             claims:SetData(rows)
-            body:SetText(#rows == 0 and not current.done and (GRAY_FONT_COLOR:WrapTextInColorCode(L["Nobody has claimed this bounty yet."]) .. "\n\n" .. current.desc) or current.desc)
+            claimsFrame:SetShown(#rows > 0)
+            bodyScroll:SetPoint("TOPLEFT", #rows > 0 and claimsFrame or meta, "BOTTOMLEFT", #rows > 0 and 4 or 0, #rows > 0 and -6 or -10)
+            local lines = {}
+            if current.done then
+                lines[#lines + 1] = GREEN_FONT_COLOR:WrapTextInColorCode(L["Completed by %s"]:format(current.winner and authorText(current.winner) or "?"))
+            elseif #rows == 0 then
+                lines[#lines + 1] = GRAY_FONT_COLOR:WrapTextInColorCode(L["Nobody has claimed this bounty yet."])
+            end
+            if current.desc ~= "" then lines[#lines + 1] = current.desc end
+            body:SetText(table.concat(lines, "\n\n"))
             local height = body:GetStringHeight()
             bodyChild:SetHeight((tonumber(height) or 200) + 8)
             deleteButton:SetShown(canEdit)

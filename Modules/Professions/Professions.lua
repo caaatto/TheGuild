@@ -299,7 +299,7 @@ local function build(panel)
         button.group = group
         if type(group.key) == "number" then
             local icon = C_Item.GetItemIconByID and C_Item.GetItemIconByID(group.key)
-            button.icon:SetTexture(icon or 134400)
+            button.icon:SetTexture(icon or "Interface\Icons\INV_Scroll_03")
             local _, link = C_Item.GetItemInfo(group.key)
             button.name:SetText(link or group.name)
         else
