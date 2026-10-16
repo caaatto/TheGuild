@@ -16,4 +16,6 @@ move-folders:
 ignore:
   - tools
   - README.md
+  - README.de.md
   - ROADMAP.md
+  - Screenshots

@@ -1,43 +1,94 @@
 # TheGuild
 
-Modular guild addon for World of Warcraft: Forever (Interface 16001).
+**English** | [Deutsch](README.de.md)
 
-Everything the guild shares travels over the guild addon channel between members who run the addon. Nothing is written into officer notes or the guild information text, and no external server is involved.
+The guild addon for World of Warcraft: Forever. One installation, everything in the Blizzard look, every feature its own module that can be switched off, no external server, nothing written into officer notes or the guild information.
+
+![Overview](Screenshots/overview.jpg)
+
+## Installation
+
+Download the release and copy the folders `TheGuild` and `TheGuild_*` into `World of Warcraft\_classic_beta_\Interface\AddOns`. Every module appears under TheGuild in the AddOn list and can be disabled there like any other addon.
+
+For a git checkout, run `tools\link-modules.cmd` once. It creates junctions named after the modules so the client finds them inside the repository.
+
+Open the window with `/tg`, the minimap button, the addon compartment or the TheGuild tab on the guild window.
 
 ## Modules
 
-Every module is its own addon (`TheGuild_Map`, `TheGuild_Roster`, `TheGuild_Raids`, `TheGuild_Loot`, `TheGuild_Board`, `TheGuild_Stats`, `TheGuild_Recruit`, `TheGuild_Voice`, `TheGuild_Alerts`, `TheGuild_Social`, `TheGuild_Professions`) grouped under TheGuild in the AddOn list, so a module can be disabled there like any other addon. Loaded modules also have a runtime switch in the settings (`/tg config`). The core addon with the overview runs on its own.
+### Overview
 
-The module folders live under `TheGuild/Modules/`. Release packages (see `.pkgmeta`) move them next to the core addon. For a checkout inside `Interface\AddOns`, run `tools\link-modules.cmd` once to create junctions named after the modules.
+Guild banner, member counts, who runs the addon, your rank, the next raid night, the next event, open bounties and the message of the day. The event log keeps logins, joins, leaves, renames, rank changes, level ups, deaths, calls to arms, raid nights, posts, polls, events and bounties with filters and text export.
 
-- **Overview**: guild banner, message of the day, counts, quick actions and a persistent guild event log (logins, joins, leaves, renames, rank changes, level ups, deaths, calls to arms, raid nights) with filters and text export.
-- **Map**: guild members on the world map and the minimap with class icon or class colored dot, name, rank badge, health and tooltip. Positions are sent every few seconds while moving, never from inside an instance, and can be hidden while stealthed. Ctrl + right click on the world map places a guild pin for everyone (temporary or permanent). Deaths show up as skulls. Toggles live in the world map and minimap tracking menus.
-- **Members**: searchable, sortable roster with roles (tank, healer, damage) and main/alt links shared through the guild. Members set their own, officers set anyone's. Filters for officers, inactive members, missing roles. First seen, rank history, former members and rename detection are shared. Alt suggestions from public notes for officers, public note editing, right click for whisper, invite, show on map, role and alt links.
-- **Raids**: named raid teams (10, 20 or 40) kept in the guild store, one click invites for online team members with automatic raid conversion, a raid builder that plans the subgroups with role counts per group, auto fill that spreads tanks and healers, and one click to move the live raid into the planned groups, raid days per team with the upcoming raid nights and export as guild sign up events into the Blizzard calendar, next raid shown in the overview, attendance recorded by officers every few minutes while in a raid, attendance table with percentages and the last raid nights.
-- **Loot**: loot sessions for the group leader or an assistant. Items come from the loot window or `/tg loot <link>`, everyone in the group answers with Need, Greed, Offspec or Pass, officers vote, the owner awards. Awards are announced in group chat and kept in a shared loot history. Items your class cannot use are passed automatically. Soft reserves from softres.it can be pasted with `/tg loot sr` or the button in the loot tab, reserved players are marked in the session and the reserve list travels with the session. When an awarded item sits in your bags the trade helper remembers it, fills the trade window when you trade with the winner and clears the entry once the item changed hands. Rare or better items a member loots are reported to the guild with their bind type (BoP or BoE) and show up in the event log and optionally in chat.
-- **Board**: a guild bulletin board and polls kept in the guild store. Every member can post, officers pin and delete, posts fade out after a configurable number of days. Officers create polls with up to eight options, members vote once and can change their vote until the poll is closed, the tooltip of an option lists its voters. Events with a date and time collect sign ups (yes, maybe, no) and can be exported to the Blizzard calendar. Bounties are tasks with a reward: anyone posts one, members claim it, the author or an officer awards it to one of the claimers, and the overview counts the open ones. New posts, polls, events and bounties are announced in chat and in the event log.
-- **Statistics**: member counts and activity, class and level distribution, shared deaths by zone, level ups, loot awards and raid attendance, with small rankings that each character can opt out of. Everything can be exported as text.
-- **Recruitment**: officers keep a shared candidate list with notes and status (new, contacted, invited, joined, declined). Candidates can be added from the unit menu of any player. Whisper and guild invite are one click, the invite itself stays a manual click as Blizzard requires. Candidates who join are marked and get a welcome whisper from the officer who invited them. A recruitment message can be posted into a chosen chat channel with a two minute cooldown.
-- **Voice**: proximity voice on the Blizzard guild voice channel. Everyone joins the same channel, the addon turns each member up or down on your client by distance: full volume up to 30 yards, silent beyond 90 (both configurable). Positions come from the Map module, so it works for members who run TheGuild and share their position. Voice groups work like the groups of the Minecraft proximity mods: create one, others join, and group members stay at full volume wherever they are. A group only mode silences everybody else. Who is in the channel, who is speaking, distance and current volume are shown in the Voice tab. `/tg voice join`, `/tg voice group <name>`.
-- **Demo**: `/tg demo` fills every tab with made up members, positions, history, raids, loot, board, statistics, candidates, recipes and voice so the addon can be shown without a guild. Nothing is sent while the demo runs, `/tg demo off` throws the data away.
-- **Help**: the Help button in the overview lists commands, modules with their state, key bindings and a few tips. `/tg help` prints the commands to chat.
-- **Profiles**: `/tg export` turns all module settings into a text that another member pastes with `/tg import`. Guild data is never part of it.
-- **Call to Arms**: `/tg cta`, a key binding or the overview button sends your location to the guild. Receivers get a raid warning, a sound and a popup with a waypoint button. 15 minute cooldown per character.
-- **Messages**: welcomes new members, optionally greets logins and congratulates milestone levels. Waits a few seconds and stays quiet when somebody else already did. Mute list with chat filter (`/tg mute <name>`).
-- **Professions**: records your recipes when a profession window opens, shares them with the guild and shows crafters in item tooltips and in a searchable recipe directory.
+### Members
+
+![Members](Screenshots/members.jpg)
+
+Searchable and sortable roster with roles (tank, healer, damage) and main and alt links shared through the guild. Members set their own, officers set anyone's. Filters for officers, inactive members and missing roles. First seen, rank history, former members and renames travel through the guild. Officers get alt suggestions from public notes and can edit notes from the member menu. Right click opens whisper, invite, show on map, roles and alt links.
+
+### Map
+
+![Map](Screenshots/map.jpg)
+
+Guild members on the world map and the minimap with class icon or class colored dot, name, rank badge, health and tooltip. Positions are sent every few seconds while moving, never from inside an instance, optionally hidden while stealthed. Ctrl + right click on the world map places a guild pin for everyone, temporary or permanent. Deaths show up as skulls. Toggles live in the world map and minimap tracking menus.
+
+### Raids
+
+![Raids](Screenshots/raids.jpg)
+
+Named raid teams of 10, 20 or 40 kept in the guild store, one click invites for online team members with automatic raid conversion. The raid builder plans the subgroups with role counts per group, fills tanks and healers evenly and moves the live raid into the planned groups with one click. Raid days per team show the upcoming nights and export as guild sign up events into the Blizzard calendar. Officers in a raid record attendance automatically, the attendance table shows percentages and the last nights.
+
+### Loot
+
+![Loot](Screenshots/loot.jpg)
+
+Loot sessions for the group leader or an assistant. Items come from the loot window or `/tg loot <link>`, everyone answers with Need, Greed, Offspec or Pass, officers vote, the owner awards. Awards are announced in group chat and kept in a shared history. Items your class cannot use are passed automatically. Soft reserves from softres.it can be pasted, reserved players are marked and the list travels with the session. The trade helper remembers awarded items in your bags, fills the trade window and clears the entry once the item changed hands. Rare or better finds are reported to the guild with their bind type.
+
+### Board
+
+![Board](Screenshots/board.jpg)
+
+Posts, polls, events and bounties kept in the guild store. Everyone posts, officers pin and delete, posts fade after a configurable number of days. Officers create polls with up to eight options, members vote once and can change their vote until the poll closes. Events collect sign ups (yes, maybe, no) and export to the Blizzard calendar. Bounties are tasks with a reward: anyone posts one, members claim it, the author or an officer awards it.
+
+### Voice
+
+![Voice](Screenshots/voice.jpg)
+
+Proximity voice on the Blizzard guild voice channel. Everyone joins the same channel, the addon turns each member up or down on your client by distance: full volume up to 30 yards, silent beyond 90 (both configurable). Positions come from the Map module. Voice groups work like the groups of the Minecraft proximity mods: create one, others join, group members stay at full volume wherever they are. A group only mode silences everybody else. The tab shows who is in the channel, who speaks, distance and current volume.
+
+### Statistics
+
+![Statistics](Screenshots/stats.jpg)
+
+Member counts and activity, class and level distribution, deaths by zone, level ups, loot awards and raid attendance with small rankings that each character can opt out of. Everything exports as text.
+
+### Recruitment
+
+![Recruitment](Screenshots/recruit.jpg)
+
+Officers keep a shared candidate list with notes and status. Candidates can be added from the unit menu of any player. Whisper and guild invite are one click. Candidates who join are marked and get a welcome whisper from the officer who invited them. A recruitment message can be posted into a chosen chat channel.
+
+### Professions
+
+![Professions](Screenshots/professions.jpg)
+
+Records your recipes when a profession window opens, shares them with the guild and shows crafters in item tooltips and in a searchable recipe directory.
+
+### Call to Arms and Messages
+
+`/tg cta`, a key binding or the overview button sends your location to the guild. Receivers get a raid warning, a sound and a popup with a waypoint button. The Messages module welcomes new members, optionally greets logins and congratulates milestone levels, and hides chat from muted players.
 
 ## Blizzard integration
 
-The window is built from the client's own templates: a portrait frame with the Forever side tabs for the modules, column headers in the who list style, inset lists, tab strips for the views inside a panel, tooltip style cards, status bars and the guild banner with the tabard on the overview.
+The window is built from the client's own templates: a portrait frame with side tabs for the modules, column headers in the who list style, inset lists, tab strips inside the panels and the guild banner with the tabard.
 
-- Tab on the guild window (Communities frame) that opens TheGuild.
+- Tab on the guild window that opens TheGuild.
 - Entries in unit and guild member context menus.
 - Entries in the world map and minimap tracking menus.
 - Role, main and addon version in unit tooltips.
-- Settings panel under Options > AddOns > TheGuild.
-- Minimap button (LibDBIcon) and addon compartment entry.
+- Settings under Options > AddOns > TheGuild, profile export and import as text.
 - Key bindings for the window, call to arms and position sharing.
-- Keyboard: Escape closes the window, Ctrl + Tab and Ctrl + Shift + Tab switch tabs, Ctrl + F jumps to the search field of the current tab. With a gamepad the shoulder buttons switch tabs. Keys fall through to the game and are released in combat.
+- Keyboard: Escape closes, Ctrl + Tab switches tabs, Ctrl + F jumps to the search field. Gamepad shoulder buttons switch tabs.
 
 ## Commands
 
@@ -46,40 +97,34 @@ The window is built from the client's own templates: a portrait frame with the F
 /tg config       open the settings
 /tg share        toggle position sharing
 /tg cta [text]   send a call to arms
+/tg loot <link>  start a loot session, /tg loot end, /tg loot sr
+/tg voice        voice tab, /tg voice join, /tg voice group <name>
 /tg mute <name>  mute or unmute a player
-/tg sync         request a data sync
-/tg comms        communication statistics
-/tg version      versions of guild members running the addon
+/tg export       settings as text, /tg import pastes them
+/tg demo         fill everything with made up data for a presentation
 /tg memory       memory of the addon and size of the shared data
+/tg sync         request a data sync
+/tg version      versions of guild members running the addon
 /tg help         list of commands
 ```
 
-## Data
+## How the data travels
 
-- `TheGuildDB` (account wide): settings, guild data per guild (roles, alt links, pins, deaths, recipes), activity feed.
-- `TheGuildCharDB` (per character): position sharing, call to arms cooldown, greeting cooldowns.
+Everything the guild shares travels over the guild addon channel between members who run the addon. Shared data uses a revision per entry, the highest revision wins, every client checks the author's rank before accepting a change, and clients compare their data on login and every 20 minutes. Positions go out only while moving, sync answers are staggered and limited to three responders, bulk data is compressed and chunked.
 
-Shared guild data uses a revision per entry. The highest revision wins, every client checks the author's rank before accepting a change, and clients compare their data on login and every 20 minutes.
-
-## Protocol
-
-Prefix `TheGuild`, messages `<protocol>\001<tag>\001<payload>`. Payloads starting with `=` are plain text, payloads starting with `~` are LibSerialize + LibDeflate encoded tables. Long messages are split into `K` chunks of 200 bytes. All messages go to the guild channel except sync batches, which are whispered to the requester, and loot session messages, which go to the raid or party. Sending respects the chat messaging lockdown and ChatThrottleLib.
+- `TheGuildDB` (account wide): settings, guild data per guild, event log.
+- `TheGuildCharDB` (per character): position sharing, cooldowns.
 
 | Tag | Content |
 | --- | --- |
-| HI | version:guid, presence heartbeat every 5 minutes |
-| P | mapID:x:y:health:flags, flags i (instance), s (stealthed), d (dead), x (sharing off) |
-| ST | one store change |
-| SQ / SB | sync request with revision digest, batch of newer entries |
-| CTA | call to arms with map, position, zone and text |
-| LF | item find with link, quality, bind type and zone |
-| LS / LR / LV / LA / LE | loot session start, response, vote, award and end, sent to the raid or party |
-| SB (guild) | batch of store items written at once, for example first seen records after a fresh install, 40 items per message |
-| PS / PQ | profession snapshot, request for snapshots |
-
-## Beta notes
-
-The Forever beta client has been reported to skip loading account wide saved variables on a cold start. Per character variables survive a reload. Nothing in the addon depends on saved data to work, it only loses history and settings when the client drops the file.
+| HI | version and guid, presence heartbeat |
+| P | map, position, health and flags |
+| ST / SB | one store change, batch of store items |
+| SQ | sync request with revision digest |
+| CTA | call to arms |
+| LF | item find |
+| LS / LR / LV / LA / LE | loot session messages, sent to the raid or party |
+| PS / PQ | profession snapshot and request |
 
 ## Libraries
 
