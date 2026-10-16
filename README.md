@@ -6,13 +6,14 @@ Everything the guild shares travels over the guild addon channel between members
 
 ## Modules
 
-Every module is its own addon (`TheGuild_Map`, `TheGuild_Roster`, `TheGuild_Alerts`, `TheGuild_Social`, `TheGuild_Professions`) grouped under TheGuild in the AddOn list, so a module can be disabled there like any other addon. Loaded modules also have a runtime switch in the settings (`/tg config`). The core addon with the overview runs on its own.
+Every module is its own addon (`TheGuild_Map`, `TheGuild_Roster`, `TheGuild_Raids`, `TheGuild_Alerts`, `TheGuild_Social`, `TheGuild_Professions`) grouped under TheGuild in the AddOn list, so a module can be disabled there like any other addon. Loaded modules also have a runtime switch in the settings (`/tg config`). The core addon with the overview runs on its own.
 
 The module folders live under `TheGuild/Modules/`. Release packages (see `.pkgmeta`) move them next to the core addon. For a checkout inside `Interface\AddOns`, run `tools\link-modules.cmd` once to create junctions named after the modules.
 
-- **Overview**: guild emblem, message of the day, counts, quick actions and a live activity feed (logins, joins, level ups, deaths, calls to arms).
+- **Overview**: guild emblem, message of the day, counts, quick actions and a persistent guild event log (logins, joins, leaves, renames, rank changes, level ups, deaths, calls to arms, raid nights) with filters and text export.
 - **Map**: guild members on the world map and the minimap with class icon or class colored dot, name, rank badge, health and tooltip. Positions are sent every few seconds while moving, never from inside an instance, and can be hidden while stealthed. Ctrl + right click on the world map places a guild pin for everyone (temporary or permanent). Deaths show up as skulls. Toggles live in the world map and minimap tracking menus.
-- **Members**: searchable, sortable roster with roles (tank, healer, damage) and main/alt links shared through the guild. Members set their own, officers set anyone's. Right click for whisper, invite, show on map, role and alt links.
+- **Members**: searchable, sortable roster with roles (tank, healer, damage) and main/alt links shared through the guild. Members set their own, officers set anyone's. Filters for officers, inactive members, missing roles. First seen, rank history, former members and rename detection are shared. Alt suggestions from public notes for officers, public note editing, right click for whisper, invite, show on map, role and alt links.
+- **Raids**: named raid teams (10, 20 or 40) kept in the guild store, one click invites for online team members with automatic raid conversion, attendance recorded by officers every few minutes while in a raid, attendance table with percentages and the last raid nights.
 - **Call to Arms**: `/tg cta`, a key binding or the overview button sends your location to the guild. Receivers get a raid warning, a sound and a popup with a waypoint button. 15 minute cooldown per character.
 - **Messages**: welcomes new members, optionally greets logins and congratulates milestone levels. Waits a few seconds and stays quiet when somebody else already did. Mute list with chat filter (`/tg mute <name>`).
 - **Professions**: records your recipes when a profession window opens, shares them with the guild and shows crafters in item tooltips and in a searchable recipe directory.

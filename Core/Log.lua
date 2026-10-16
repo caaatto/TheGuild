@@ -8,7 +8,7 @@ TG.Log = Log
 
 local MAX_ENTRIES = 500
 
-Log.KINDS = { "online", "offline", "joined", "left", "rejoined", "level", "rank", "death", "cta", "note" }
+Log.KINDS = { "online", "offline", "joined", "left", "rejoined", "renamed", "level", "rank", "death", "cta", "note", "raid" }
 
 local function entries()
     local g = TG:GuildDB()
@@ -54,6 +54,8 @@ function Log:Text(item)
     if kind == "death" then return L["%s died in %s"]:format(colored, item.zone or L["Unknown"]) end
     if kind == "cta" then return L["%s calls to arms in %s"]:format(colored, item.zone or "") end
     if kind == "note" then return L["Note of %s changed"]:format(colored) end
+    if kind == "renamed" then return L["%s was renamed to %s"]:format(item.from or "?", colored) end
+    if kind == "raid" then return L["Raid night recorded with %d members"]:format(item.count or 0) end
     return colored
 end
 
@@ -80,6 +82,7 @@ TG:On("MEMBER_OFFLINE", function(e) Log:Add("offline", e.key) end)
 TG:On("MEMBER_JOINED", function(e) Log:Add("joined", e.key, { level = e.level }) end)
 TG:On("MEMBER_LEFT", function(e) Log:Add("left", e.key, { level = e.level, rank = e.rank }) end)
 TG:On("MEMBER_LEVEL", function(e) Log:Add("level", e.key, { level = e.level }) end)
+TG:On("MEMBER_RENAMED", function(e, oldKey) Log:Add("renamed", e.key, { from = oldKey }) end)
 TG:On("MEMBER_RANK", function(e, oldRank) Log:Add("rank", e.key, { rank = e.rank, from = oldRank, to = e.rankIndex }) end)
 TG:On("ACTIVITY", function(kind, name, data)
     if kind == "death" then

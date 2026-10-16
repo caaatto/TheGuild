@@ -181,8 +181,11 @@ local function build(panel)
     end)
     offline:SetPoint("LEFT", filter, "RIGHT", 10, 0)
 
+    local suggest = UI.Button(panel, L["Alt suggestions"], 130, function() TG.AltSuggestions:Open() end)
+    suggest:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
+
     local counts = UI.Label(panel, "", "GameFontHighlightSmall", "RIGHT")
-    counts:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -12)
+    counts:SetPoint("RIGHT", suggest, "LEFT", -12, 0)
 
     local header = UI.Header(panel, columns, function(key)
         if Roster.db.sort == key then Roster.db.asc = not Roster.db.asc else Roster.db.sort, Roster.db.asc = key, true end
@@ -249,6 +252,7 @@ local function build(panel)
 
     function panel:OnShow()
         offline:SetChecked(Roster.db.showOffline)
+        suggest:SetShown(TG.Roster:AmOfficer())
         local total, online = TG.Roster:Counts()
         counts:SetText(L["%d of %d online"]:format(online, total))
         for _, b in ipairs(header.buttons) do

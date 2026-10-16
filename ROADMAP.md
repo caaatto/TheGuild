@@ -38,14 +38,15 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Done: last online for offline members, inactivity filters (14 and 30 days), officer and role filters in the members tab.
 - Done: public note editing for officers from the member menu.
 - Done: hide map pins below a chosen level.
-- Alt detection suggestions (same note, same login pattern) that officers confirm.
-- Name change detection through GUIDs.
+- Done: alt suggestions from public notes with accept and ignore for officers.
+- Done: name change detection through GUIDs with migration of roles, alt links and history.
 - Layer awareness if an API or a reliable heuristic appears.
 
-### 0.3 Raids
+### 0.3 Raids (in progress)
 
-- Raid groups and raid builder with saved teams and one click invites (SystematicGuild model, 10 and 20 player sizes).
-- Attendance tracking per raid night, synced between officers.
+- Done: raid teams with saved members, sizes 10, 20 and 40, one click invites with raid conversion.
+- Done: attendance per raid night recorded by officers in the raid, synced through the guild store, attendance table with alts counted for their main.
+- Raid builder with group assignments and role balance.
 - Loot session module: tradable items, responses, council votes, award, history, trade helper. Soft reserve import from softres.it.
 - Consumable and gear readiness overview using inspect data outside combat.
 - Calendar export of raid nights into the Blizzard calendar.

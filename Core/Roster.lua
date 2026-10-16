@@ -95,6 +95,26 @@ function Roster:Read()
 
     local now = TG.Now()
     local me = TG.MyGUID()
+
+    local renamed = {}
+    local guildDB = TG:GuildDB()
+    if guildDB then
+        guildDB.guids = guildDB.guids or {}
+        for key, e in pairs(fresh) do
+            if e.guid then
+                local previous = guildDB.guids[e.guid]
+                if ready and previous and previous ~= key and not fresh[previous] and members[previous] then
+                    renamed[key] = previous
+                    renamed[previous] = key
+                    local old = members[previous]
+                    e.lastSeen = old.lastSeen
+                    TG:Fire("MEMBER_RENAMED", e, previous)
+                end
+                guildDB.guids[e.guid] = key
+            end
+        end
+    end
+
     for key, e in pairs(fresh) do
         local old = members[key]
         if e.online then
@@ -106,7 +126,7 @@ function Roster:Read()
         if me and e.guid == me then TG.LearnMyName(e.key) end
         if ready then
             if not old then
-                TG:Fire("MEMBER_JOINED", e)
+                if not renamed[key] then TG:Fire("MEMBER_JOINED", e) end
             else
                 if e.online and not old.online then TG:Fire("MEMBER_ONLINE", e) end
                 if not e.online and old.online then TG:Fire("MEMBER_OFFLINE", e) end
@@ -117,7 +137,7 @@ function Roster:Read()
     end
     if ready then
         for key, old in pairs(members) do
-            if not fresh[key] then TG:Fire("MEMBER_LEFT", old) end
+            if not fresh[key] and not renamed[key] then TG:Fire("MEMBER_LEFT", old) end
         end
     end
 

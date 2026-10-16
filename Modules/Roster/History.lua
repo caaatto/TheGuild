@@ -73,6 +73,26 @@ function History:OnJoined(entry)
     self:RecordFirstSeen(entry)
 end
 
+local MIGRATE = { "role", "alt", NS_HIST }
+
+function History:OnRenamed(entry, oldKey)
+    later(function()
+        for _, ns in ipairs(MIGRATE) do
+            local item = TG.Store:Item(ns, oldKey)
+            if item and item.v ~= nil and TG.Store:Get(ns, entry.key) == nil
+                and TG.Store:CanWrite(ns, entry.key) and TG.Store:CanWrite(ns, oldKey) then
+                TG.Store:Set(ns, entry.key, item.v)
+                TG.Store:Delete(ns, oldKey)
+            end
+        end
+        for key, item in pairs(TG.Store:Items("alt")) do
+            if item.v == oldKey and TG.Store:CanWrite("alt", key) then
+                TG.Store:Set("alt", key, entry.key)
+            end
+        end
+    end)
+end
+
 function History:Tooltip(tooltip, entry)
     local h = self:Get(entry.key)
     if not h then return end
@@ -91,6 +111,7 @@ function History:Enable(owner)
     TG:On("MEMBER_JOINED", function(e) History:OnJoined(e) end, owner)
     TG:On("MEMBER_RANK", function(e, old) History:RecordRank(e, old) end, owner)
     TG:On("MEMBER_LEFT", function(e) History:RecordLeft(e) end, owner)
+    TG:On("MEMBER_RENAMED", function(e, old) History:OnRenamed(e, old) end, owner)
     TG:On("MEMBER_TOOLTIP", function(tooltip, e) History:Tooltip(tooltip, e) end, owner)
     TG:On("ROSTER_READY", function()
         for _, e in ipairs(TG.Roster:Members()) do

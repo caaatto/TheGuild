@@ -6,6 +6,7 @@ move-folders:
   TheGuild/Modules/Alerts: TheGuild_Alerts
   TheGuild/Modules/Social: TheGuild_Social
   TheGuild/Modules/Professions: TheGuild_Professions
+  TheGuild/Modules/Raids: TheGuild_Raids
 
 ignore:
   - tools

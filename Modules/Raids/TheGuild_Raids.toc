@@ -1,0 +1,13 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffRaids|r
+## Notes: Raid teams with one click invites and attendance tracking.
+## Notes-deDE: Raidgruppen mit Einladung per Klick und Anwesenheitserfassung.
+## Author: Catto
+## Version: 0.2.0
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\Achievement_Dungeon_ClassicRaider
+
+Raids.lua
+Panel.lua
