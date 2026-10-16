@@ -31,14 +31,15 @@ TheGuild wants to be the one guild addon a Forever guild installs. The measure i
 
 Core, comm, store, settings, window, map, members, call to arms, messages, professions. Modules as separate addons with junction tooling and packager metadata.
 
-### 0.2 Daily life
+### 0.2 Daily life (in progress)
 
-- Member history: join date, promotions, last seen, name changes, stored in the guild store with officer write access.
-- Guild event log in the overview with filters and export to text.
+- Done: member history (first seen, rank changes, former members, rejoin detection) in the guild store.
+- Done: persistent guild event log in the overview with filters and text export.
+- Done: last online for offline members, inactivity filters (14 and 30 days), officer and role filters in the members tab.
+- Done: public note editing for officers from the member menu.
+- Done: hide map pins below a chosen level.
 - Alt detection suggestions (same note, same login pattern) that officers confirm.
-- Public note editing for officers from the members tab (`C_GuildInfo.SetNote` is allowed for public notes, officer notes are not).
-- Minimap and world map pin options per rank (show officers always, hide members below a level).
-- Position sharing per zone type: open world, cities, battlegrounds.
+- Name change detection through GUIDs.
 - Layer awareness if an API or a reliable heuristic appears.
 
 ### 0.3 Raids

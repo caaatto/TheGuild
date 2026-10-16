@@ -20,6 +20,28 @@ local columns = {
 }
 
 local filterText = ""
+local filterMode = "all"
+
+local FILTERS = {
+    { "all", L["All members"] },
+    { "officers", L["Officers"] },
+    { "norole", L["Without role"] },
+    { "addon", L["With addon"] },
+    { "inactive14", L["Inactive %d days"]:format(14) },
+    { "inactive30", L["Inactive %d days"]:format(30) },
+}
+
+local function passesFilter(e)
+    if filterMode == "officers" then return TG.Roster:IsOfficer(e.key) end
+    if filterMode == "norole" then return TG.Store:Get("role", e.key) == nil end
+    if filterMode == "addon" then return e.online and TG.Comm:HasAddon(e.key) end
+    if filterMode == "inactive14" or filterMode == "inactive30" then
+        local days = filterMode == "inactive14" and 14 or 30
+        if e.online then return false end
+        return e.lastSeen ~= nil and (TG.Now() - e.lastSeen) > days * 86400
+    end
+    return true
+end
 
 local function matches(e, text)
     if text == "" then return true end
@@ -52,7 +74,7 @@ local sorters = {
 function Roster:Rows()
     local out = {}
     for _, e in ipairs(TG.Roster:Members()) do
-        if (e.online or self.db.showOffline) and matches(e, filterText) then out[#out + 1] = e end
+        if (e.online or self.db.showOffline or filterMode:find("inactive")) and matches(e, filterText) and passesFilter(e) then out[#out + 1] = e end
     end
     local sorter = sorters[self.db.sort] or sorters.rank
     table.sort(out, function(a, b)
@@ -98,6 +120,46 @@ local function altMenu(root, entry)
     end
 end
 
+local function noteMenu(root, entry)
+    if not entry.guid or not CanEditPublicNote or not CanEditPublicNote() then return end
+    if not (C_GuildInfo and C_GuildInfo.SetNote) then return end
+    root:CreateButton(L["Edit public note"], function()
+        StaticPopup_Show("THEGUILD_NOTE", entry.key, nil, entry)
+    end)
+end
+
+StaticPopupDialogs["THEGUILD_NOTE"] = {
+    text = L["Public note for %s"],
+    button1 = ACCEPT,
+    button2 = CANCEL,
+    hasEditBox = 1,
+    maxLetters = 31,
+    OnShow = function(dialog, entry)
+        dialog:GetEditBox():SetText(entry.note or "")
+        dialog:GetEditBox():HighlightText()
+        dialog:GetEditBox():SetFocus()
+    end,
+    OnAccept = function(dialog, entry)
+        local text = dialog:GetEditBox():GetText()
+        if pcall(C_GuildInfo.SetNote, entry.guid, text, true) then
+            TG.Log:Add("note", entry.key)
+            TG.Roster:Request()
+        end
+    end,
+    EditBoxOnEnterPressed = function(editBox, entry)
+        local text = editBox:GetText()
+        if pcall(C_GuildInfo.SetNote, entry.guid, text, true) then
+            TG.Log:Add("note", entry.key)
+            TG.Roster:Request()
+        end
+        editBox:GetParent():Hide()
+    end,
+    EditBoxOnEscapePressed = function(editBox) editBox:GetParent():Hide() end,
+    timeout = 0,
+    whileDead = 1,
+    hideOnEscape = 1,
+}
+
 local function build(panel)
     local search = UI.SearchBox(panel, 180, function(text)
         filterText = text
@@ -105,11 +167,19 @@ local function build(panel)
     end)
     search:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
 
+    local filter = UI.Dropdown(panel, 150, function(_, root)
+        for _, f in ipairs(FILTERS) do
+            root:CreateRadio(f[2], function() return filterMode == f[1] end, function() filterMode = f[1] panel:OnShow() end)
+        end
+    end)
+    filter:SetPoint("LEFT", search, "RIGHT", 10, 0)
+    filter:SetDefaultText(L["All members"])
+
     local offline = UI.Checkbox(panel, L["Show offline members"], function(checked)
         Roster.db.showOffline = checked
         panel:OnShow()
     end)
-    offline:SetPoint("LEFT", search, "RIGHT", 16, 0)
+    offline:SetPoint("LEFT", filter, "RIGHT", 10, 0)
 
     local counts = UI.Label(panel, "", "GameFontHighlightSmall", "RIGHT")
     counts:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -12)
@@ -201,7 +271,9 @@ function Roster:OnEnable()
         root:CreateDivider()
         roleMenu(root, entry)
         altMenu(root, entry)
+        noteMenu(root, entry)
     end)
+    TG.History:Enable(self)
     self:On("MEMBER_TOOLTIP", function(tooltip, entry)
         local role = TG.Store:Get("role", entry.key)
         local main = TG.Store:Get("alt", entry.key)

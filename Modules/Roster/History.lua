@@ -1,0 +1,105 @@
+local TG = TheGuild
+local L = TG.L
+
+-- Member history shared through the guild store: first seen, rank changes
+-- and former members. Any member may record, the first record wins.
+
+local History = {}
+TG.History = History
+
+local NS_HIST = "hist"
+local NS_GONE = "gone"
+local MAX_RANK_CHANGES = 8
+
+TG.Store:DefinePolicy(NS_HIST, "any")
+TG.Store:DefinePolicy(NS_GONE, "any")
+
+local function later(fn)
+    TG.After(math.random(2, 10), fn)
+end
+
+function History:Get(key)
+    return TG.Store:Get(NS_HIST, key)
+end
+
+function History:Former(key)
+    return TG.Store:Get(NS_GONE, key)
+end
+
+function History:FirstSeen(key)
+    local h = self:Get(key)
+    return h and h.f
+end
+
+function History:RecordFirstSeen(entry)
+    local key = entry.key
+    if self:Get(key) then return end
+    later(function()
+        if self:Get(key) then return end
+        local record = { f = TG.Now(), r = { { t = TG.Now(), i = entry.rankIndex } } }
+        TG.Store:Set(NS_HIST, key, record)
+    end)
+end
+
+function History:RecordRank(entry, oldRank)
+    local key = entry.key
+    later(function()
+        local h = TG.Store:Get(NS_HIST, key)
+        local record = h and TG.CopyTable(h) or { f = TG.Now(), r = {} }
+        record.r = record.r or {}
+        local last = record.r[#record.r]
+        if last and last.i == entry.rankIndex then return end
+        record.r[#record.r + 1] = { t = TG.Now(), i = entry.rankIndex, o = oldRank }
+        while #record.r > MAX_RANK_CHANGES do table.remove(record.r, 1) end
+        TG.Store:Set(NS_HIST, key, record)
+    end)
+end
+
+function History:RecordLeft(entry)
+    local key = entry.key
+    later(function()
+        if TG.Roster:Get(key) then return end
+        if self:Former(key) then return end
+        TG.Store:Set(NS_GONE, key, { t = TG.Now(), l = entry.level, r = entry.rank, c = entry.classFile })
+    end)
+end
+
+function History:OnJoined(entry)
+    local former = self:Former(entry.key)
+    if former then
+        TG.Log:Add("rejoined", entry.key, { level = entry.level })
+        later(function() TG.Store:Delete(NS_GONE, entry.key) end)
+    end
+    self:RecordFirstSeen(entry)
+end
+
+function History:Tooltip(tooltip, entry)
+    local h = self:Get(entry.key)
+    if not h then return end
+    local now = TG.Now()
+    if h.f then
+        GameTooltip_AddColoredLine(tooltip, L["First seen %s ago"]:format(TG.FormatAge(now - h.f)), LIGHTBLUE_FONT_COLOR)
+    end
+    local changes = h.r or {}
+    local last = changes[#changes]
+    if last and last.o then
+        GameTooltip_AddColoredLine(tooltip, L["%s since %s ago"]:format(TG.Roster:RankName(last.i), TG.FormatAge(now - last.t)), LIGHTBLUE_FONT_COLOR)
+    end
+end
+
+function History:Enable(owner)
+    TG:On("MEMBER_JOINED", function(e) History:OnJoined(e) end, owner)
+    TG:On("MEMBER_RANK", function(e, old) History:RecordRank(e, old) end, owner)
+    TG:On("MEMBER_LEFT", function(e) History:RecordLeft(e) end, owner)
+    TG:On("MEMBER_TOOLTIP", function(tooltip, e) History:Tooltip(tooltip, e) end, owner)
+    TG:On("ROSTER_READY", function()
+        for _, e in ipairs(TG.Roster:Members()) do
+            if not History:Get(e.key) then History:RecordFirstSeen(e) end
+        end
+    end, owner)
+    if TG.Roster:IsReady() then
+        for _, e in ipairs(TG.Roster:Members()) do
+            if not History:Get(e.key) then History:RecordFirstSeen(e) end
+        end
+    end
+end

@@ -35,6 +35,7 @@ Core\Names.lua
 Core\Roster.lua
 Core\Comm.lua
 Core\Store.lua
+Core\Log.lua
 Core\UI.lua
 Core\Window.lua
 Core\Settings.lua

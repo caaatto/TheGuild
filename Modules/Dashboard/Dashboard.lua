@@ -2,34 +2,31 @@ local TG = TheGuild
 local L = TG.L
 local UI = TG.UI
 
-local MAX_ACTIVITY = 60
-
 local Dashboard = TG:NewModule("Dashboard", {
     title = L["Overview"],
     desc = L["Recent activity"],
     order = 5,
-    defaults = { activity = {} },
+    defaults = { logFilter = "all" },
 })
 
-local function activityText(item)
-    local name = item.name or "?"
-    local entry = TG.Roster:Get(name)
-    local colored = entry and TG.ClassText(entry.classFile, name) or name
-    if item.kind == "online" then return L["%s came online"]:format(colored) end
-    if item.kind == "offline" then return L["%s went offline"]:format(colored) end
-    if item.kind == "joined" then return L["%s joined the guild"]:format(colored) end
-    if item.kind == "left" then return L["%s left the guild"]:format(colored) end
-    if item.kind == "level" then return L["%s reached level %d"]:format(colored, item.level or 0) end
-    if item.kind == "death" then return L["%s died in %s"]:format(colored, item.zone or L["Unknown"]) end
-    if item.kind == "cta" then return L["%s calls to arms in %s"]:format(colored, item.zone or "") end
-    return colored
-end
+local LOG_FILTERS = {
+    { "all", L["Everything"], nil },
+    { "presence", L["Logins"], { online = true, offline = true } },
+    { "guild", L["Guild changes"], { joined = true, left = true, rejoined = true, rank = true, note = true } },
+    { "level", L["Level ups"], { level = true } },
+    { "death", L["Deaths"], { death = true } },
+    { "cta", L["Call to Arms"], { cta = true } },
+}
 
-function Dashboard:Add(kind, name, extra)
-    local list = self.db.activity
-    table.insert(list, 1, { kind = kind, name = name, t = TG.Now(), level = extra and extra.level, zone = extra and extra.zone })
-    for i = #list, MAX_ACTIVITY + 1, -1 do list[i] = nil end
-    TG:Fire("ACTIVITY_UPDATED")
+local function currentFilter()
+    for _, f in ipairs(LOG_FILTERS) do
+        if f[1] == Dashboard.db.logFilter then
+            local kinds = f[3]
+            if not kinds then return nil end
+            return function(item) return kinds[item.kind] == true end
+        end
+    end
+    return nil
 end
 
 local function build(panel)
@@ -98,21 +95,37 @@ local function build(panel)
     right:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
 
     local activityTitle = UI.Label(right, L["Recent activity"], "GameFontNormal")
-    activityTitle:SetPoint("TOPLEFT", right, "TOPLEFT", 6, -4)
+    activityTitle:SetPoint("TOPLEFT", right, "TOPLEFT", 6, -6)
+
+    local export = UI.Button(right, L["Export"], 80, function()
+        UI.TextDialog(L["Recent activity"], TG.Log:Export(currentFilter()))
+    end)
+    export:SetPoint("TOPRIGHT", right, "TOPRIGHT", -8, -2)
+
+    local filter = UI.Dropdown(right, 140, function(_, root)
+        for _, f in ipairs(LOG_FILTERS) do
+            root:CreateRadio(f[2], function() return Dashboard.db.logFilter == f[1] end, function()
+                Dashboard.db.logFilter = f[1]
+                panel:OnShow()
+            end)
+        end
+    end)
+    filter:SetPoint("RIGHT", export, "LEFT", -6, 0)
+    filter:SetDefaultText(L["Everything"])
 
     local listFrame = CreateFrame("Frame", nil, right)
-    listFrame:SetPoint("TOPLEFT", right, "TOPLEFT", 0, -24)
+    listFrame:SetPoint("TOPLEFT", right, "TOPLEFT", 0, -28)
     listFrame:SetPoint("BOTTOMRIGHT", right, "BOTTOMRIGHT", 0, 0)
 
     local empty = UI.Label(listFrame, L["Nothing happened yet."], "GameFontDisableSmall", "CENTER")
     empty:SetPoint("CENTER")
 
     local list = UI.List(listFrame, 20, function(button, item)
-        button.time:SetText(date("%H:%M", item.t))
-        button.text:SetText(activityText(item))
+        button.time:SetText(date("%d.%m. %H:%M", item.t))
+        button.text:SetText(TG.Log:Text(item))
     end, {
         buildRow = function(button)
-            button.time = UI.Cell(button, 44, "LEFT", "GameFontDisableSmall")
+            button.time = UI.Cell(button, 76, "LEFT", "GameFontDisableSmall")
             button.time:SetPoint("LEFT", button, "LEFT", 6, 0)
             button.text = UI.Cell(button, 380)
             button.text:SetPoint("LEFT", button.time, "RIGHT", 4, 0)
@@ -145,29 +158,14 @@ local function build(panel)
         if not TG.usable(text) and GetGuildRosterMOTD then text = GetGuildRosterMOTD() end
         motd:SetText(TG.usable(text) and text ~= "" and text or GRAY_FONT_COLOR:WrapTextInColorCode("..."))
         shareButton:SetEnabled(map ~= nil and map.enabled)
-        local items = Dashboard.db.activity
+        local items = TG.Log:Entries(currentFilter())
         empty:SetShown(#items == 0)
         list:SetData(items)
     end
 
-    TG:On("ACTIVITY_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Dashboard)
+    TG:On("LOG_ADDED", function() if panel:IsShown() then panel:OnShow() end end, Dashboard)
     TG:On("MAP_SHARING", function() if panel:IsShown() then panel:OnShow() end end, Dashboard)
     TG:RegisterEvent("GUILD_MOTD", function() if panel:IsShown() then panel:OnShow() end end, Dashboard)
-end
-
-function Dashboard:OnEnable()
-    self:On("MEMBER_ONLINE", function(e) self:Add("online", e.key) end)
-    self:On("MEMBER_OFFLINE", function(e) self:Add("offline", e.key) end)
-    self:On("MEMBER_JOINED", function(e) self:Add("joined", e.key) end)
-    self:On("MEMBER_LEFT", function(e) self:Add("left", e.key) end)
-    self:On("MEMBER_LEVEL", function(e) self:Add("level", e.key, { level = e.level }) end)
-    self:On("ACTIVITY", function(kind, name, data)
-        if kind == "death" then
-            self:Add("death", name, { zone = data and data.z })
-        elseif kind == "cta" then
-            self:Add("cta", name, { zone = data and data.z })
-        end
-    end)
 end
 
 TG.Window:RegisterTab("overview", L["Overview"], build, 1)

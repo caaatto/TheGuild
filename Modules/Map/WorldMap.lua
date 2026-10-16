@@ -92,7 +92,7 @@ function TheGuildMapDataProviderMixin:RefreshAllData()
     if not mapID or not Map.enabled then return end
     if Map.db.worldMap then
         for key, peer in pairs(Map:Peers()) do
-            if peer.hasPos then
+            if Map:Visible(key, peer) then
                 local x, y = WM:Project(peer, mapID)
                 if x then
                     local pin = map:AcquirePin(MEMBER_TEMPLATE, key, peer)

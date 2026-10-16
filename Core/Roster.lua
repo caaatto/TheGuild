@@ -17,6 +17,14 @@ local function newEntry(key)
     return { key = key }
 end
 
+local function lastOnline(i)
+    if not GetGuildRosterLastOnline then return nil end
+    local ok, years, months, days, hours = pcall(GetGuildRosterLastOnline, i)
+    if not ok or TG.IsSecret(years, months, days, hours) or not years then return nil end
+    local seconds = ((years or 0) * 365 + (months or 0) * 30 + (days or 0)) * 86400 + (hours or 0) * 3600
+    return TG.Now() - seconds
+end
+
 local function readRow(i)
     local name, rank, rankIndex, level, _, zone, note, officerNote, online, status, classFile, _, _, isMobile, _, _, guid = GetGuildRosterInfo(i)
     if not TG.usable(name) or TG.IsSecret(rank, rankIndex, level, zone, note, officerNote, online, status, classFile, guid) then
@@ -25,6 +33,7 @@ local function readRow(i)
     local key = TG.StripRealm(name)
     if not key or key == "" then return nil end
     return {
+        lastOnline = (not online) and lastOnline(i) or nil,
         key = key,
         fullName = name,
         guid = guid,
@@ -88,7 +97,12 @@ function Roster:Read()
     local me = TG.MyGUID()
     for key, e in pairs(fresh) do
         local old = members[key]
-        if e.online then e.lastSeen = now elseif old then e.lastSeen = old.lastSeen end
+        if e.online then
+            e.lastSeen = now
+        else
+            e.lastSeen = (old and old.lastSeen) or e.lastOnline
+            if e.lastOnline and (not e.lastSeen or e.lastOnline > e.lastSeen) then e.lastSeen = e.lastOnline end
+        end
         if me and e.guid == me then TG.LearnMyName(e.key) end
         if ready then
             if not old then
@@ -97,6 +111,7 @@ function Roster:Read()
                 if e.online and not old.online then TG:Fire("MEMBER_ONLINE", e) end
                 if not e.online and old.online then TG:Fire("MEMBER_OFFLINE", e) end
                 if e.level > (old.level or 0) and old.level > 0 then TG:Fire("MEMBER_LEVEL", e, old.level) end
+                if e.rankIndex ~= old.rankIndex then TG:Fire("MEMBER_RANK", e, old.rankIndex) end
             end
         end
     end

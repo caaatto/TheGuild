@@ -3,3 +3,4 @@
 *.toc text eol=lf
 *.xml text eol=lf
 *.md text eol=lf
+*.cmd text eol=crlf

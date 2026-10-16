@@ -19,7 +19,7 @@ local Map = TG:NewModule("Map", {
         worldMap = true, minimap = true, names = true, iconStyle = "icon",
         worldSize = 22, minimapSize = 14,
         lowHealth = false, lowHealthThreshold = 30,
-        deaths = true, pins = true,
+        deaths = true, pins = true, minLevel = 1,
     },
     charDefaults = { share = true, hideStealth = true },
     settings = {
@@ -33,6 +33,7 @@ local Map = TG:NewModule("Map", {
           options = { { "icon", L["Class icon"] }, { "dot", L["Class colored dot"] } } },
         { key = "worldSize", type = "number", name = L["World map icon size"], default = 22, min = 12, max = 40, step = 2, onChange = refreshAll },
         { key = "minimapSize", type = "number", name = L["Minimap icon size"], default = 14, min = 8, max = 24, step = 1, onChange = refreshAll },
+        { key = "minLevel", type = "number", name = L["Hide members below level"], default = 1, min = 1, max = 60, step = 1, onChange = refreshAll },
         { key = "lowHealth", type = "boolean", name = L["Low health warning"], tooltip = L["Warn when a guild member drops below the health threshold."], default = false },
         { key = "lowHealthThreshold", type = "number", name = L["Health threshold"], default = 30, min = 10, max = 90, step = 5, format = function(v) return v .. "%" end },
         { key = "deaths", type = "boolean", name = L["Show deaths"], default = true, onChange = refreshAll },
@@ -150,6 +151,15 @@ end
 
 function Map:Peer(key)
     return self.peers[TG.StripRealm(key) or key]
+end
+
+function Map:Visible(key, peer)
+    if not peer or not peer.hasPos then return false end
+    if (self.db.minLevel or 1) > 1 then
+        local entry = TG.Roster:Get(key)
+        if entry and entry.level and entry.level < self.db.minLevel then return false end
+    end
+    return true
 end
 
 function Map:HasPosition(key)

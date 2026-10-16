@@ -202,6 +202,43 @@ function UI.MemberTooltip(tooltip, entry)
     TG:Fire("MEMBER_TOOLTIP", tooltip, entry)
 end
 
+local textDialog
+
+function UI.TextDialog(title, text)
+    if not textDialog then
+        local f = CreateFrame("Frame", "TheGuildTextDialog", UIParent, "ButtonFrameTemplate")
+        f:SetSize(520, 420)
+        f:SetPoint("CENTER")
+        f:SetFrameStrata("DIALOG")
+        f:SetMovable(true)
+        f:EnableMouse(true)
+        f:RegisterForDrag("LeftButton")
+        f:SetScript("OnDragStart", f.StartMoving)
+        f:SetScript("OnDragStop", f.StopMovingOrSizing)
+        f:SetPortraitToAsset(TG.icon)
+        ButtonFrameTemplate_HideButtonBar(f)
+        f.Inset:SetPoint("BOTTOMRIGHT", -6, 4)
+        local scroll = CreateFrame("ScrollFrame", nil, f.Inset, "UIPanelScrollFrameTemplate")
+        scroll:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 8, -8)
+        scroll:SetPoint("BOTTOMRIGHT", f.Inset, "BOTTOMRIGHT", -28, 8)
+        local edit = CreateFrame("EditBox", nil, scroll)
+        edit:SetMultiLine(true)
+        edit:SetAutoFocus(false)
+        edit:SetFontObject("ChatFontNormal")
+        edit:SetWidth(460)
+        edit:SetScript("OnEscapePressed", function() f:Hide() end)
+        scroll:SetScrollChild(edit)
+        f.edit = edit
+        tinsert(UISpecialFrames, "TheGuildTextDialog")
+        textDialog = f
+    end
+    textDialog:SetTitle(title or TG.title)
+    textDialog.edit:SetText(text or "")
+    textDialog:Show()
+    textDialog.edit:HighlightText()
+    textDialog.edit:SetFocus()
+end
+
 function UI.MemberMenu(owner, entry)
     MenuUtil.CreateContextMenu(owner, function(_, root)
         root:SetTag("MENU_THEGUILD_MEMBER")

@@ -9,4 +9,5 @@
 ## Category: Guild
 ## IconTexture: Interface\Icons\Achievement_GuildPerk_EverybodysFriend
 
+History.lua
 Roster.lua

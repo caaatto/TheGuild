@@ -53,7 +53,7 @@ function MP:Refresh()
     if not Map.enabled or not Map.db.minimap then return end
     local size = Map.db.minimapSize
     for key, peer in pairs(Map:Peers()) do
-        if peer.hasPos then
+        if Map:Visible(key, peer) then
             local entry = TG.Roster:Get(key)
             local f = acquire()
             f.key = key
