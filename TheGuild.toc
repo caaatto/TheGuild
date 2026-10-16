@@ -28,6 +28,7 @@ Locales\deDE.lua
 
 Core\Init.lua
 Core\Util.lua
+Core\Calendar.lua
 Core\Events.lua
 Core\DB.lua
 Core\Modules.lua

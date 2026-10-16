@@ -387,12 +387,8 @@ local function build(panel)
         end,
     })
 
-    local calendarRequested = false
     local function showSchedule(team, canEdit)
-        if not calendarRequested and C_Calendar and C_Calendar.OpenCalendar then
-            calendarRequested = true
-            C_Calendar.OpenCalendar()
-        end
+        TG.Calendar.Request()
         dayDropdown:SetDefaultText(Raids:WeekdayName(newDay.w))
         hourDropdown:SetDefaultText(("%02d"):format(newDay.h))
         minuteDropdown:SetDefaultText(("%02d"):format(newDay.m))

@@ -12,7 +12,7 @@ local Dashboard = TG:NewModule("Dashboard", {
 local LOG_FILTERS = {
     { "all", L["Everything"], nil },
     { "presence", L["Logins"], { online = true, offline = true } },
-    { "guild", L["Guild changes"], { joined = true, left = true, rejoined = true, rank = true, note = true, post = true, poll = true } },
+    { "guild", L["Guild changes"], { joined = true, left = true, rejoined = true, rank = true, note = true, post = true, poll = true, event = true } },
     { "level", L["Level ups"], { level = true } },
     { "death", L["Deaths"], { death = true } },
     { "found", L["Loot finds"], { found = true } },
@@ -158,6 +158,11 @@ local function build(panel)
         local nextRaid = raids and raids.enabled and raids.NextRaid and raids:NextRaid()
         if nextRaid then
             lines[#lines + 1] = ("%s: %s"):format(L["Next raid"], raids:FormatRaid(nextRaid, true))
+        end
+        local board = TG:GetModule("Board")
+        local nextEvent = board and board.enabled and board.NextEvent and board:NextEvent()
+        if nextEvent then
+            lines[#lines + 1] = ("%s: %s"):format(L["Next event"], board:FormatEvent(nextEvent, true))
         end
         stats:SetText(table.concat(lines, "\n"))
         local text = C_GuildInfo and C_GuildInfo.GetMOTD and C_GuildInfo.GetMOTD()

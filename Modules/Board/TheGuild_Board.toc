@@ -10,4 +10,5 @@
 ## IconTexture: Interface\Icons\INV_Misc_Note_02
 
 Board.lua
+Events.lua
 Panel.lua

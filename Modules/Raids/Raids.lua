@@ -392,24 +392,13 @@ end
 -- Raid schedule
 
 local MAX_DAYS = 7
-local WEEKDAYS = { "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday" }
-local WEEKDAY_GLOBALS = { "WEEKDAY_SUNDAY", "WEEKDAY_MONDAY", "WEEKDAY_TUESDAY", "WEEKDAY_WEDNESDAY", "WEEKDAY_THURSDAY", "WEEKDAY_FRIDAY", "WEEKDAY_SATURDAY" }
 
 function Raids:WeekdayName(wday)
-    local name = _G[WEEKDAY_GLOBALS[wday] or ""]
-    return type(name) == "string" and name or WEEKDAYS[wday] or "?"
+    return TG.Calendar.WeekdayName(wday)
 end
 
--- The calendar runs on server time, so the schedule does as well.
 function Raids:ServerTime()
-    if C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime then
-        local c = C_DateAndTime.GetCurrentCalendarTime()
-        if c and TG.usable(c.year) then
-            return { year = c.year, month = c.month, day = c.monthDay, hour = c.hour, min = c.minute, wday = c.weekday }
-        end
-    end
-    local d = date("*t")
-    return { year = d.year, month = d.month, day = d.day, hour = d.hour, min = d.min, wday = d.wday }
+    return TG.Calendar.ServerTime()
 end
 
 function Raids:Schedule(team)
@@ -481,43 +470,16 @@ function Raids:CalendarTitle(team)
     return L["Raid: %s"]:format(team.name):sub(1, 31)
 end
 
-local function monthOffset(r)
-    local month, year
-    if C_Calendar and C_Calendar.GetMonthInfo then
-        local info = C_Calendar.GetMonthInfo(0)
-        if info and TG.usable(info.month) then month, year = info.month, info.year end
-    end
-    if not month then
-        local now = Raids:ServerTime()
-        month, year = now.month, now.year
-    end
-    return (r.year - year) * 12 + (r.month - month)
-end
-
 function Raids:InCalendar(r)
-    if not (C_Calendar and C_Calendar.GetNumDayEvents and C_Calendar.GetDayEvent) then return false end
-    local title = self:CalendarTitle(r.team)
-    local offset = monthOffset(r)
-    local n = C_Calendar.GetNumDayEvents(offset, r.day)
-    if not TG.usable(n) then return false end
-    for i = 1, n do
-        local ev = C_Calendar.GetDayEvent(offset, r.day, i)
-        if ev and TG.usable(ev.title) and ev.title == title then return true end
-    end
-    return false
+    return TG.Calendar.HasEvent(self:CalendarTitle(r.team), r.year, r.month, r.day)
 end
 
 function Raids:CanExport()
-    if not (C_Calendar and C_Calendar.CreateGuildSignUpEvent and C_Calendar.AddEvent) then return false end
-    if C_Calendar.CanAddEvent then
-        local ok = C_Calendar.CanAddEvent()
-        return TG.usable(ok) and ok == true
-    end
-    return true
+    return TG.Calendar.CanAdd()
 end
 
--- Creates guild sign up events for the coming raid nights. AddEvent needs a
--- hardware event, so this only runs from a button click.
+-- Creates guild sign up events for the coming raid nights. Runs from a click
+-- because AddEvent needs a hardware event.
 function Raids:ExportCalendar(id, weeks)
     local team = self:Team(id)
     if not team or not self:CanExport() then return 0, 0 end
@@ -526,16 +488,8 @@ function Raids:ExportCalendar(id, weeks)
     for _, r in ipairs(self:Upcoming(team, weeks)) do
         if self:InCalendar(r) then
             existing = existing + 1
-        else
-            local ok = pcall(function()
-                C_Calendar.CreateGuildSignUpEvent()
-                C_Calendar.EventSetTitle(title)
-                C_Calendar.EventSetDescription(L["Created by TheGuild"])
-                C_Calendar.EventSetDate(r.month, r.day, r.year)
-                C_Calendar.EventSetTime(r.hour, r.min)
-                C_Calendar.AddEvent()
-            end)
-            if ok then created = created + 1 end
+        elseif TG.Calendar.Create(title, L["Created by TheGuild"], r.year, r.month, r.day, r.hour, r.min) then
+            created = created + 1
         end
     end
     return created, existing

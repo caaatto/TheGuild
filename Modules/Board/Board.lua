@@ -174,6 +174,11 @@ function Board:OnStoreChanged(ns, key, value)
         if TG.IsMe(author) then return end
         TG.Log:Add("post", author, { title = value.t })
         if self.db.chat then TG:Print(L["New post on the guild board: %s (%s)"], value.t or "", TG.ShortName(author)) end
+    elseif ns == "event" then
+        local author = authorOf(key)
+        if TG.IsMe(author) then return end
+        TG.Log:Add("event", author, { title = value.t })
+        if self.db.chat then TG:Print(L["New event: %s (%s)"], value.t or "", TG.ShortName(author)) end
     elseif ns == NS_POLL then
         local item = TG.Store:Items(NS_POLL)[key]
         local author = item and item.a or "?"
@@ -185,5 +190,9 @@ end
 
 function Board:OnEnable()
     self:On("STORE_CHANGED", function(ns, key, value) self:OnStoreChanged(ns, key, value) end)
-    TG.After(90, function() if self.enabled then self:Prune() end end)
+    TG.After(90, function()
+        if not self.enabled then return end
+        self:Prune()
+        if self.PruneEvents then self:PruneEvents() end
+    end)
 end

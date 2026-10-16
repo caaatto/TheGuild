@@ -5,8 +5,8 @@ local Board = TG:GetModule("Board")
 
 Board.view = "posts"
 
-local VIEWS = { { "posts", L["Posts"] }, { "polls", L["Polls"] } }
-local selectedPost, selectedPoll
+local VIEWS = { { "posts", L["Posts"] }, { "polls", L["Polls"] }, { "events", L["Events"] } }
+local selectedPost, selectedPoll, selectedEvent
 
 local function viewName()
     for _, v in ipairs(VIEWS) do if v[1] == Board.view then return v[2] end end
@@ -57,6 +57,23 @@ local function build(panel)
     end)
     newPoll:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
 
+    local newEvent = UI.Button(panel, L["New event"], 120, function()
+        compose(L["New event"], L["First line is the title, second line date and time like 24.12.2026 19:30, the rest is the description."], function(text)
+            local lines = TG.Lines(text)
+            if #lines < 2 then return end
+            local eventTitle = table.remove(lines, 1)
+            local y, m, d, h, mi = Board:ParseEventDate(table.remove(lines, 1))
+            if not y then
+                TG:Print(L["Date not understood. Use 24.12.2026 19:30."])
+                return
+            end
+            local key = Board:CreateEvent(eventTitle, table.concat(lines, "\n"), y, m, d, h, mi)
+            if key then selectedEvent = key end
+            panel:OnShow()
+        end)
+    end)
+    newEvent:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -7)
+
     -- left list
     local listFrame = CreateFrame("Frame", nil, panel)
     listFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -36)
@@ -67,10 +84,16 @@ local function build(panel)
 
     local list = UI.List(listFrame, 36, function(button, row)
         button.row = row
-        local selected = (Board.view == "posts" and selectedPost or selectedPoll) == row.key
+        local current = Board.view == "posts" and selectedPost or Board.view == "polls" and selectedPoll or selectedEvent
+        local selected = current == row.key
         button.title:SetText((row.pinned and (TG.gold .. "* |r") or "") .. (selected and TG.gold or "") .. (row.title or row.question) .. (selected and "|r" or ""))
         if Board.view == "posts" then
             button.meta:SetText(("%s  %s"):format(authorText(row.author), date("%d.%m.%y %H:%M", row.time)))
+        elseif Board.view == "events" then
+            local lists = Board:Signups(row)
+            local when = Board:FormatEvent(row)
+            if row.past then when = GRAY_FONT_COLOR:WrapTextInColorCode(when) end
+            button.meta:SetText(("%s  %s"):format(when, L["%d yes, %d maybe"]:format(#lists[1], #lists[2])))
         else
             local _, total = Board:Results(row)
             button.meta:SetText(("%s  %s  %s"):format(row.closed and GRAY_FONT_COLOR:WrapTextInColorCode(L["Closed"]) or GREEN_FONT_COLOR:WrapTextInColorCode(L["Open"]), L["%d votes"]:format(total), date("%d.%m.%y", row.time)))
@@ -82,7 +105,9 @@ local function build(panel)
             button.meta = UI.Cell(button, 280, "LEFT", "GameFontDisableSmall")
             button.meta:SetPoint("BOTTOMLEFT", button, "BOTTOMLEFT", 6, 4)
             button:SetScript("OnClick", function(self)
-                if Board.view == "posts" then selectedPost = self.row.key else selectedPoll = self.row.key end
+                if Board.view == "posts" then selectedPost = self.row.key
+                elseif Board.view == "polls" then selectedPoll = self.row.key
+                else selectedEvent = self.row.key end
                 panel:OnShow()
             end)
         end,
@@ -117,17 +142,26 @@ local function build(panel)
     local deleteButton = action(DELETE, function()
         if Board.view == "posts" and selectedPost then
             StaticPopup_ShowGenericConfirmation(L["Delete post?"], function() Board:DeletePost(selectedPost) selectedPost = nil panel:OnShow() end)
-        elseif selectedPoll then
+        elseif Board.view == "polls" and selectedPoll then
             StaticPopup_ShowGenericConfirmation(L["Delete poll?"], function() Board:DeletePoll(selectedPoll) selectedPoll = nil panel:OnShow() end)
+        elseif Board.view == "events" and selectedEvent then
+            StaticPopup_ShowGenericConfirmation(L["Delete event?"], function() Board:DeleteEvent(selectedEvent) selectedEvent = nil panel:OnShow() end)
         end
     end)
     local toggleButton = action("", function()
         if Board.view == "posts" and selectedPost then
             local v = TG.Store:Get("post", selectedPost)
             Board:SetPinned(selectedPost, not (type(v) == "table" and v.p == true))
-        elseif selectedPoll then
+        elseif Board.view == "polls" and selectedPoll then
             local v = TG.Store:Get("poll", selectedPoll)
             Board:ClosePoll(selectedPoll, not (type(v) == "table" and v.c == true))
+        elseif Board.view == "events" and selectedEvent then
+            for _, ev in ipairs(Board:Events()) do
+                if ev.key == selectedEvent then
+                    local ok, existed = Board:ExportEvent(ev)
+                    TG:Print(ok and L["Event added to the calendar."] or existed and L["The event is already in the calendar."] or L["The event could not be added to the calendar."])
+                end
+            end
         end
         panel:OnShow()
     end)
@@ -144,6 +178,16 @@ local function build(panel)
     body:SetWordWrap(true)
     body:SetJustifyV("TOP")
     body:SetSpacing(2)
+
+    local signup = CreateFrame("Frame", nil, detail)
+    signup:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", 0, -8)
+    signup:SetSize(300, 24)
+    local signupButtons = {}
+    for i, text in ipairs({ L["Yes"], L["Maybe"], L["No"] }) do
+        local b = UI.Button(signup, text, 90, function() Board:SignUp(selectedEvent, i) panel:OnShow() end)
+        b:SetPoint("LEFT", signup, "LEFT", (i - 1) * 96, 0)
+        signupButtons[i] = b
+    end
 
     local optionsFrame = CreateFrame("Frame", nil, detail)
     optionsFrame:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", -4, -10)
@@ -188,7 +232,10 @@ local function build(panel)
         title:SetShown(current ~= nil)
         meta:SetShown(current ~= nil)
         bodyScroll:SetShown(current ~= nil)
+        bodyScroll:SetPoint("TOPLEFT", meta, "BOTTOMLEFT", 0, -10)
         optionsFrame:Hide()
+        signup:Hide()
+        toggleButton:SetWidth(110)
         if current then
             title:SetText(current.title)
             meta:SetText(("%s, %s"):format(L["by %s"]:format(authorText(current.author)), date("%d.%m.%Y %H:%M", current.time)))
@@ -221,6 +268,8 @@ local function build(panel)
         title:SetShown(current ~= nil)
         meta:SetShown(current ~= nil)
         bodyScroll:Hide()
+        signup:Hide()
+        toggleButton:SetWidth(110)
         optionsFrame:SetShown(current ~= nil)
         if current then
             local counts, total, voters = Board:Results(current)
@@ -242,15 +291,69 @@ local function build(panel)
         end
     end
 
+    local function names(list)
+        if #list == 0 then return GRAY_FONT_COLOR:WrapTextInColorCode("...") end
+        local out = {}
+        for _, n in ipairs(list) do out[#out + 1] = authorText(n) end
+        return table.concat(out, ", ")
+    end
+
+    local function showEvent()
+        TG.Calendar.Request()
+        local events = Board:Events()
+        local current
+        for _, e in ipairs(events) do if e.key == selectedEvent then current = e end end
+        if not current then
+            current = events[1]
+            selectedEvent = current and current.key
+        end
+        empty:SetText(L["No events yet."])
+        empty:SetShown(#events == 0)
+        list:SetData(events)
+        hint:SetText(L["Select an event."])
+        hint:SetShown(current == nil)
+        title:SetShown(current ~= nil)
+        meta:SetShown(current ~= nil)
+        optionsFrame:Hide()
+        signup:SetShown(current ~= nil)
+        bodyScroll:SetShown(current ~= nil)
+        bodyScroll:SetPoint("TOPLEFT", signup, "BOTTOMLEFT", 0, -8)
+        toggleButton:SetWidth(170)
+        if current then
+            title:SetText(current.title)
+            meta:SetText(("%s, %s"):format(Board:FormatEvent(current), L["by %s"]:format(authorText(current.author))))
+            local lists = Board:Signups(current)
+            local mine = Board:MySignup(current.key)
+            for i, b in ipairs(signupButtons) do b:SetEnabled(mine ~= i and not current.past) end
+            local text = ("%s%s (%d):|r %s\n%s%s (%d):|r %s\n%s%s (%d):|r %s"):format(
+                TG.gold, L["Yes"], #lists[1], names(lists[1]),
+                TG.gold, L["Maybe"], #lists[2], names(lists[2]),
+                TG.gold, L["No"], #lists[3], names(lists[3]))
+            if current.desc ~= "" then text = text .. "\n\n" .. current.desc end
+            body:SetText(text)
+            local height = body:GetStringHeight()
+            bodyChild:SetHeight((tonumber(height) or 200) + 8)
+            deleteButton:SetShown(Board:CanEditEvent(current))
+            toggleButton:SetShown(TG.Calendar.CanAdd() and not current.past)
+            toggleButton:SetText(L["Export to calendar"])
+        else
+            deleteButton:Hide()
+            toggleButton:Hide()
+        end
+    end
+
     function panel:OnShow()
         viewDropdown:SetDefaultText(viewName())
         newPost:SetShown(Board.view == "posts" and Board:CanPost())
         newPoll:SetShown(Board.view == "polls" and Board:CanManage())
-        if Board.view == "posts" then showPost() else showPoll() end
+        newEvent:SetShown(Board.view == "events" and Board:CanPost())
+        if Board.view == "posts" then showPost()
+        elseif Board.view == "polls" then showPoll()
+        else showEvent() end
     end
 
     TG:On("STORE_CHANGED", function(ns)
-        if panel:IsShown() and (ns == "post" or ns == "poll" or ns == "vote") then panel:OnShow() end
+        if panel:IsShown() and (ns == "post" or ns == "poll" or ns == "vote" or ns == "event" or ns == "signup") then panel:OnShow() end
     end, Board)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Board)
 end
