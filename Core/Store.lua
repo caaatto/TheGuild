@@ -10,6 +10,7 @@ TG.Store = Store
 local policies = {}
 local SYNC_INTERVAL = 1200
 local BATCH_SIZE = 40
+local MAX_RESPONDERS = 3
 local lastSyncRequest = 0
 
 function Store:DefinePolicy(ns, policy)
@@ -153,14 +154,19 @@ function Store:RequestSync(force)
     TG.Comm:Send("SQ", digest(), "BULK")
 end
 
-local function responderDelay()
-    local names = TG.Keys(TG.Comm:Peers())
+-- Only the first few clients by name answer a sync request, so a login in a
+-- guild with a hundred users online does not trigger a hundred answers.
+local function responderSlot(requester)
+    local names = {}
+    for name in pairs(TG.Comm:Peers()) do
+        if name ~= requester then names[#names + 1] = name end
+    end
     names[#names + 1] = TG.MyName()
     table.sort(names)
     for i, n in ipairs(names) do
-        if n == TG.MyName() then return math.min(12, (i - 1) * 1.5) end
+        if n == TG.MyName() then return i end
     end
-    return 0
+    return 1
 end
 
 TG.Comm:Register("ST", function(sender, msg) apply(msg, sender) end)
@@ -184,7 +190,9 @@ TG.Comm:Register("SQ", function(sender, theirs)
         end
     end
     if #batch == 0 then return end
-    TG.After(responderDelay(), function()
+    local slot = responderSlot(sender)
+    if slot > MAX_RESPONDERS then return end
+    TG.After((slot - 1) * 1.5, function()
         if not (TG.Roster:Get(sender) and TG.Roster:Get(sender).online or TG.Comm:Peers()[sender]) then return end
         for i = 1, #batch, BATCH_SIZE do
             local slice = {}
