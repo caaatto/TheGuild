@@ -3,7 +3,7 @@
 ## Notes: Welcomes new members, greets logins, congratulates level ups and hides muted players.
 ## Notes-deDE: Begrüßt neue Mitglieder und Logins, gratuliert zu Stufen und blendet stummgeschaltete Spieler aus.
 ## Author: Catto
-## Version: 0.2.6
+## Version: 0.2.7
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
