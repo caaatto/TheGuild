@@ -54,7 +54,7 @@ Beiträge, Umfragen, Events und Aufträge im Gildenspeicher. Jeder schreibt, Off
 
 ![Voice](Screenshots/voice.jpg)
 
-Proximity-Voice über den Blizzard-Gildensprachkanal. Alle treten demselben Kanal bei, das Addon regelt auf deinem Client jedes Mitglied nach Entfernung lauter oder leiser: volle Lautstärke bis 30 Meter, stumm ab 90 Metern (beides einstellbar). Die Positionen liefert das Kartenmodul. Voice-Gruppen funktionieren wie die Gruppen der Minecraft-Proximity-Mods: eine erstellen, andere treten bei, Gruppenmitglieder bleiben überall voll hörbar. Drei Modi: "Gruppe und Nähe", in dem du mit jedem reden kannst, der an dir vorbeiläuft, ohne dass deine Gruppe ihn hört; "Nur Nähe", in dem du deine Gruppe weiter hörst, die Gruppe dich aber nur in deiner Nähe hört, praktisch wenn du jemanden triffst und die Gruppe nicht vollreden willst; und "Nur Gruppe", der alle außerhalb deiner Gruppe stumm schaltet. Wer einer Gruppe oder einem Schlachtzug beitritt, bildet mit den Gildenmitgliedern darin automatisch eine Voice-Gruppe. Voice bleibt damit auf dem Gildenkanal, Blizzards Gruppenvoice wird nie gebraucht. Die Gruppenliste hat eine Suche nach Gruppenname und Spieler. Der Tab zeigt, wer im Kanal ist, wer spricht, Entfernung und aktuelle Lautstärke. Ein kleiner verschiebbarer Mikrofonknopf auf dem Bildschirm zeigt, ob du stumm oder auf Ton aus bist und wie viele Mitglieder du gerade hörst. Linksklick schaltet stumm, Rechtsklick öffnet ein Menü mit Modus, Beitreten und Verlassen.
+Proximity-Voice über den Blizzard-Gildensprachkanal. Alle treten demselben Kanal bei, das Addon regelt auf deinem Client jedes Mitglied nach Entfernung lauter oder leiser: volle Lautstärke bis 30 Meter, stumm ab 90 Metern (beides einstellbar). Die Positionen liefert das Kartenmodul. Voice-Gruppen funktionieren wie die Gruppen der Minecraft-Proximity-Mods: eine erstellen, andere treten bei, Gruppenmitglieder bleiben überall voll hörbar. Drei Modi: "Gruppe und Nähe", in dem du mit jedem reden kannst, der an dir vorbeiläuft, ohne dass deine Gruppe ihn hört; "Nur Nähe", in dem du deine Gruppe weiter hörst, die Gruppe dich aber nur in deiner Nähe hört, praktisch wenn du jemanden triffst und die Gruppe nicht vollreden willst; und "Nur Gruppe", der alle außerhalb deiner Gruppe stumm schaltet. Wer einer Gruppe oder einem Schlachtzug beitritt, bildet mit den Gildenmitgliedern darin automatisch eine Voice-Gruppe. Voice bleibt damit auf dem Gildenkanal, Blizzards Gruppenvoice wird nie gebraucht. Die Gruppenliste hat eine Suche nach Gruppenname und Spieler. Der Tab zeigt, wer im Kanal ist, wer spricht, Entfernung und aktuelle Lautstärke. Ein kleiner verschiebbarer Mikrofonknopf auf dem Bildschirm zeigt, ob du stumm oder auf Ton aus bist und wie viele Mitglieder du gerade hörst, darunter eine kompakte Liste, wer im Kanal ist, mit Klassensymbol, Lautsprechersymbol beim Sprechen und Stummmarkierung. Linksklick schaltet stumm, Rechtsklick öffnet ein Menü mit Modus, Beitreten, Verlassen und dem Listenschalter. Die eigenen Sprechmeldungen des Spielclients über dem Chat sind ausgeblendet, solange das Modul läuft, eine Einstellung holt sie zurück. Die Zeile eines Mitglieds, das gerade spricht, bekommt einen grünen Rahmen, so wie Discord Sprecher hervorhebt.
 
 ### Statistik
 
@@ -83,12 +83,13 @@ Erfasst deine Rezepte beim Öffnen eines Berufsfensters, teilt sie mit der Gilde
 Das Fenster besteht aus den Vorlagen des Clients: Porträtrahmen mit Seitentabs für die Module, Spaltenköpfe im Stil der Wer-Liste, Listen mit Inset-Rahmen, Reiterleisten in den Panels und das Gildenbanner mit Wappenrock.
 
 - Reiter am Gildenfenster, der TheGuild öffnet.
-- Einträge in Einheiten- und Gildenmitgliedermenüs.
+- Einträge in den Kontextmenüs von Spielern, Ziel, Fokus und Freunden. Gildenroster- und Gruppenmenüs bleiben unangetastet, weil Blizzard dort geschützte Aktionen wie den Gildenrauswurf ausführt und jede Addon-Erweiterung sie blockieren würde.
 - Einträge in den Verfolgungsmenüs von Weltkarte und Minimap.
 - Rolle, Main und Addonversion in Einheiten-Tooltips.
 - Einstellungen unter Optionen > AddOns > TheGuild, Profilexport und -import als Text.
 - Tastenbelegungen für Fenster, Ruf zu den Waffen, Positionsfreigabe und Mikrofon, auch direkt in den Addon-Optionen belegbar.
 - Tastatur: Escape schließt, Strg + Tab wechselt den Reiter, Strg + F springt ins Suchfeld. Am Gamepad wechseln die Schultertasten.
+- Eine geführte Tour im Hinweisstil des Clients beim ersten Öffnen des Fensters: sie geht durch jeden Tab und erklärt die wichtigsten Bedienelemente, der Mikrofonknopf bekommt beim ersten Erscheinen eigene Hinweise. In den Einstellungen abschaltbar oder erneut startbar.
 
 ## Befehle
 

@@ -103,6 +103,7 @@ local function build()
     frame.tabTitle = UI.Label(frame, "", "GameFontDisableSmall", "RIGHT")
     frame.tabTitle:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -14, -32)
 
+    frame:Hide()
     frame:SetScript("OnShow", function()
         PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN)
         Window:UpdateSubtitle()
@@ -110,6 +111,7 @@ local function build()
     end)
     frame:SetScript("OnHide", function()
         PlaySound(SOUNDKIT.IG_CHARACTER_INFO_CLOSE)
+        TG.Tutorial:Stop()
     end)
 
     tinsert(UISpecialFrames, "TheGuildFrame")
@@ -140,11 +142,19 @@ local function build()
 
     sideTabs = UI.HasAtlas("common-sidetab")
     if sideTabs then buildSideTabs() else buildBottomTabs() end
-    frame:Hide()
+    TG.Tutorial:Define("window", {
+        { target = function() return tabButtons[1] end, text = L["Every module has its own tab. Ctrl + Tab switches, Ctrl + F jumps to the search field, the gamepad shoulders flip through."], point = sideTabs and "right" or "top" },
+        { target = frame.Inset, text = L["Drag the title bar to move the window, Escape closes it. Every module can be switched off in the AddOn list or under Options > AddOns > TheGuild."], point = "top" },
+    })
 end
 
 function Window:Tabs()
     return tabs
+end
+
+function Window:CurrentTab()
+    local tab = tabs[TG.db.global.window.tab or 1]
+    return tab and tab.id
 end
 
 function Window:RegisterTab(id, title, builder, order, icon, module)

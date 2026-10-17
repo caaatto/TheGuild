@@ -40,6 +40,7 @@ Core\Store.lua
 Core\Log.lua
 Core\UI.lua
 Core\Window.lua
+Core\Tutorial.lua
 Core\Settings.lua
 Core\Minimap.lua
 Core\Blizzard.lua

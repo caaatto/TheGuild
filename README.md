@@ -54,7 +54,7 @@ Posts, polls, events and bounties kept in the guild store. Everyone posts, offic
 
 ![Voice](Screenshots/voice.jpg)
 
-Proximity voice on the Blizzard guild voice channel. Everyone joins the same channel, the addon turns each member up or down on your client by distance: full volume up to 30 yards, silent beyond 90 (both configurable). Positions come from the Map module. Voice groups work like the groups of the Minecraft proximity mods: create one, others join, group members stay at full volume wherever they are. Three modes: group and proximity, where you still hear and talk to anyone who walks past you without your group hearing them; proximity only, where you keep hearing your group but your group hears you only when you stand close, handy when you run into somebody and do not want to talk over the group; and group only, which silences everybody outside your group. Joining a party or raid turns the guild members in it into a voice group automatically, so voice stays on the guild channel and Blizzard party voice is never needed. The group list has a search for group names and players. The tab shows who is in the channel, who speaks, distance and current volume. A small movable microphone button on the screen shows whether you are muted or deafened and how many members you can hear right now. Left click mutes, right click opens a menu with mode, join and leave.
+Proximity voice on the Blizzard guild voice channel. Everyone joins the same channel, the addon turns each member up or down on your client by distance: full volume up to 30 yards, silent beyond 90 (both configurable). Positions come from the Map module. Voice groups work like the groups of the Minecraft proximity mods: create one, others join, group members stay at full volume wherever they are. Three modes: group and proximity, where you still hear and talk to anyone who walks past you without your group hearing them; proximity only, where you keep hearing your group but your group hears you only when you stand close, handy when you run into somebody and do not want to talk over the group; and group only, which silences everybody outside your group. Joining a party or raid turns the guild members in it into a voice group automatically, so voice stays on the guild channel and Blizzard party voice is never needed. The group list has a search for group names and players. The tab shows who is in the channel, who speaks, distance and current volume. A small movable microphone button on the screen shows whether you are muted or deafened and how many members you can hear right now, and below it a compact list of who is in the channel with class icon, speaker icon while they talk and a mute marker. Left click mutes, right click opens a menu with mode, join, leave and the list toggle. The game client's own speaking toasts above the chat are hidden while the module runs, a setting brings them back. The row of a member who is talking gets a green frame, the way Discord highlights speakers.
 
 ### Statistics
 
@@ -83,12 +83,13 @@ Records your recipes when a profession window opens, shares them with the guild 
 The window is built from the client's own templates: a portrait frame with side tabs for the modules, column headers in the who list style, inset lists, tab strips inside the panels and the guild banner with the tabard.
 
 - Tab on the guild window that opens TheGuild.
-- Entries in unit and guild member context menus.
+- Entries in the context menus of players, targets, focus and friends. The guild roster and group menus stay untouched, because Blizzard runs protected actions like removing a member from there and any addon addition would block them.
 - Entries in the world map and minimap tracking menus.
 - Role, main and addon version in unit tooltips.
 - Settings under Options > AddOns > TheGuild, profile export and import as text.
 - Key bindings for the window, call to arms, position sharing and the microphone, also set from the addon options.
 - Keyboard: Escape closes, Ctrl + Tab switches tabs, Ctrl + F jumps to the search field. Gamepad shoulder buttons switch tabs.
+- A guided tour in the client's own help tip style the first time you open the window: it walks through every tab and explains the main controls, the microphone button gets its own hints when it first appears. The tour can be switched off or started again in the settings.
 
 ## Commands
 

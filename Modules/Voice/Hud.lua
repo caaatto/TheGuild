@@ -4,6 +4,9 @@ local UI = TG.UI
 local Voice = TG:GetModule("Voice")
 
 local SIZE = 40
+local LIST_WIDTH = 170
+local ROW_HEIGHT = 18
+local MAX_ROWS = 12
 local hud
 
 local ICONS = {
@@ -97,6 +100,10 @@ local function hudMenu(owner)
         end
         root:CreateDivider()
         root:CreateCheckbox(L["Lock position"], function() return Voice.db.hudLock end, function() Voice.db.hudLock = not Voice.db.hudLock end)
+        root:CreateCheckbox(L["Show who is in voice"], function() return Voice.db.hudList end, function()
+            Voice.db.hudList = not Voice.db.hudList
+            Voice:RefreshHud()
+        end)
         root:CreateButton(L["Open the voice tab"], function() TG.Window:ShowTab("voice") end)
         root:CreateButton(L["Hide the microphone button"], function()
             Voice.db.hud = false
@@ -126,6 +133,18 @@ local function build()
     setIcon(f.deaf, ICONS.deafened)
     f.count = UI.Label(f, "", "GameFontHighlightSmall", "RIGHT")
     f.count:SetPoint("TOPRIGHT", f, "TOPRIGHT", -4, -3)
+
+    f.list = UI.Card(f)
+    f.list:SetPoint("TOPLEFT", f, "BOTTOMLEFT", 0, -4)
+    f.list:SetWidth(LIST_WIDTH)
+    f.list:EnableMouse(false)
+    f.list.rows = {}
+    f.list.more = UI.Label(f.list, "", "GameFontDisableSmall")
+    f.list:Hide()
+    TG.Tutorial:Define("hud", {
+        { target = f, text = L["Left click mutes or unmutes, right click opens the menu, drag moves the button. Green means you are talking."], point = "right" },
+        { target = f.list, text = L["Who is in voice. The row of a talking member turns green, faded rows are out of your hearing range."], point = "right" },
+    })
 
     f:SetScript("OnClick", function(self, button)
         if button == "RightButton" then
@@ -184,7 +203,67 @@ function Voice:RefreshHud()
     end
     hud.deaf:SetShown(joined and self:IsDeafened())
     hud.count:SetText(self:IsJoined() and tostring(self:AudibleCount()) or "")
+    self:RefreshHudList(joined)
+    if not TG.Tutorial:MaybeTour() and joined then TG.Tutorial:Start("hud") end
     hud:Show()
+end
+
+local function listRow(list, i)
+    local row = list.rows[i]
+    if row then return row end
+    row = CreateFrame("Frame", nil, list)
+    row:SetSize(LIST_WIDTH - 12, ROW_HEIGHT)
+    row:SetPoint("TOPLEFT", list, "TOPLEFT", 6, -6 - (i - 1) * ROW_HEIGHT)
+    row.fill = row:CreateTexture(nil, "BACKGROUND")
+    row.fill:SetAllPoints()
+    row.fill:SetColorTexture(0.24, 0.84, 0.36, 0.12)
+    row.fill:Hide()
+    row.icon = UI.ClassIcon(row, 14)
+    row.icon:SetPoint("LEFT", row, "LEFT", 4, 0)
+    row.ring = UI.Border(row, 0.24, 0.84, 0.36, 1)
+    row.name = UI.Cell(row, LIST_WIDTH - 42, "LEFT", "GameFontHighlightSmall")
+    row.name:SetPoint("LEFT", row.icon, "RIGHT", 4, 0)
+    row.mute = row:CreateTexture(nil, "ARTWORK")
+    row.mute:SetSize(12, 12)
+    row.mute:SetPoint("RIGHT", row, "RIGHT", 0, 0)
+    setIcon(row.mute, ICONS.muted)
+    list.rows[i] = row
+    return row
+end
+
+function Voice:RefreshHudList(joined)
+    local list = hud and hud.list
+    if not list then return end
+    local rows = joined and self.db.hudList and self:Members() or {}
+    if #rows == 0 then
+        list:Hide()
+        return
+    end
+    local shown = math.min(#rows, MAX_ROWS)
+    for i = 1, shown do
+        local row = listRow(list, i)
+        local data = rows[i]
+        local entry = TG.Roster:Get(data.key)
+        TG.SetClassIcon(row.icon, entry and entry.classFile)
+        local name = TG.ShortName(data.key)
+        if data.isMe then name = TG.gold .. name .. "|r" elseif entry then name = TG.ClassText(entry.classFile, name) end
+        row.name:SetText(name)
+        row.ring:SetShown(data.speaking)
+        row.fill:SetShown(data.speaking)
+        row.mute:SetShown(data.muted)
+        row:SetAlpha((data.isMe or data.volume > 0) and 1 or 0.45)
+        row:Show()
+    end
+    for i = shown + 1, #list.rows do list.rows[i]:Hide() end
+    if #rows > shown then
+        list.more:SetText(L["and %d more"]:format(#rows - shown))
+        list.more:SetPoint("TOPLEFT", list, "TOPLEFT", 6, -6 - shown * ROW_HEIGHT)
+        list.more:Show()
+    else
+        list.more:Hide()
+    end
+    list:SetHeight(12 + shown * ROW_HEIGHT + (#rows > shown and ROW_HEIGHT or 0))
+    list:Show()
 end
 
 function Voice:SetupHud()

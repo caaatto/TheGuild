@@ -13,7 +13,7 @@ local columns = {
     { key = "name", text = L["Name"], width = 190 },
     { key = "level", text = L["Level"], width = 46, justify = "CENTER" },
     { key = "rank", text = L["Rank"], width = 110 },
-    { key = "zone", text = L["Zone"], width = 170 },
+    { key = "zone", text = L["Zone"], width = 170, stretch = true },
     { key = "role", text = L["Role"], width = 56, justify = "CENTER" },
     { key = "main", text = L["Main"], width = 120 },
     { key = "note", text = L["Note"], width = 110 },
@@ -193,6 +193,7 @@ local function build(panel)
         panel:OnShow()
     end)
     header:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -36)
+    header:SetPoint("RIGHT", panel, "RIGHT", -28, 0)
 
     local listFrame = CreateFrame("Frame", nil, panel)
     listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -1)
@@ -226,7 +227,8 @@ local function build(panel)
             button.cells = UI.Cells(button, columns)
             button.cells.name:ClearAllPoints()
             button.cells.name:SetPoint("LEFT", button.icon, "RIGHT", 4, 0)
-            button.cells.name:SetWidth(columns[1].width - 30)
+            button.cells.name.tgManual = true
+            button.cells.name.tgInset = 30
             button.addon = button:CreateTexture(nil, "OVERLAY")
             button.addon:SetSize(10, 10)
             button.addon:SetTexture(TG.icon)
@@ -250,6 +252,14 @@ local function build(panel)
             end)
             button:SetScript("OnLeave", function() GameTooltip:Hide() end)
         end,
+    })
+
+    TG.Tutorial:Define("members", {
+        { target = search, text = L["Search by name, class, rank or note. Ctrl + F jumps here."], point = "bottom" },
+        { target = filter, text = L["Filters for officers, inactive members and missing roles."], point = "bottom" },
+        { target = offline, text = L["Shows or hides members who are offline."], point = "bottom" },
+        { target = suggest, text = L["Officers get alt suggestions read from public notes and link them with one click."], point = "bottom" },
+        { target = listFrame, text = L["Click a column header to sort. Right click any member for whisper, invite, show on map, role and main or alt links."], point = "top" },
     })
 
     function panel:OnShow()

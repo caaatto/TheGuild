@@ -302,6 +302,11 @@ local function build(panel)
         end,
     })
 
+    TG.Tutorial:Define("stats", {
+        { target = export, text = L["Everything on this page exports as plain text."], point = "bottom" },
+        { target = listFrame, text = L["Member counts, classes, lifetime deaths and level ups, loot and attendance. Rankings can be left in the settings."], point = "top" },
+    })
+
     function panel:OnShow()
         list:SetData(Stats:Collect())
     end

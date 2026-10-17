@@ -378,6 +378,13 @@ local function build(panel)
         end,
     })
 
+    TG.Tutorial:Define("professions", {
+        { target = search, text = L["Search recipes across the guild. Crafters also appear in item tooltips."], point = "bottom" },
+        { target = dropdown, text = L["Narrow the list to one profession."], point = "bottom" },
+        { target = sync, text = L["Your own recipes are recorded when a profession window opens and shared automatically."], point = "bottom" },
+        { target = listFrame, text = L["Recipes grouped by profession with everybody who can craft them."], point = "top" },
+    })
+
     function panel:OnShow()
         local rows = Prof:Rows()
         local idx = Prof:Index()

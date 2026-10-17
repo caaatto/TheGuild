@@ -174,6 +174,14 @@ local function build(panel)
         end,
     })
 
+    TG.Tutorial:Define("overview", {
+        { target = upcomingHeader, text = L["The next raid night, the next event and open bounties appear here as soon as they exist."], point = "bottom" },
+        { target = motdCard, text = L["The message of the day, exactly as the guild master set it."], point = "bottom" },
+        { target = actionsHeader, text = L["Quick actions: call to arms, position sharing and the most used buttons of the other modules."], point = "bottom" },
+        { target = filter, text = L["The activity log keeps logins, joins, level ups, deaths, loot and more. Filter it here or export it as text."], point = "bottom" },
+        { target = export, text = L["Exports the filtered log as plain text for Discord or the forum."], point = "bottom" },
+    })
+
     function panel:OnShow()
         local guild = TG.Roster:GuildName()
         guildName:SetText(guild and (TG.gold .. guild .. "|r") or GRAY_FONT_COLOR:WrapTextInColorCode(L["No guild"]))

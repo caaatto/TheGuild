@@ -5,7 +5,7 @@ local Loot = TG:GetModule("Loot")
 
 local columns = {
     { key = "time", text = L["Date"], width = 110 },
-    { key = "item", text = L["Item"], width = 260 },
+    { key = "item", text = L["Item"], width = 260, stretch = true },
     { key = "winner", text = L["Winner"], width = 150 },
     { key = "response", text = L["Response"], width = 80 },
     { key = "by", text = L["Awarded by"], width = 150 },
@@ -44,6 +44,7 @@ local function build(panel)
 
     local header = UI.Header(panel, columns)
     header:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -36)
+    header:SetPoint("RIGHT", panel, "RIGHT", -28, 0)
 
     local listFrame = CreateFrame("Frame", nil, panel)
     listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -1)
@@ -69,7 +70,8 @@ local function build(panel)
             button.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
             button.cells.item:ClearAllPoints()
             button.cells.item:SetPoint("LEFT", button.icon, "RIGHT", 4, 0)
-            button.cells.item:SetWidth(columns[2].width - 36)
+            button.cells.item.tgManual = true
+            button.cells.item.tgInset = 36
             button:SetScript("OnEnter", function(self)
                 if self.row and self.row.link then
                     GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -82,6 +84,14 @@ local function build(panel)
                 if self.row and self.row.link and IsModifiedClick("CHATLINK") then TG.InsertLink(self.row.link) end
             end)
         end,
+    })
+
+    TG.Tutorial:Define("loot", {
+        { target = search, text = L["Search the shared loot history by item or winner."], point = "bottom" },
+        { target = session, text = L["As group leader or assistant you start a loot session here, or with /tg loot and an item link."], point = "bottom" },
+        { target = reserves, text = L["Paste soft reserves from softres.it, reserved players are marked in every session."], point = "bottom" },
+        { target = trades, text = L["Awarded items in your bags wait here. Open a trade and use the button above the trade window."], point = "bottom" },
+        { target = listFrame, text = L["Every award the guild recorded, with winner, response and date. It never gets deleted."], point = "top" },
     })
 
     function panel:OnShow()

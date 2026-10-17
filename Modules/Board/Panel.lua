@@ -438,6 +438,13 @@ local function build(panel)
         end
     end
 
+    TG.Tutorial:Define("board", {
+        { target = function() return viewTabs:FirstButton() end, text = L["Posts, polls, events with sign ups and bounties with rewards."], point = "bottom" },
+        { target = newPost, text = L["New entries start with the button on the right. Officers pin and delete, old posts fade on their own."], point = "bottom" },
+        { target = listFrame, text = L["Pick an entry on the left to read it."], point = "top" },
+        { target = detail, text = L["Here you read, vote, sign up or claim a bounty. Events export to the Blizzard calendar."], point = "left" },
+    })
+
     function panel:OnShow()
         viewTabs:Select(Board.view)
         newPost:SetShown(Board.view == "posts" and Board:CanPost())

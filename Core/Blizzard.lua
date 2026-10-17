@@ -43,7 +43,7 @@ local function hookCommunities()
     layoutCommunitiesTab()
 end
 
-local MENUS = { "COMMUNITIES_GUILD_MEMBER", "GUILD", "GUILD_OFFLINE", "FRIEND", "CHAT_ROSTER", "PLAYER", "PARTY", "RAID_PLAYER", "RAID", "TARGET", "FOCUS" }
+local MENUS = { "PLAYER", "TARGET", "FOCUS", "FRIEND" }
 
 local function memberFromContext(contextData)
     if not contextData then return nil end

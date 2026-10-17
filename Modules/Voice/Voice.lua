@@ -10,7 +10,7 @@ local Voice = TG:NewModule("Voice", {
     title = L["Voice"],
     desc = L["Proximity voice and voice groups on the Blizzard guild voice channel."],
     order = 26,
-    defaults = { mode = "proximity", nearRange = 30, farRange = 90, announce = true, partyGroups = true, hud = true, hudLock = false },
+    defaults = { mode = "proximity", nearRange = 30, farRange = 90, announce = true, partyGroups = true, hud = true, hudLock = false, hudList = true, hideToasts = true },
     charDefaults = { autoJoin = false },
     settings = {
         { type = "binding", action = "THEGUILD_VOICE_MUTE" },
@@ -28,6 +28,9 @@ local Voice = TG:NewModule("Voice", {
         { key = "hud", type = "boolean", name = L["Show the microphone button"], tooltip = L["A small movable button that shows whether you are muted. Left click mutes, right click opens the menu."], default = true,
           onChange = function(mod) mod:RefreshHud() end },
         { key = "hudLock", type = "boolean", name = L["Lock the microphone button"], default = false },
+        { key = "hudList", type = "boolean", name = L["Show who is in voice below the microphone button"], default = true, onChange = function(mod) mod:RefreshHud() end },
+        { key = "hideToasts", type = "boolean", name = L["Hide the speaking notifications of the game client"], tooltip = L["The client shows a small toast above the chat whenever somebody talks. The microphone button and its list replace it."], default = true,
+          onChange = function(mod) mod:ApplyToasts() end },
     },
 })
 
@@ -487,16 +490,19 @@ end
 
 function Voice:Members()
     local out = {}
-    local channel = self:Channel()
+    local channel = self:ActiveChannel()
     if not channel then return out end
     for _, member in ipairs(channel.members or {}) do
         local isMe = isLocal(member.memberID, channel.channelID)
         local key = isMe and TG.MyName() or resolveMember(member.memberID, channel.channelID)
         local distance = key and not isMe and self:Distance(key) or nil
+        local talking = speaking[member.memberID] or member.isSpeaking == true
+        if isMe and (self:IsMuted() or self:IsSilenced()) then talking = false end
         out[#out + 1] = {
             key = key or "?", memberID = member.memberID, isMe = isMe,
-            speaking = speaking[member.memberID] or member.isSpeaking == true,
+            speaking = talking,
             active = member.isActive ~= false,
+            muted = member.isMutedForAll == true or member.isSilenced == true,
             distance = distance,
             volume = isMe and FULL or applied[member.memberID] or FULL,
             group = key and self:GroupOf(key),
@@ -565,7 +571,24 @@ function Voice:OnStoreChanged(ns, key, value)
     self:Apply(true)
 end
 
+local DEFAULT_TOASTS = { "VoiceActivityNotificationTemplate" }
+
+function Voice:ApplyToasts()
+    local manager = VoiceActivityManager
+    if type(manager) ~= "table" or type(manager.notificationTemplates) ~= "table" then return end
+    local templates = manager.notificationTemplates
+    if self.enabled and self.db.hideToasts then
+        if #templates > 0 then
+            self.savedToasts = { unpack(templates) }
+            wipe(templates)
+        end
+    elseif #templates == 0 then
+        for i, template in ipairs(self.savedToasts or DEFAULT_TOASTS) do templates[i] = template end
+    end
+end
+
 function Voice:OnEnable()
+    self:ApplyToasts()
     self:RegisterEvent("VOICE_CHAT_CHANNEL_JOINED", function(...) trace(self, ...) wipe(resolved) self:Apply(true) TG:Fire("VOICE_UPDATED") end)
     self:RegisterEvent("VOICE_CHAT_CHANNEL_REMOVED", function() wipe(applied) wipe(original) wipe(resolved) TG:Fire("VOICE_UPDATED") end)
     self:RegisterEvent("VOICE_CHAT_CHANNEL_MEMBER_ADDED", function() self:Apply(true) end)
@@ -624,6 +647,7 @@ end
 function Voice:OnDisable()
     self:Restore()
     self:HideHud()
+    self:ApplyToasts()
 end
 
 function Voice:StatusName(code)

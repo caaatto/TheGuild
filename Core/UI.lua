@@ -196,7 +196,14 @@ function UI.Tabs(parent, items, onSelect)
     function tabs:Select(id)
         local index = self.ids[id]
         if index and self.SetTabVisuallySelected then self:SetTabVisuallySelected(index) end
+        if self.MarkDirty then self:MarkDirty() end
     end
+    function tabs:FirstButton()
+        if self.GetTabButton then return self:GetTabButton(1) end
+        return self
+    end
+    if tabs.Layout then tabs:Layout() end
+    tabs:Show()
     return tabs
 end
 
@@ -250,11 +257,34 @@ function UI.Bar(parent, width, height)
     return bar
 end
 
+function UI.PlaceCells(cells, columns)
+    local x = 0
+    for _, col in ipairs(columns) do
+        local fs = cells[col.key]
+        if fs then
+            if fs.tgManual then
+                fs:SetWidth(math.max(20, col.width - (fs.tgInset or 14)))
+            else
+                fs:SetWidth(math.max(20, col.width - 14))
+                fs:ClearAllPoints()
+                fs:SetPoint("LEFT", fs:GetParent(), "LEFT", x + 8, 0)
+            end
+        end
+        x = x + col.width - 2
+    end
+end
+
 function UI.Header(parent, columns, onSort)
     local header = CreateFrame("Frame", nil, parent)
     header:SetHeight(19)
     header.columns = columns
     header.buttons = {}
+    local stretch
+    for _, col in ipairs(columns) do
+        col.base = col.base or col.width
+        if col.stretch then stretch = col end
+        if not stretch or (not stretch.stretch and col.base > stretch.base) then stretch = col end
+    end
     local x = 0
     for i, col in ipairs(columns) do
         local b = CreateFrame("Button", nil, header, "ColumnDisplayButtonTemplate")
@@ -274,6 +304,25 @@ function UI.Header(parent, columns, onSort)
         x = x + col.width - 2
     end
     header:SetWidth(x + 2)
+    function header:Fit()
+        local total = self:GetWidth()
+        if type(total) ~= "number" or total < 100 then return end
+        local fixed = 2
+        for _, col in ipairs(columns) do fixed = fixed + col.base - 2 end
+        stretch.width = math.max(stretch.base, stretch.base + total - fixed)
+        local pos = 0
+        for i, col in ipairs(columns) do
+            if col ~= stretch then col.width = col.base end
+            local b = self.buttons[i]
+            b:ClearAllPoints()
+            b:SetPoint("BOTTOMLEFT", self, "BOTTOMLEFT", pos, 0)
+            b:SetWidth(col.width)
+            pos = pos + col.width - 2
+        end
+        TG:Fire("COLUMNS_CHANGED", columns)
+    end
+    header:SetScript("OnSizeChanged", function(self) self:Fit() end)
+    header.stretch = stretch
     function header:OnClick(index)
         local col = columns[index]
         if onSort and col then onSort(col.key) end
@@ -289,7 +338,7 @@ function UI.Header(parent, columns, onSort)
 end
 
 function UI.Cells(button, columns, template)
-    local cells = {}
+    local cells = { [0] = columns }
     local x = 0
     for _, col in ipairs(columns) do
         local fs = UI.Cell(button, col.width - 14, col.justify, template)
@@ -341,6 +390,7 @@ function UI.List(parent, rowHeight, initRow, opts)
             prepareRow(button, opts)
         end
         initRow(button, data)
+        if button.cells and button.cells[0] then UI.PlaceCells(button.cells, button.cells[0]) end
     end)
     ScrollUtil.InitScrollBoxListWithScrollBar(scrollBox, scrollBar, view)
     if opts.alternate ~= false then
@@ -376,6 +426,33 @@ function UI.ClassIcon(parent, size)
     local tex = parent:CreateTexture(nil, "ARTWORK")
     tex:SetSize(size, size)
     return tex
+end
+
+function UI.Border(parent, r, g, b, thickness)
+    thickness = thickness or 1
+    local frame = CreateFrame("Frame", nil, parent)
+    frame:SetAllPoints(parent)
+    frame:SetFrameLevel(parent:GetFrameLevel() + 2)
+    local function edge()
+        local t = frame:CreateTexture(nil, "OVERLAY")
+        t:SetColorTexture(r, g, b, 1)
+        return t
+    end
+    frame.top, frame.bottom, frame.left, frame.right = edge(), edge(), edge(), edge()
+    frame.top:SetPoint("TOPLEFT")
+    frame.top:SetPoint("TOPRIGHT")
+    frame.top:SetHeight(thickness)
+    frame.bottom:SetPoint("BOTTOMLEFT")
+    frame.bottom:SetPoint("BOTTOMRIGHT")
+    frame.bottom:SetHeight(thickness)
+    frame.left:SetPoint("TOPLEFT")
+    frame.left:SetPoint("BOTTOMLEFT")
+    frame.left:SetWidth(thickness)
+    frame.right:SetPoint("TOPRIGHT")
+    frame.right:SetPoint("BOTTOMRIGHT")
+    frame.right:SetWidth(thickness)
+    frame:Hide()
+    return frame
 end
 
 function UI.StatusIcon(parent, size)

@@ -171,7 +171,7 @@ end
 local columns = {
     { key = "name", text = L["Name"], width = 170 },
     { key = "status", text = L["Status"], width = 90 },
-    { key = "note", text = L["Note"], width = 260 },
+    { key = "note", text = L["Note"], width = 260, stretch = true },
     { key = "by", text = L["Added by"], width = 150 },
 }
 
@@ -213,6 +213,7 @@ local function build(panel)
 
     local header = UI.Header(panel, columns)
     header:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -36)
+    header:SetPoint("RIGHT", panel, "RIGHT", -28, 0)
 
     local listFrame = CreateFrame("Frame", nil, panel)
     listFrame:SetPoint("TOPLEFT", header, "BOTTOMLEFT", -4, -1)
@@ -257,6 +258,14 @@ local function build(panel)
                 if mouse == "RightButton" then menu(self, self.row) end
             end)
         end,
+    })
+
+    TG.Tutorial:Define("recruit", {
+        { target = add, text = L["Officers keep candidates with notes and status here. The unit menu of any player adds them too."], point = "bottom" },
+        { target = editMessage, text = L["Your recruitment text, kept per guild."], point = "bottom" },
+        { target = channels, text = L["The chat channel the recruitment message goes to."], point = "bottom" },
+        { target = post, text = L["Posts your recruitment message into the chosen chat channel."], point = "bottom" },
+        { target = listFrame, text = L["Candidates with status and notes. Whisper and invite with one click, joiners are marked and welcomed."], point = "top" },
     })
 
     function panel:OnShow()

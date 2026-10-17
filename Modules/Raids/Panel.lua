@@ -441,6 +441,14 @@ local function build(panel)
         end,
     })
 
+    TG.Tutorial:Define("raids", {
+        { target = teamDropdown, text = L["Pick a raid team. Teams are shared with the whole guild."], point = "bottom" },
+        { target = newTeam, text = L["Creates a team. Officers manage teams, everyone can see them."], point = "bottom" },
+        { target = sizeDropdown, text = L["Team size 10, 20 or 40. The group builder plans the subgroups accordingly."], point = "bottom" },
+        { target = invite, text = L["Invites every online team member and converts to a raid when needed."], point = "bottom" },
+        { target = function() return viewTabs:FirstButton() end, text = L["Members, the group builder, raid days with calendar export and attendance live in these views."], point = "bottom" },
+    })
+
     function panel:OnShow()
         local canEdit = Raids:CanEdit()
         local teams = Raids:Teams()

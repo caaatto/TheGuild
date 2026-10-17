@@ -46,6 +46,12 @@ local last = { at = 0 }
 local pendingFire = false
 
 local function health()
+    if UnitHealthPercent then
+        local pct = UnitHealthPercent("player", true)
+        if TG.usable(pct) and type(pct) == "number" then
+            return math.max(0, math.min(100, math.floor(pct + 0.5)))
+        end
+    end
     local cur, max = UnitHealth("player"), UnitHealthMax("player")
     if TG.IsSecret(cur, max) or not cur or not max or max == 0 then return -1 end
     return math.floor(cur / max * 100 + 0.5)

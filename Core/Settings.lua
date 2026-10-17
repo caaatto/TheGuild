@@ -96,6 +96,21 @@ function Options:Build()
     local debug = Settings.RegisterAddOnSetting(category, "TG_DEBUG", "debug", TG.db.global, Settings.VarType.Boolean, L["Debug output"], false)
     Settings.CreateCheckbox(category, debug)
 
+    header(layout, L["Tutorials"])
+    local tutorials = Settings.RegisterProxySetting(category, "TG_TUTORIALS", Settings.VarType.Boolean, L["Show tutorials for features you open for the first time"], true,
+        function() return TG.db.global.tutorialsOff ~= true end,
+        function(value)
+            TG.db.global.tutorialsOff = (not value) or nil
+            if not value then TG.Tutorial:Stop() end
+        end)
+    Settings.CreateCheckbox(category, tutorials)
+    if CreateSettingsButtonInitializer and layout then
+        layout:AddInitializer(CreateSettingsButtonInitializer(L["Show tutorials again"], L["Reset"], function()
+            TG.Tutorial:Reset()
+            if TG.Window:IsShown() then TG.Tutorial:Tour() end
+        end, L["Resets every tutorial. They appear again the next time you open the window and its tabs."], true))
+    end
+
     if CreateSettingsButtonInitializer and layout then
         header(layout, L["Profile"])
         layout:AddInitializer(CreateSettingsButtonInitializer(L["Export profile"], L["Export"], function() TG.Profile:OpenExport() end, L["Share your module settings with the guild as text."], true))
