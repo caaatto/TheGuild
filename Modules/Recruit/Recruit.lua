@@ -178,7 +178,7 @@ local columns = {
 local selectedChannel
 
 local function build(panel)
-    local add = UI.Button(panel, L["Add candidate"], 120, function()
+    local add = UI.Button(panel, L["Add candidate"], 150, function()
         StaticPopup_ShowCustomGenericInputBox({
             text = L["Name of the candidate"], acceptText = ACCEPT, cancelText = CANCEL, maxLetters = 50,
             callback = function(text)
@@ -293,4 +293,4 @@ local function build(panel)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Recruit)
 end
 
-TG.Window:RegisterTab("recruit", L["Recruitment"], build, 17, "Interface\\Icons\\Achievement_GuildPerk_FastTrack", "Recruit")
+TG.Window:RegisterTab("recruit", L["Recruitment"], build, 90, "Interface\\Icons\\Achievement_GuildPerk_FastTrack", "Recruit", function() return Recruit:CanManage() end)

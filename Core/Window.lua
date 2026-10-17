@@ -28,6 +28,30 @@ local function updateTabVisuals(index)
     end
 end
 
+local function tabVisible(tab)
+    return tab.visible == nil or tab.visible() == true
+end
+
+local function layoutTabs()
+    local previous
+    for i, tab in ipairs(tabs) do
+        local button = tabButtons[i]
+        if button then
+            local shown = tabVisible(tab)
+            button:SetShown(shown)
+            if shown then
+                button:ClearAllPoints()
+                if sideTabs then
+                    if previous then button:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -2) else button:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, -28) end
+                else
+                    if previous then button:SetPoint("LEFT", previous, "RIGHT", 3, 0) else button:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 11, 2) end
+                end
+                previous = button
+            end
+        end
+    end
+end
+
 local function buildSideTabs()
     for i, tab in ipairs(tabs) do
         local button = CreateFrame("Button", "TheGuildFrameTab" .. i, frame, "LargeSideTabButtonTemplate")
@@ -38,16 +62,12 @@ local function buildSideTabs()
             button.Icon:SetTexture(tab.icon or TG.icon)
             button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         end
-        if i == 1 then
-            button:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, -28)
-        else
-            button:SetPoint("TOPLEFT", tabButtons[i - 1], "BOTTOMLEFT", 0, -2)
-        end
         button:SetScript("OnClick", function(self)
             Window:SelectTab(self:GetID())
         end)
         tabButtons[i] = button
     end
+    layoutTabs()
 end
 
 local function buildBottomTabs()
@@ -55,11 +75,6 @@ local function buildBottomTabs()
         local button = CreateFrame("Button", "TheGuildFrameTab" .. i, frame, "PanelTabButtonTemplate")
         button:SetID(i)
         button:SetText(tab.title)
-        if i == 1 then
-            button:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 11, 2)
-        else
-            button:SetPoint("LEFT", tabButtons[i - 1], "RIGHT", 3, 0)
-        end
         tabButtons[i] = button
         PanelTemplates_TabResize(button, 0)
         button:SetScript("OnClick", function(self)
@@ -68,6 +83,7 @@ local function buildBottomTabs()
         end)
     end
     PanelTemplates_SetNumTabs(frame, #tabs)
+    layoutTabs()
 end
 
 local function build()
@@ -106,6 +122,7 @@ local function build()
     frame:Hide()
     frame:SetScript("OnShow", function()
         PlaySound(SOUNDKIT.IG_CHARACTER_INFO_OPEN)
+        layoutTabs()
         Window:UpdateSubtitle()
         Window:SelectTab(TG.db.global.window.tab or 1)
     end)
@@ -152,13 +169,24 @@ function Window:Tabs()
     return tabs
 end
 
+function Window:IsTabVisible(tab)
+    return tabVisible(tab)
+end
+
+function Window:ApplyTabVisibility()
+    if not frame then return end
+    layoutTabs()
+    local tab = tabs[TG.db.global.window.tab or 1]
+    if tab and not tabVisible(tab) and frame:IsShown() then self:SelectTab(1) end
+end
+
 function Window:CurrentTab()
     local tab = tabs[TG.db.global.window.tab or 1]
     return tab and tab.id
 end
 
-function Window:RegisterTab(id, title, builder, order, icon, module)
-    tabs[#tabs + 1] = { id = id, title = title, builder = builder, order = order or 100, icon = icon, module = module }
+function Window:RegisterTab(id, title, builder, order, icon, module, visible)
+    tabs[#tabs + 1] = { id = id, title = title, builder = builder, order = order or 100, icon = icon, module = module, visible = visible }
     table.sort(tabs, function(a, b)
         if a.order ~= b.order then return a.order < b.order end
         return a.id < b.id
@@ -186,7 +214,7 @@ end
 function Window:SelectTab(index)
     if not frame then build() end
     local tab = tabs[index]
-    if not tab then index, tab = 1, tabs[1] end
+    if not tab or not tabVisible(tab) then index, tab = 1, tabs[1] end
     if not tab then return end
     updateTabVisuals(index)
     TG.db.global.window.tab = index
@@ -225,7 +253,12 @@ function Window:StepTab(delta)
     if not frame or #tabs == 0 then return end
     local current = TG.db.global.window.tab or 1
     PlaySound(SOUNDKIT.IG_CHARACTER_INFO_TAB)
-    self:SelectTab(((current - 1 + delta) % #tabs) + 1)
+    local index = current
+    for _ = 1, #tabs do
+        index = ((index - 1 + delta) % #tabs) + 1
+        if tabVisible(tabs[index]) then break end
+    end
+    self:SelectTab(index)
 end
 
 function Window:FocusSearch()
@@ -240,7 +273,7 @@ end
 
 function Window:ShowTab(id)
     for i, t in ipairs(tabs) do
-        if t.id == id then
+        if t.id == id and tabVisible(t) then
             self:Frame():Show()
             self:SelectTab(i)
             return
@@ -260,6 +293,7 @@ end
 
 function Window:Refresh()
     if not frame or not frame:IsShown() then return end
+    self:ApplyTabVisibility()
     self:UpdateSubtitle()
     local tab = tabs[TG.db.global.window.tab or 1]
     if tab and tab.panel and tab.panel.OnShow then TG.SafeCall(tab.panel.OnShow, tab.panel) end

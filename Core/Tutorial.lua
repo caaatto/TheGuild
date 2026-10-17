@@ -168,7 +168,9 @@ function Tutorial:Tour()
     if not self:Enabled() then return false end
     self:Stop()
     local order = { "hud", "window" }
-    for _, tab in ipairs(TG.Window:Tabs()) do order[#order + 1] = tab.id end
+    for _, tab in ipairs(TG.Window:Tabs()) do
+        if TG.Window:IsTabVisible(tab) then order[#order + 1] = tab.id end
+    end
     tour = { order = order, index = 0 }
     tourNext()
     return true

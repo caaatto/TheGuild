@@ -66,7 +66,7 @@ Mitgliederzahlen und Aktivität, Klassen- und Stufenverteilung, Tode insgesamt n
 
 ![Rekrutierung](Screenshots/recruit.jpg)
 
-Offiziere führen eine gemeinsame Kandidatenliste mit Notizen und Status. Kandidaten lassen sich aus dem Einheitenmenü jedes Spielers hinzufügen. Flüstern und Gildeneinladung sind ein Klick. Beigetretene Kandidaten werden markiert und bekommen eine Begrüßung vom einladenden Offizier. Eine Rekrutierungsnachricht lässt sich in einen gewählten Chatkanal posten.
+Der Tab ist nur für Offiziere und den Gildenmeister sichtbar. Offiziere führen eine gemeinsame Kandidatenliste mit Notizen und Status. Kandidaten lassen sich aus dem Einheitenmenü jedes Spielers hinzufügen. Flüstern und Gildeneinladung sind ein Klick. Beigetretene Kandidaten werden markiert und bekommen eine Begrüßung vom einladenden Offizier. Eine Rekrutierungsnachricht lässt sich in einen gewählten Chatkanal posten.
 
 ### Berufe
 

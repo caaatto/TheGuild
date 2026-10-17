@@ -66,7 +66,7 @@ Member counts and activity, class and level distribution, lifetime deaths by zon
 
 ![Recruitment](Screenshots/recruit.jpg)
 
-Officers keep a shared candidate list with notes and status. Candidates can be added from the unit menu of any player. Whisper and guild invite are one click. Candidates who join are marked and get a welcome whisper from the officer who invited them. A recruitment message can be posted into a chosen chat channel.
+The tab is visible to officers and the guild master only. Officers keep a shared candidate list with notes and status. Candidates can be added from the unit menu of any player. Whisper and guild invite are one click. Candidates who join are marked and get a welcome whisper from the officer who invited them. A recruitment message can be posted into a chosen chat channel.
 
 ### Professions
 

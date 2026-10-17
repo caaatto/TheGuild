@@ -41,7 +41,7 @@ local function build(panel)
     end)
     newTeam:SetPoint("LEFT", teamDropdown, "RIGHT", 8, 0)
 
-    local rename = UI.Button(panel, L["Rename"], 80, function()
+    local rename = UI.Button(panel, L["Rename"], 100, function()
         if not selectedTeam then return end
         StaticPopup_ShowCustomGenericInputBox({
             text = L["Name of the team"], acceptText = ACCEPT, cancelText = CANCEL, maxLetters = 30,
