@@ -54,7 +54,7 @@ Posts, polls, events and bounties kept in the guild store. Everyone posts, offic
 
 ![Voice](Screenshots/voice.jpg)
 
-Proximity voice on the Blizzard guild voice channel. Everyone joins the same channel, the addon turns each member up or down on your client by distance: full volume up to 30 yards, silent beyond 90 (both configurable). Positions come from the Map module. Voice groups work like the groups of the Minecraft proximity mods: create one, others join, group members stay at full volume wherever they are. A group only mode silences everybody else. The tab shows who is in the channel, who speaks, distance and current volume. A small movable microphone button on the screen shows whether you are muted or deafened and how many members you can hear right now. Left click mutes, right click opens a menu with mode, join and leave.
+Proximity voice on the Blizzard guild voice channel. Everyone joins the same channel, the addon turns each member up or down on your client by distance: full volume up to 30 yards, silent beyond 90 (both configurable). Positions come from the Map module. Voice groups work like the groups of the Minecraft proximity mods: create one, others join, group members stay at full volume wherever they are. Three modes: group and proximity, where you still hear and talk to anyone who walks past you without your group hearing them; proximity only, where you keep hearing your group but your group hears you only when you stand close, handy when you run into somebody and do not want to talk over the group; and group only, which silences everybody outside your group. Joining a party or raid turns the guild members in it into a voice group automatically, so voice stays on the guild channel and Blizzard party voice is never needed. The group list has a search for group names and players. The tab shows who is in the channel, who speaks, distance and current volume. A small movable microphone button on the screen shows whether you are muted or deafened and how many members you can hear right now. Left click mutes, right click opens a menu with mode, join and leave.
 
 ### Statistics
 
@@ -87,7 +87,7 @@ The window is built from the client's own templates: a portrait frame with side 
 - Entries in the world map and minimap tracking menus.
 - Role, main and addon version in unit tooltips.
 - Settings under Options > AddOns > TheGuild, profile export and import as text.
-- Key bindings for the window, call to arms and position sharing.
+- Key bindings for the window, call to arms, position sharing and the microphone, also set from the addon options.
 - Keyboard: Escape closes, Ctrl + Tab switches tabs, Ctrl + F jumps to the search field. Gamepad shoulder buttons switch tabs.
 
 ## Commands

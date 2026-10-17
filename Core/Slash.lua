@@ -140,6 +140,9 @@ BINDING_HEADER_THEGUILD = "TheGuild"
 BINDING_NAME_THEGUILD_TOGGLE = L["Toggle window"]
 BINDING_NAME_THEGUILD_CTA = L["Call to Arms"]
 BINDING_NAME_THEGUILD_SHARE = L["Toggle position sharing"]
+BINDING_NAME_THEGUILD_VOICE_MUTE = L["Mute or unmute the microphone"]
+
+TG.BINDINGS = { "THEGUILD_TOGGLE", "THEGUILD_CTA", "THEGUILD_SHARE", "THEGUILD_VOICE_MUTE" }
 
 function TheGuild_ToggleWindow()
     TG.Window:Toggle()
@@ -153,6 +156,15 @@ end
 function TheGuild_ToggleSharing()
     local map = TG:GetModule("Map")
     if map and map.enabled then map:ToggleSharing() end
+end
+
+function TheGuild_ToggleMute()
+    local voice = TG:GetModule("Voice")
+    if voice and voice.enabled and voice.ToggleMute then
+        voice:ToggleMute()
+    else
+        TG:Print(L["The Voice module is disabled."])
+    end
 end
 
 TG:RegisterEvent("ADDON_LOADED", function(_, name)

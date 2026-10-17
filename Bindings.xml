@@ -8,4 +8,7 @@
     <Binding name="THEGUILD_SHARE" category="ADDONS">
         TheGuild_ToggleSharing()
     </Binding>
+    <Binding name="THEGUILD_VOICE_MUTE" category="ADDONS">
+        TheGuild_ToggleMute()
+    </Binding>
 </Bindings>

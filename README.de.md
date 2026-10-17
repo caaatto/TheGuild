@@ -54,7 +54,7 @@ Beiträge, Umfragen, Events und Aufträge im Gildenspeicher. Jeder schreibt, Off
 
 ![Voice](Screenshots/voice.jpg)
 
-Proximity-Voice über den Blizzard-Gildensprachkanal. Alle treten demselben Kanal bei, das Addon regelt auf deinem Client jedes Mitglied nach Entfernung lauter oder leiser: volle Lautstärke bis 30 Meter, stumm ab 90 Metern (beides einstellbar). Die Positionen liefert das Kartenmodul. Voice-Gruppen funktionieren wie die Gruppen der Minecraft-Proximity-Mods: eine erstellen, andere treten bei, Gruppenmitglieder bleiben überall voll hörbar. Der Modus "Nur Gruppe" schaltet alle anderen stumm. Der Tab zeigt, wer im Kanal ist, wer spricht, Entfernung und aktuelle Lautstärke. Ein kleiner verschiebbarer Mikrofonknopf auf dem Bildschirm zeigt, ob du stumm oder auf Ton aus bist und wie viele Mitglieder du gerade hörst. Linksklick schaltet stumm, Rechtsklick öffnet ein Menü mit Modus, Beitreten und Verlassen.
+Proximity-Voice über den Blizzard-Gildensprachkanal. Alle treten demselben Kanal bei, das Addon regelt auf deinem Client jedes Mitglied nach Entfernung lauter oder leiser: volle Lautstärke bis 30 Meter, stumm ab 90 Metern (beides einstellbar). Die Positionen liefert das Kartenmodul. Voice-Gruppen funktionieren wie die Gruppen der Minecraft-Proximity-Mods: eine erstellen, andere treten bei, Gruppenmitglieder bleiben überall voll hörbar. Drei Modi: "Gruppe und Nähe", in dem du mit jedem reden kannst, der an dir vorbeiläuft, ohne dass deine Gruppe ihn hört; "Nur Nähe", in dem du deine Gruppe weiter hörst, die Gruppe dich aber nur in deiner Nähe hört, praktisch wenn du jemanden triffst und die Gruppe nicht vollreden willst; und "Nur Gruppe", der alle außerhalb deiner Gruppe stumm schaltet. Wer einer Gruppe oder einem Schlachtzug beitritt, bildet mit den Gildenmitgliedern darin automatisch eine Voice-Gruppe. Voice bleibt damit auf dem Gildenkanal, Blizzards Gruppenvoice wird nie gebraucht. Die Gruppenliste hat eine Suche nach Gruppenname und Spieler. Der Tab zeigt, wer im Kanal ist, wer spricht, Entfernung und aktuelle Lautstärke. Ein kleiner verschiebbarer Mikrofonknopf auf dem Bildschirm zeigt, ob du stumm oder auf Ton aus bist und wie viele Mitglieder du gerade hörst. Linksklick schaltet stumm, Rechtsklick öffnet ein Menü mit Modus, Beitreten und Verlassen.
 
 ### Statistik
 
@@ -87,7 +87,7 @@ Das Fenster besteht aus den Vorlagen des Clients: Porträtrahmen mit Seitentabs 
 - Einträge in den Verfolgungsmenüs von Weltkarte und Minimap.
 - Rolle, Main und Addonversion in Einheiten-Tooltips.
 - Einstellungen unter Optionen > AddOns > TheGuild, Profilexport und -import als Text.
-- Tastenbelegungen für Fenster, Ruf zu den Waffen und Positionsfreigabe.
+- Tastenbelegungen für Fenster, Ruf zu den Waffen, Positionsfreigabe und Mikrofon, auch direkt in den Addon-Optionen belegbar.
 - Tastatur: Escape schließt, Strg + Tab wechselt den Reiter, Strg + F springt ins Suchfeld. Am Gamepad wechseln die Schultertasten.
 
 ## Befehle

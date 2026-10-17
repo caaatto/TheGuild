@@ -23,17 +23,28 @@ local function build(panel)
 
     local modeDropdown = UI.Dropdown(panel, 150, function(_, root)
         for _, m in ipairs(Voice.MODES) do
-            root:CreateRadio(m[2], function() return Voice.db.mode == m[1] end, function()
-                Voice.db.mode = m[1]
-                Voice:Apply(true)
+            root:CreateRadio(m[2], function() return Voice:Mode() == m[1] end, function()
+                Voice:SetMode(m[1])
                 panel:OnShow()
             end)
         end
     end)
     modeDropdown:SetPoint("LEFT", joinButton, "RIGHT", 8, 0)
 
+    local micButton = UI.IconButton(panel, "Interface\\Common\\VoiceChat-On", function(tt)
+        GameTooltip_SetTitle(tt, L["Microphone button"])
+        GameTooltip_AddNormalLine(tt, L["Shows or hides the small movable microphone button on your screen."])
+    end, function()
+        Voice.db.hud = not Voice.db.hud
+        if Voice.db.hud then Voice:ResetHudIfHidden() end
+        Voice:RefreshHud()
+        panel:OnShow()
+    end)
+    micButton:SetPoint("LEFT", modeDropdown, "RIGHT", 6, 0)
+    micButton.icon:SetSize(18, 18)
+
     local rangeText = UI.Label(panel, "", "GameFontDisableSmall")
-    rangeText:SetPoint("LEFT", modeDropdown, "RIGHT", 12, 0)
+    rangeText:SetPoint("LEFT", micButton, "RIGHT", 10, 0)
     rangeText:SetPoint("RIGHT", panel, "RIGHT", -8, 0)
 
     local membersFrame = CreateFrame("Frame", nil, panel)
@@ -54,7 +65,9 @@ local function build(panel)
         TG.SetClassIcon(button.icon, entry and entry.classFile)
         button.name:SetText(entry and TG.ClassText(entry.classFile, row.key) or row.key)
         button.speaker:SetShown(row.speaking)
-        button.group:SetText(groupName(row.group))
+        local groupText = groupName(row.group)
+        if row.quiet and groupText ~= "" then groupText = groupText .. " " .. GRAY_FONT_COLOR:WrapTextInColorCode(L["nearby only"]) end
+        button.group:SetText(groupText)
         if row.isMe then
             button.distance:SetText("")
         elseif row.distance then
@@ -114,9 +127,27 @@ local function build(panel)
     local leaveGroup = UI.Button(groupsFrame, L["Leave group"], 110, function() Voice:LeaveGroup() panel:OnShow() end)
     leaveGroup:SetPoint("RIGHT", newGroup, "LEFT", -4, 0)
 
+    local groupFilter = ""
+    local search = UI.SearchBox(groupsFrame, 200, function(text)
+        groupFilter = text:lower()
+        if panel:IsShown() then panel:OnShow() end
+    end)
+    search:SetPoint("TOPLEFT", newGroup, "BOTTOMLEFT", 0, -6)
+    search:SetPoint("LEFT", groupsFrame, "LEFT", 8, 0)
+    search:SetPoint("RIGHT", groupsFrame, "RIGHT", -4, 0)
+    panel.search = search
+
+    local function matchesFilter(group)
+        if groupFilter == "" then return true end
+        if group.name:lower():find(groupFilter, 1, true) then return true end
+        for _, key in ipairs(group.members) do
+            if key:lower():find(groupFilter, 1, true) then return true end
+        end
+        return false
+    end
+
     local groupsList = CreateFrame("Frame", nil, groupsFrame)
-    groupsList:SetPoint("TOPLEFT", newGroup, "BOTTOMLEFT", 0, -6)
-    groupsList:SetPoint("TOPLEFT", groupsFrame, "TOPLEFT", 0, -54)
+    groupsList:SetPoint("TOPLEFT", groupsFrame, "TOPLEFT", 0, -84)
     groupsList:SetPoint("BOTTOMRIGHT", groupsFrame, "BOTTOMRIGHT", 0, 0)
     local noGroups = UI.Empty(groupsList, L["No voice groups yet. Create one and let others join."])
 
@@ -130,7 +161,9 @@ local function build(panel)
             local entry = TG.Roster:Get(key)
             names[#names + 1] = entry and TG.ClassText(entry.classFile, TG.ShortName(key)) or TG.ShortName(key)
         end
-        button.meta:SetText(("%s   %s"):format(L["%d in group"]:format(#group.members), table.concat(names, ", ")))
+        local meta = L["%d in group"]:format(#group.members)
+        if group.party then meta = L["Party group"] .. "   " .. meta end
+        button.meta:SetText(("%s   %s"):format(meta, table.concat(names, ", ")))
         button.join:SetShown(not mine)
         button.delete:SetShown(Voice:CanManageGroup(group))
         UI.SetRowSelected(button, mine)
@@ -155,24 +188,30 @@ local function build(panel)
         joinButton:SetText(joined and L["Leave voice"] or L["Join voice"])
         joinButton:SetEnabled(Voice:Available())
         modeDropdown:SetDefaultText(Voice:ModeName())
-        if Voice.db.mode == "proximity" then
-            rangeText:SetText(L["Full volume up to %d yards, silent beyond %d yards. Change it in the settings."]:format(Voice.db.nearRange, Voice.db.farRange))
-        elseif Voice.db.mode == "group" then
+        if Voice:Mode() == "group" then
             rangeText:SetText(L["Only members of your voice group are audible."])
+        elseif Voice:Mode() == "solo" then
+            rangeText:SetText(L["You still hear your voice group. Your group and everyone else hear you only up to %d yards."]:format(Voice.db.nearRange))
         else
-            rangeText:SetText(L["Everyone in the channel is audible, volumes are untouched."])
+            rangeText:SetText(L["Your voice group is always audible, everyone else up to %d yards, silent beyond %d yards."]:format(Voice.db.nearRange, Voice.db.farRange))
         end
         local rows = Voice:Members()
         nobody:SetShown(#rows == 0)
         members:SetData(rows)
-        local list = Voice:Groups()
+        local list = {}
+        for _, group in ipairs(Voice:Groups()) do
+            if matchesFilter(group) then list[#list + 1] = group end
+        end
         noGroups:SetShown(#list == 0)
         groups:SetData(list)
+        Voice:SetMicIcon(micButton.icon)
+        micButton.icon:SetDesaturated(not Voice.db.hud)
+        micButton.icon:SetAlpha(Voice.db.hud and 1 or 0.5)
         leaveGroup:SetShown(Voice:MyGroup() ~= nil)
     end
 
     TG:On("VOICE_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Voice)
-    TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "vgroup" or ns == "vmem") then panel:OnShow() end end, Voice)
+    TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "vgroup" or ns == "vmem" or ns == "vquiet") then panel:OnShow() end end, Voice)
     TG:On("MAP_PEERS", function() if panel:IsShown() then members:Refresh() end end, Voice)
 end
 

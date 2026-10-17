@@ -20,9 +20,30 @@ local function varType(spec)
     return Settings.VarType.Boolean
 end
 
+local function bindingIndex(action)
+    if C_KeyBindings and C_KeyBindings.GetBindingIndex then return C_KeyBindings.GetBindingIndex(action) end
+    for i = 1, GetNumBindings() do
+        if GetBinding(i) == action then return i end
+    end
+    return nil
+end
+
+local function addBinding(layout, action)
+    if not layout or not CreateKeybindingEntryInitializer then return end
+    local index = bindingIndex(action)
+    if not index or index <= 0 then return end
+    local initializer = CreateKeybindingEntryInitializer(index, true)
+    initializer:AddSearchTags(GetBindingName(action))
+    layout:AddInitializer(initializer)
+end
+
 local function addSpec(cat, layout, mod, spec)
     if spec.type == "header" then
         header(layout, spec.name)
+        return
+    end
+    if spec.type == "binding" then
+        addBinding(layout, spec.action)
         return
     end
     local tbl = spec.scope == "char" and mod.cdb or mod.db
@@ -79,6 +100,11 @@ function Options:Build()
         header(layout, L["Profile"])
         layout:AddInitializer(CreateSettingsButtonInitializer(L["Export profile"], L["Export"], function() TG.Profile:OpenExport() end, L["Share your module settings with the guild as text."], true))
         layout:AddInitializer(CreateSettingsButtonInitializer(L["Import profile"], L["Import"], function() TG.Profile:OpenImport() end, L["Paste a profile text. Your module settings are replaced."], true))
+    end
+
+    header(layout, L["Key bindings"])
+    for _, action in ipairs(TG.BINDINGS) do
+        TG.SafeCall(addBinding, layout, action)
     end
 
     header(layout, L["Modules"])

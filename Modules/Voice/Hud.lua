@@ -14,7 +14,16 @@ local ICONS = {
 }
 
 local function setIcon(tex, spec)
-    if UI.HasAtlas(spec[1]) then tex:SetAtlas(spec[1], false) else tex:SetTexture(spec[2]) end
+    if UI.HasAtlas(spec[1]) then
+        tex:SetAtlas(spec[1], false)
+        tex:SetTexCoord(0, 1, 0, 1)
+    else
+        tex:SetTexture(spec[2])
+    end
+end
+
+function Voice:SetMicIcon(tex)
+    setIcon(tex, self:IsSilenced() and ICONS.silenced or self:IsMuted() and ICONS.muted or ICONS.on)
 end
 
 function Voice:IsMuted()
@@ -30,11 +39,6 @@ end
 function Voice:IsSilenced()
     if self.demoChannel then return false end
     return self:LoggedIn() and C_VoiceChat.IsSilenced ~= nil and C_VoiceChat.IsSilenced() == true
-end
-
-function Voice:IsTransmitting()
-    local channel = self:Channel()
-    return channel ~= nil and channel.isTransmitting == true
 end
 
 function Voice:ToggleMute()
@@ -87,9 +91,8 @@ local function hudMenu(owner)
         end
         root:CreateDivider()
         for _, m in ipairs(Voice.MODES) do
-            root:CreateRadio(m[2], function() return Voice.db.mode == m[1] end, function()
-                Voice.db.mode = m[1]
-                Voice:Apply(true)
+            root:CreateRadio(m[2], function() return Voice:Mode() == m[1] end, function()
+                Voice:SetMode(m[1])
             end)
         end
         root:CreateDivider()
@@ -135,6 +138,8 @@ local function build()
     end)
     UI.Tooltip(f, function(tooltip)
         GameTooltip_SetTitle(tooltip, L["Voice"])
+        local active = not Voice:IsJoined() and Voice:ActiveChannel()
+        if active then GameTooltip_AddNormalLine(tooltip, L["In voice channel %s"]:format(tostring(active.name))) end
         if not Voice:IsJoined() then
             GameTooltip_AddNormalLine(tooltip, L["Not in the guild voice channel."])
             GameTooltip_AddInstructionLine(tooltip, L["Click to join the guild voice channel."])
@@ -148,7 +153,7 @@ local function build()
             end
             if Voice:IsDeafened() then GameTooltip_AddErrorLine(tooltip, L["Deafened"]) end
             GameTooltip_AddNormalLine(tooltip, Voice:ModeName())
-            if Voice.db.mode ~= "all" then GameTooltip_AddNormalLine(tooltip, L["%d members audible"]:format(Voice:AudibleCount())) end
+            GameTooltip_AddNormalLine(tooltip, L["%d members audible"]:format(Voice:AudibleCount()))
             local group = Voice:Group(Voice:MyGroup())
             if group then GameTooltip_AddNormalLine(tooltip, L["Voice group: %s"]:format(group.name)) end
             GameTooltip_AddInstructionLine(tooltip, L["Left click mutes or unmutes."])
@@ -164,18 +169,21 @@ function Voice:RefreshHud()
         hud:Hide()
         return
     end
-    local joined = self:IsJoined()
+    local channel = self:ActiveChannel()
+    local joined = channel ~= nil
     local muted, silenced = self:IsMuted(), self:IsSilenced()
-    setIcon(hud.icon, silenced and ICONS.silenced or muted and ICONS.muted or ICONS.on)
+    self:SetMicIcon(hud.icon)
     hud.icon:SetDesaturated(not joined)
     hud.icon:SetAlpha(joined and 1 or 0.5)
-    if joined and not muted and not silenced and self:IsTransmitting() then
+    hud.speaking = not muted and not silenced and self:IsSpeaking()
+    if hud.speaking then
         hud.icon:SetVertexColor(0.3, 1, 0.3)
+        hud.icon:SetAlpha(1)
     else
         hud.icon:SetVertexColor(1, 1, 1)
     end
     hud.deaf:SetShown(joined and self:IsDeafened())
-    hud.count:SetText(joined and self.db.mode ~= "all" and tostring(self:AudibleCount()) or "")
+    hud.count:SetText(self:IsJoined() and tostring(self:AudibleCount()) or "")
     hud:Show()
 end
 
@@ -188,6 +196,13 @@ function Voice:SetupHud()
         self:RegisterEvent(event, function() self:RefreshHud() end)
     end
     self:RefreshHud()
+end
+
+function Voice:ResetHudIfHidden()
+    if not hud then return end
+    local left, bottom, width, height = hud:GetLeft(), hud:GetBottom(), hud:GetWidth(), hud:GetHeight()
+    local screenW, screenH = UIParent:GetWidth(), UIParent:GetHeight()
+    if not left or not bottom or left + width < 0 or bottom + height < 0 or left > screenW or bottom > screenH then self:ResetHud() end
 end
 
 function Voice:ResetHud()

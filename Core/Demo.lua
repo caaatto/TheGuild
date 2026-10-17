@@ -337,6 +337,7 @@ local function tick()
     local voice = TG:GetModule("Voice")
     if voice and voice.enabled and voice.SetSpeaking then
         voice:SetSpeaking(2 + (tickCount % 6), tickCount % 2 == 0)
+        voice:SetSpeaking(1, tickCount % 5 == 1)
     end
     if tickCount % 12 == 0 then
         local e = members[1 + rnd(#members - 1)]
