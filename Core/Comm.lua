@@ -22,6 +22,13 @@ local handlers = {}
 local peers = {}
 local partials = {}
 local held = {}
+local lastHi = {}
+local quota = {}
+local blocked = {}
+local HI_COOLDOWN = 20
+local QUOTA_BYTES = 262144
+local QUOTA_WINDOW = 60
+local BLOCK_TIME = 300
 local seq = math.random(1, 9999)
 local lastHello = 0
 local warnedVersion
@@ -42,7 +49,27 @@ local function encode(payload)
     return "=" .. tostring(payload)
 end
 
-local function decode(body)
+function Comm:Quota(sender, bytes)
+    local now = GetTime()
+    local q = quota[sender]
+    if not q or now - q.at > QUOTA_WINDOW then
+        q = { at = now, bytes = 0 }
+        quota[sender] = q
+    end
+    q.bytes = q.bytes + bytes
+    if q.bytes > QUOTA_BYTES then
+        blocked[sender] = now
+        Comm.stats.ignored = Comm.stats.ignored + 1
+        return false
+    end
+    return true
+end
+
+function Comm:Blocked(sender)
+    return blocked[sender] ~= nil and GetTime() - blocked[sender] < BLOCK_TIME
+end
+
+local function decode(body, sender)
     if type(body) ~= "string" or body == "" then return nil end
     local marker = body:sub(1, 1)
     if marker == "=" then return body:sub(2) end
@@ -51,6 +78,7 @@ local function decode(body)
     if not compressed then return nil end
     local serialized = LibDeflate:DecompressDeflate(compressed)
     if not serialized then return nil end
+    if sender and not Comm:Quota(sender, #serialized) then return nil end
     local ok, data = LibSerialize:Deserialize(serialized)
     if not ok then return nil end
     return data
@@ -186,7 +214,7 @@ local function handleChunk(sender, body, channel)
     if part.count < n then return end
     partials[key] = nil
     Comm.stats.reassembled = Comm.stats.reassembled + 1
-    local data = decode(table.concat(part.pieces))
+    local data = decode(table.concat(part.pieces), sender)
     if data ~= nil then deliver(part.tag, sender, data, channel) end
 end
 
@@ -197,6 +225,7 @@ local function onAddonMessage(_, prefix, text, channel, sender)
     if channel ~= "GUILD" and channel ~= "WHISPER" and not group then return end
     local key = TG.StripRealm(sender)
     if not key then return end
+    if Comm:Blocked(key) then return end
     Comm.stats.received = Comm.stats.received + 1
 
     local proto, tag, body = strsplit(SEP, text, 3)
@@ -205,12 +234,20 @@ local function onAddonMessage(_, prefix, text, channel, sender)
 
     if tag == "HI" then
         local version, guid, pub = strsplit(":", body and body:sub(2) or "")
+        if version and not version:match("^%d+%.%d+%.%d+$") then version = nil end
         if guid and guid ~= "" and guid == TG.MyGUID() then
-            TG.LearnMyName(key)
+            local first = UnitName("player")
+            if TG.usable(first) and first and TG.FirstName(key) == first then TG.LearnMyName(key) end
             return
         end
         if TG.IsMe(key) then return end
         if not senderAllowed(key, channel) then Comm.stats.ignored = Comm.stats.ignored + 1 return end
+        local repeated = lastHi[key] ~= nil and GetTime() - lastHi[key] < HI_COOLDOWN
+        lastHi[key] = GetTime()
+        if repeated then
+            if peers[key] then peers[key].seen = GetTime() end
+            return
+        end
         peers[key] = { version = version, guid = guid, seen = GetTime(), proto = proto }
         if pub and #pub == 64 and TG.Keys then TG.Keys:Learn(key, pub, "direct") end
         if version and TG.VersionNewer(version, TG.version) and warnedVersion ~= version then
@@ -235,7 +272,7 @@ local function onAddonMessage(_, prefix, text, channel, sender)
         handleChunk(key, body or "", channel)
         return
     end
-    local data = decode(body)
+    local data = decode(body, key)
     if data == nil then return end
     deliver(tag, key, data, channel)
 end

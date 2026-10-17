@@ -211,7 +211,10 @@ function Map:OnEnable()
     end
     self:Ticker(TICK, function() self:Publish() end)
     self:Ticker(3600, function() TG:Fire("MAP_HOURLY") end)
+    local lastHelloPublish = 0
     self:On("PEER_HELLO", function()
+        if GetTime() - lastHelloPublish < 60 then return end
+        lastHelloPublish = GetTime()
         TG.After(math.random(1, 4), function() if self.enabled then last.at = 0 self:Publish(true) end end)
     end)
     self:On("MEMBER_OFFLINE", function(e)

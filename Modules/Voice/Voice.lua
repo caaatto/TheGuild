@@ -31,9 +31,9 @@ local Voice = TG:NewModule("Voice", {
     },
 })
 
-TG.Store:DefinePolicy(NS_GROUP, "any", 30 * 86400)
-TG.Store:DefinePolicy(NS_MEMBER, "self", 30 * 86400)
-TG.Store:DefinePolicy(NS_QUIET, "self", 3 * 86400)
+TG.Store:DefinePolicy(NS_GROUP, "any", 30 * 86400, TG.Store.Shape({ n = "string", o = "string", ts = "number", p = "boolean?" }))
+TG.Store:DefinePolicy(NS_MEMBER, "self", 30 * 86400, TG.Store.Text(40))
+TG.Store:DefinePolicy(NS_QUIET, "self", 3 * 86400, function(v) return v == true end)
 
 Voice.MODES = { { "proximity", L["Group and proximity"] }, { "solo", L["Proximity only"] }, { "group", L["Group only"] } }
 

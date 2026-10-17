@@ -6,8 +6,8 @@ local NS_EVENT, NS_SIGNUP = "event", "signup"
 local MAX_TITLE, MAX_DESC = 60, 1000
 local KEEP_PAST = 86400
 
-TG.Store:DefinePolicy(NS_EVENT, "own", 60 * 86400)
-TG.Store:DefinePolicy(NS_SIGNUP, "own", 60 * 86400)
+TG.Store:DefinePolicy(NS_EVENT, "own", 60 * 86400, TG.Store.Shape({ t = "string", b = "string?", y = "number", m = "number", d = "number", h = "number", mi = "number", ts = "number" }))
+TG.Store:DefinePolicy(NS_SIGNUP, "own", 60 * 86400, TG.Store.Number(1, 3))
 
 local function authorOf(key)
     return key:match("^(.-)#") or key

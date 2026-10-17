@@ -21,7 +21,7 @@ local Recruit = TG:NewModule("Recruit", {
     },
 })
 
-TG.Store:DefinePolicy(NS, "officer")
+TG.Store:DefinePolicy(NS, "officer", nil, TG.Store.Shape({ n = "string?", s = "number", t = "number?", by = "string?", i = "string?" }))
 
 Recruit.STATUS = {
     { id = 1, text = L["New"], color = "|cffffffff" },

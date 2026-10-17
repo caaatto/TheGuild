@@ -8,8 +8,8 @@ local NS_HIST = "hist"
 local NS_GONE = "gone"
 local MAX_RANK_CHANGES = 8
 
-TG.Store:DefinePolicy(NS_HIST, "any")
-TG.Store:DefinePolicy(NS_GONE, "any")
+TG.Store:DefinePolicy(NS_HIST, "any", nil, TG.Store.Shape({ f = "number?", r = "table?" }))
+TG.Store:DefinePolicy(NS_GONE, "any", nil, TG.Store.Shape({ t = "number", l = "number?", r = "string?", c = "string?" }))
 
 local function later(fn)
     TG.After(math.random(2, 10), fn)

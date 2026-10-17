@@ -18,6 +18,8 @@ local scanPending = false
 local index
 local indexDirty = true
 local lastRequest = 0
+local lastShare = 0
+local requestedBy = {}
 
 local function guildProfs()
     local g = TG:GuildDB()
@@ -98,6 +100,8 @@ end
 
 function Prof:ShareAll()
     if not self.db.share then return end
+    if GetTime() - lastShare < 300 then return end
+    lastShare = GetTime()
     local cutoff = TG.Now() - 30 * 86400
     for name, char in pairs(self.db.chars) do
         for profID, prof in pairs(char.p or {}) do
@@ -155,6 +159,8 @@ end
 
 function Prof:OnRequest(sender)
     if TG.IsMe(sender) then return end
+    if requestedBy[sender] and GetTime() - requestedBy[sender] < 600 then return end
+    requestedBy[sender] = GetTime()
     TG.After(math.random(2, 10), function() if self.enabled then self:ShareAll() end end)
 end
 

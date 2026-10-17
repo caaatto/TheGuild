@@ -20,8 +20,13 @@ local Raids = TG:NewModule("Raids", {
     },
 })
 
-TG.Store:DefinePolicy(NS_TEAM, "officer")
-TG.Store:DefinePolicy(NS_ATT, "officer")
+TG.Store:DefinePolicy(NS_TEAM, "officer", nil, function(v)
+    return type(v) == "table" and type(v.n) == "string" and type(v.s) == "number" and TG.Store.Names(40)(v.m or {})
+        and (v.g == nil or type(v.g) == "table") and (v.d == nil or type(v.d) == "table")
+end)
+TG.Store:DefinePolicy(NS_ATT, "officer", nil, function(v)
+    return type(v) == "table" and TG.Store.Names(40)(v.m) and (v.z == nil or type(v.z) == "string")
+end)
 
 function Raids:Teams()
     local out = {}

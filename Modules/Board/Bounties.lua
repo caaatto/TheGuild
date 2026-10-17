@@ -6,8 +6,8 @@ local NS_BOUNTY, NS_CLAIM = "bounty", "claim"
 local MAX_TITLE, MAX_REWARD, MAX_DESC = 60, 60, 1000
 local KEEP_DONE = 14 * 86400
 
-TG.Store:DefinePolicy(NS_BOUNTY, "own", 90 * 86400)
-TG.Store:DefinePolicy(NS_CLAIM, "own", 90 * 86400)
+TG.Store:DefinePolicy(NS_BOUNTY, "own", 90 * 86400, TG.Store.Shape({ t = "string", r = "string", b = "string?", ts = "number", d = "boolean?", w = "string?", dt = "number?" }))
+TG.Store:DefinePolicy(NS_CLAIM, "own", 90 * 86400, TG.Store.Number(0))
 
 local function authorOf(key)
     return key:match("^(.-)#") or key

@@ -1053,6 +1053,7 @@ function Crypto.VerifyWith(pub, msg, sig, useComb)
     local A = decodePub(pub)
     if not A then return false end
     local R, S = sub(sig, 1, 32), sub(sig, 33, 64)
+    if biggeq(bigfrombytes(S), L) then return false end
     local h = Crypto.sha256(R .. pub .. msg)
     local P
     if useComb or combs[pub] then

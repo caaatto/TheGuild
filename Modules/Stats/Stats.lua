@@ -20,7 +20,10 @@ local Stats = TG:NewModule("Stats", {
     },
 })
 
-TG.Store:DefinePolicy(NS_STAT, "self")
+TG.Store:DefinePolicy(NS_STAT, "self", nil, function(v)
+    if v == 0 then return true end
+    return TG.Store.Shape({ o = "boolean?", d = "number?", z = "table?", l = "number?", lt = "number?" })(v)
+end)
 
 local function myStat()
     local v = TG.Store:Get(NS_STAT, TG.MyName())

@@ -28,7 +28,10 @@ local Loot = TG:NewModule("Loot", {
     },
 })
 
-TG.Store:DefinePolicy(NS_HISTORY, "officer")
+TG.Store:DefinePolicy(NS_HISTORY, "officer", nil, function(v)
+    return type(v) == "table" and type(v.t) == "number" and type(v.i) == "string" and v.i:find("|Hitem:", 1, true) ~= nil and type(v.w) == "string"
+        and (v.r == nil or type(v.r) == "number") and (v.b == nil or type(v.b) == "string") and (v.z == nil or type(v.z) == "string")
+end)
 
 Loot.RESPONSES = {
     { id = 1, text = L["Need"], color = "|cffff4040" },
@@ -236,7 +239,13 @@ function Loot:OnStart(sender, data, channel)
         if #self.session.items < MAX_ITEMS and type(link) == "string" and link:find("|Hitem:") then
             local item = newItem(link)
             local sr = type(data.sr) == "table" and data.sr[i]
-            if type(sr) == "table" and #sr > 0 then item.reserves = sr end
+            if type(sr) == "table" and #sr > 0 then
+                local clean = {}
+                for j = 1, math.min(#sr, 40) do
+                    if type(sr[j]) == "string" then clean[#clean + 1] = TG.CleanText(sr[j], 30) end
+                end
+                if #clean > 0 then item.reserves = clean end
+            end
             self.session.items[#self.session.items + 1] = item
         end
     end

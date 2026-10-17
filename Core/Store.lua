@@ -21,16 +21,59 @@ local TOMBSTONE_TTL = 45 * 86400
 local FUTURE_SLACK = 600
 local ANSWER_COOLDOWN = 300
 local retention = {}
+local validators = {}
 local answered = {}
+local badRelay = {}
+local BAD_RELAYS = 3
+local BAD_WINDOW = 600
+local MAX_QUEUE = 1000
 local lastSyncRequest = 0
 local pending = {}
 local pendingCount = 0
 
 Store.stats = { verified = 0, rejected = 0, held = 0, unsigned = 0 }
 
-function Store:DefinePolicy(ns, policy, keep)
+function Store:DefinePolicy(ns, policy, keep, validate)
     policies[ns] = policy
     retention[ns] = keep
+    validators[ns] = validate
+end
+
+function Store.Shape(fields)
+    return function(v)
+        if type(v) ~= "table" then return false end
+        for name, spec in pairs(fields) do
+            local optional = spec:sub(-1) == "?"
+            local want = optional and spec:sub(1, -2) or spec
+            local value = v[name]
+            if value == nil then
+                if not optional then return false end
+            elseif type(value) ~= want then
+                return false
+            end
+        end
+        return true
+    end
+end
+
+function Store.Number(min, max)
+    return function(v)
+        return type(v) == "number" and v == v and (min == nil or v >= min) and (max == nil or v <= max)
+    end
+end
+
+function Store.Text(max)
+    return function(v) return type(v) == "string" and #v <= (max or 256) end
+end
+
+function Store.Names(max)
+    return function(v)
+        if type(v) ~= "table" or #v > (max or 50) then return false end
+        for _, name in ipairs(v) do
+            if type(name) ~= "string" then return false end
+        end
+        return true
+    end
 end
 
 function Store:Retention(ns)
@@ -260,6 +303,12 @@ local function settle(entry, ok)
         return
     end
     Store.stats.rejected = Store.stats.rejected + 1
+    local bad = badRelay[entry.sender]
+    if not bad or GetTime() - bad.at > BAD_WINDOW then
+        bad = { n = 0, at = GetTime() }
+        badRelay[entry.sender] = bad
+    end
+    bad.n = bad.n + 1
     if entry.provisional and current == item then
         d[ns][key] = nil
         TG:Fire("STORE_CHANGED", ns, key, nil)
@@ -326,6 +375,7 @@ local function apply(msg, sender, relayed)
     if t > now + FUTURE_SLACK then return false end
     if msg.v ~= nil and expired(msg.ns, t, now) then return false end
     if msg.v ~= nil and #TG.Canon(msg.v) > MAX_VALUE then return false end
+    if msg.v ~= nil and validators[msg.ns] and not validators[msg.ns](msg.v) then return false end
     if msg.v ~= nil and not existing then
         local limit = (policy == "officer" or policy == "gm") and MAX_OFFICER_ITEMS or MAX_AUTHOR_ITEMS
         if authorCount(d, msg.ns, author) >= limit then return false end
@@ -340,6 +390,9 @@ local function apply(msg, sender, relayed)
         return true
     end
     if not relayed then return false end
+    local bad = badRelay[sender]
+    if bad and bad.n >= BAD_RELAYS and GetTime() - bad.at < BAD_WINDOW then return false end
+    if TG.Crypto.Pending() > MAX_QUEUE then return false end
     if not decodeSignature(item.s) then
         Store.stats.unsigned = Store.stats.unsigned + 1
         return false
@@ -473,8 +526,8 @@ TG.Ticker(60, function()
     end
 end)
 
-Store:DefinePolicy("cfg", "gm")
-Store:DefinePolicy("role", "self")
-Store:DefinePolicy("alt", "self")
-Store:DefinePolicy("pin", "any")
-Store:DefinePolicy("death", "any", 14 * 86400)
+Store:DefinePolicy("cfg", "gm", nil, function(v) return type(v) == "number" or (type(v) == "string" and #v <= 100) end)
+Store:DefinePolicy("role", "self", nil, Store.Text(2))
+Store:DefinePolicy("alt", "self", nil, Store.Text(64))
+Store:DefinePolicy("pin", "any", nil, Store.Shape({ m = "number", x = "number", y = "number", l = "string", e = "number" }))
+Store:DefinePolicy("death", "any", 14 * 86400, Store.Shape({ m = "number", x = "number", y = "number", t = "number", z = "string?", l = "number?" }))

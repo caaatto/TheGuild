@@ -6,7 +6,9 @@ local Keys = {}
 TG.Keys = Keys
 
 local NS_CERT = "cert"
-TG.Store:DefinePolicy(NS_CERT, "officer")
+TG.Store:DefinePolicy(NS_CERT, "officer", nil, function(v)
+    return type(v) == "table" and type(v.n) == "string" and type(v.p) == "string" and #v.p == 64 and v.p:find("[^0-9a-f]") == nil
+end)
 
 local function trustTable()
     local g = TG:GuildDB()
@@ -38,6 +40,11 @@ function Keys:Certify(name, hex)
     local key = name .. "#" .. hex:sub(1, 16)
     local existing = TG.Store:Get(NS_CERT, key)
     if type(existing) == "table" and existing.p == hex then return false end
+    local issued = 0
+    for _, item in pairs(TG.Store:Items(NS_CERT)) do
+        if type(item.v) == "table" and item.v.n == name then issued = issued + 1 end
+    end
+    if issued >= 3 then return false end
     return TG.Store:Set(NS_CERT, key, { n = name, p = hex })
 end
 
@@ -51,7 +58,8 @@ function Keys:Learn(name, hex, source)
         local count, oldest, oldestAt = 0, nil, nil
         for k, entry in pairs(t[name]) do
             count = count + 1
-            if not oldestAt or (entry.t or 0) < oldestAt then oldest, oldestAt = k, entry.t or 0 end
+            local weight = (entry.t or 0) + (entry.by == "direct" and 1e12 or 0)
+            if not oldestAt or weight < oldestAt then oldest, oldestAt = k, weight end
         end
         if count >= 3 and oldest then t[name][oldest] = nil end
         t[name][hex] = { by = source, t = TG.Now() }
@@ -69,6 +77,8 @@ local function onCert(ns, key)
     local v = item.v
     if type(v.n) ~= "string" or type(v.p) ~= "string" then return end
     if not TG.Roster:IsOfficer(item.a) and not TG.IsMe(item.a) then return end
+    if TG.Roster:IsGuildMaster(v.n) then return end
+    if TG.Roster:IsOfficer(v.n) and not TG.Roster:IsGuildMaster(item.a) then return end
     Keys:Learn(v.n, v.p, item.a)
 end
 
@@ -82,28 +92,64 @@ function Keys:TrustOwn()
     end
 end
 
-local function entropy()
-    local parts = { GetTime(), time(), TG.MyGUID(), UnitName("player"), GetRealmName and GetRealmName() }
+local SAMPLES = 40
+local clock = debugprofilestop or function() return GetTime() * 1000 end
+
+local function sample(parts)
+    parts[#parts + 1] = clock()
+    parts[#parts + 1] = GetTime()
+    parts[#parts + 1] = collectgarbage("count")
+    parts[#parts + 1] = math.random()
     if GetCursorPosition then
         local x, y = GetCursorPosition()
         parts[#parts + 1] = x
         parts[#parts + 1] = y
     end
     if GetFramerate then parts[#parts + 1] = GetFramerate() end
-    return Crypto.Entropy(parts)
+    if GetNetStats then
+        local a, b, c, d = GetNetStats()
+        parts[#parts + 1] = tostring(a) .. tostring(b) .. tostring(c) .. tostring(d)
+    end
 end
 
-function Keys:Init()
-    local cdb = TG.cdb
-    if type(cdb.keySeed) ~= "string" or #cdb.keySeed ~= 64 or not Crypto.Unhex(cdb.keySeed) then
-        cdb.keySeed = Crypto.Hex(entropy())
+local function collectEntropy(cb)
+    local parts = { time(), TG.MyGUID(), UnitName("player"), GetRealmName and GetRealmName(), GetServerTime and GetServerTime() }
+    if Crypto.sync then
+        for _ = 1, SAMPLES do sample(parts) end
+        cb(Crypto.Entropy(parts))
+        return
     end
+    local frame = CreateFrame("Frame")
+    local n = 0
+    frame:SetScript("OnUpdate", function(self)
+        sample(parts)
+        n = n + 1
+        if n >= SAMPLES then
+            self:SetScript("OnUpdate", nil)
+            cb(Crypto.Entropy(parts))
+        end
+    end)
+end
+
+local function start(cdb)
     Crypto.SetSeed(Crypto.Unhex(cdb.keySeed), function(pub)
         Keys.pubHex = Crypto.Hex(pub)
         Keys:TrustOwn()
         TG:Fire("KEY_READY", Keys.pubHex)
         if IsInGuild() then TG.Comm:SendHello("BULK") end
         TG.After(30, function() TG.Store:ResignOwn() end)
+    end)
+end
+
+function Keys:Init()
+    local cdb = TG.cdb
+    if type(cdb.keySeed) == "string" and #cdb.keySeed == 64 and Crypto.Unhex(cdb.keySeed) then
+        start(cdb)
+        return
+    end
+    collectEntropy(function(seed)
+        cdb.keySeed = Crypto.Hex(seed)
+        start(cdb)
     end)
 end
 

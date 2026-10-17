@@ -17,9 +17,16 @@ local Board = TG:NewModule("Board", {
     },
 })
 
-TG.Store:DefinePolicy(NS_POST, "own", 180 * 86400)
-TG.Store:DefinePolicy(NS_POLL, "officer", 180 * 86400)
-TG.Store:DefinePolicy(NS_VOTE, "own", 180 * 86400)
+TG.Store:DefinePolicy(NS_POST, "own", 180 * 86400, TG.Store.Shape({ t = "string", b = "string?", ts = "number", p = "boolean?" }))
+TG.Store:DefinePolicy(NS_POLL, "officer", 180 * 86400, function(v)
+    if type(v) ~= "table" or type(v.q) ~= "string" or type(v.o) ~= "table" or type(v.ts) ~= "number" then return false end
+    if #v.o < 2 or #v.o > 8 then return false end
+    for _, option in ipairs(v.o) do
+        if type(option) ~= "string" then return false end
+    end
+    return v.c == nil or type(v.c) == "boolean"
+end)
+TG.Store:DefinePolicy(NS_VOTE, "own", 180 * 86400, TG.Store.Number(1, 8))
 
 local function authorOf(key)
     return key:match("^(.-)#") or key
