@@ -3,7 +3,7 @@
 ## Notes: Modular guild addon for World of Warcraft: Forever. Live guild map, roster, call to arms, professions, greeter and more.
 ## Notes-deDE: Modulares Gildenaddon für World of Warcraft: Forever. Gildenkarte, Mitglieder, Ruf zu den Waffen, Berufe, Begrüßung und mehr.
 ## Author: Catto
-## Version: 0.2.4
+## Version: 0.2.5
 ## IconTexture: Interface\Icons\INV_Shirt_GuildTabard_01
 ## SavedVariables: TheGuildDB
 ## SavedVariablesPerCharacter: TheGuildCharDB
