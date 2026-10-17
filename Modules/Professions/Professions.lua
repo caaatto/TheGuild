@@ -115,7 +115,8 @@ function Prof:OnSnapshot(sender, data)
     local name = TG.StripRealm(data.c)
     if not name or (name ~= sender and not TG.Roster:Get(name) and not TG.Roster:Get(sender)) then return end
     local char = g[name] or { p = {} }
-    char.c = data.k or char.c
+    if TG.Count(char.p) >= 12 and not char.p[data.id] then return end
+    char.c = type(data.k) == "string" and #data.k <= 16 and data.k or char.c
     char.owner = sender
     local prof = char.p[data.id] or {}
     if (prof.t or 0) > (tonumber(data.t) or 0) then return end
@@ -123,16 +124,33 @@ function Prof:OnSnapshot(sender, data)
     for id, v in pairs(data.r) do
         id = tonumber(id)
         if id and (type(v) == "number" or type(v) == "string") then
-            recipes[id] = v
+            recipes[id] = type(v) == "string" and TG.CleanText(v, 60) or v
             count = count + 1
             if count > 2000 then break end
         end
     end
-    prof.n, prof.s, prof.m, prof.r, prof.t = data.n, tonumber(data.s), tonumber(data.m), recipes, tonumber(data.t) or TG.Now()
+    prof.n, prof.s, prof.m, prof.r, prof.t = TG.CleanText(data.n, 40), tonumber(data.s), tonumber(data.m), recipes, tonumber(data.t) or TG.Now()
     char.p[data.id] = prof
     g[name] = char
     indexDirty = true
     TG:Fire("PROFESSIONS_UPDATED")
+end
+
+function Prof:Forget()
+    local g = guildProfs()
+    if not g or not TG.Roster:IsReady() then return 0 end
+    local removed = 0
+    for name in pairs(g) do
+        if not TG.IsMe(name) and not TG.Roster:Get(name) then
+            g[name] = nil
+            removed = removed + 1
+        end
+    end
+    if removed > 0 then
+        indexDirty = true
+        TG:Fire("PROFESSIONS_UPDATED")
+    end
+    return removed
 end
 
 function Prof:OnRequest(sender)
@@ -386,6 +404,8 @@ end
 function Prof:OnEnable()
     self:RegisterComm("PS", "OnSnapshot")
     self:RegisterComm("PQ", "OnRequest")
+    self:On("ROSTER_READY", function() TG.After(30, function() if self.enabled then self:Forget() end end) end)
+    self:On("MEMBER_LEFT", function() TG.After(120, function() if self.enabled then self:Forget() end end) end)
     local function queueScan()
         if scanPending then return end
         scanPending = true
@@ -411,4 +431,4 @@ function Prof:OnEnable()
     end
 end
 
-TG.Window:RegisterTab("professions", L["Professions"], build, 30, "Interface\\Icons\\Trade_Engineering")
+TG.Window:RegisterTab("professions", L["Professions"], build, 30, "Interface\\Icons\\Trade_Engineering", "Professions")

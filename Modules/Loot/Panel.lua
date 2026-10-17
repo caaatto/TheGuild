@@ -104,4 +104,4 @@ local function build(panel)
     TG:On("LOOT_TRADES", function() if panel:IsShown() then panel:OnShow() end end, Loot)
 end
 
-TG.Window:RegisterTab("loot", L["Loot"], build, 27, "Interface\\Icons\\INV_Misc_Bag_10")
+TG.Window:RegisterTab("loot", L["Loot"], build, 27, "Interface\\Icons\\INV_Misc_Bag_10", "Loot")

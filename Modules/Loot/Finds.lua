@@ -92,11 +92,18 @@ function Finds:OnChatLoot(_, msg)
     send(link, 1)
 end
 
+local lastFind = {}
+local FIND_COOLDOWN = 10
+
 function Finds:OnFind(sender, data)
-    if type(data) ~= "table" or type(data.i) ~= "string" or not data.i:find("|Hitem:") then return end
-    local quality = tonumber(data.q) or qualityOf(data.i)
+    if type(data) ~= "table" or type(data.i) ~= "string" then return end
+    local link = data.i:match("|c%x+|Hitem:[%d:%-]*|h%[.-%]|h|r")
+    if not link then return end
+    if lastFind[sender] and GetTime() - lastFind[sender] < FIND_COOLDOWN then return end
+    lastFind[sender] = GetTime()
+    local quality = tonumber(data.q) or qualityOf(link)
     if quality < Loot.db.findQuality then return end
-    self:Record(sender, { link = data.i, quality = quality, bind = tonumber(data.b) or 0, zone = TG.usable(data.z) and data.z or "" })
+    self:Record(sender, { link = link, quality = quality, bind = tonumber(data.b) or 0, zone = TG.CleanText(TG.usable(data.z) and data.z or "", 60) })
 end
 
 function Finds:Enable(owner)

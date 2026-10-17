@@ -143,8 +143,12 @@ local function build()
     frame:Hide()
 end
 
-function Window:RegisterTab(id, title, builder, order, icon)
-    tabs[#tabs + 1] = { id = id, title = title, builder = builder, order = order or 100, icon = icon }
+function Window:Tabs()
+    return tabs
+end
+
+function Window:RegisterTab(id, title, builder, order, icon, module)
+    tabs[#tabs + 1] = { id = id, title = title, builder = builder, order = order or 100, icon = icon, module = module }
     table.sort(tabs, function(a, b)
         if a.order ~= b.order then return a.order < b.order end
         return a.id < b.id
@@ -179,7 +183,22 @@ function Window:SelectTab(index)
     frame.tabTitle:SetText(tab.title)
     for _, t in ipairs(tabs) do
         if t.panel then t.panel:Hide() end
+        if t.disabledPanel then t.disabledPanel:Hide() end
     end
+    local mod = tab.module and TG:GetModule(tab.module)
+    if mod and not mod.enabled then
+        if not tab.disabledPanel then
+            local panel = CreateFrame("Frame", nil, frame.Inset)
+            panel:SetPoint("TOPLEFT", frame.Inset, "TOPLEFT", 3, -3)
+            panel:SetPoint("BOTTOMRIGHT", frame.Inset, "BOTTOMRIGHT", -3, 3)
+            UI.Empty(panel, L["This module is disabled. Turn it on in the settings."])
+            tab.disabledPanel = panel
+        end
+        tab.disabledPanel:Show()
+        TG:Fire("WINDOW_TAB", tab.id)
+        return
+    end
+    if tab.disabledPanel then tab.disabledPanel:Hide() end
     if not tab.panel then
         local panel = CreateFrame("Frame", nil, frame.Inset)
         panel:SetPoint("TOPLEFT", frame.Inset, "TOPLEFT", 3, -3)
@@ -237,4 +256,16 @@ function Window:Refresh()
 end
 
 TG:On("ROSTER_UPDATED", function() Window:Refresh() end)
+TG:On("MODULE_DISABLED", function(name)
+    for _, tab in ipairs(tabs) do
+        if tab.module == name and tab.panel then
+            tab.panel:Hide()
+            tab.panel = nil
+        end
+    end
+    if frame and frame:IsShown() then Window:SelectTab(TG.db.global.window.tab or 1) end
+end)
+TG:On("MODULE_ENABLED", function()
+    if frame and frame:IsShown() then Window:SelectTab(TG.db.global.window.tab or 1) end
+end)
 TG:On("PEER_HELLO", function() if Window:IsShown() then Window:UpdateSubtitle() end end)

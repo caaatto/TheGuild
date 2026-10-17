@@ -6,7 +6,7 @@ TG.name = ADDON
 TG.title = "TheGuild"
 TG.version = C_AddOns.GetAddOnMetadata(ADDON, "Version") or "dev"
 TG.prefix = "TheGuild"
-TG.protocol = 1
+TG.protocol = 2
 TG.color = "|cff4dc3ff"
 TG.gold = "|cffffd100"
 

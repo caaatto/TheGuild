@@ -2,6 +2,9 @@ local TG = TheGuild
 local L = TG.L
 
 local COOLDOWN = 900
+local RECEIVE_COOLDOWN = 60
+local MAX_TEXT = 100
+local lastFrom = {}
 
 local Alerts = TG:NewModule("Alerts", {
     title = L["Call to Arms"],
@@ -82,6 +85,10 @@ end
 
 function Alerts:OnCTA(sender, data)
     if type(data) ~= "table" or not data.m then return end
+    if lastFrom[sender] and GetTime() - lastFrom[sender] < RECEIVE_COOLDOWN then return end
+    lastFrom[sender] = GetTime()
+    data.t = TG.CleanText(data.t, MAX_TEXT)
+    data.z = TG.CleanText(data.z, 60)
     local entry = TG.Roster:Get(sender)
     local name = entry and TG.ClassText(entry.classFile, sender) or sender
     local zone = TG.usable(data.z) and data.z ~= "" and data.z or TG.MapName(data.m)

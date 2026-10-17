@@ -219,4 +219,4 @@ local function build(panel)
     TG:RegisterEvent("GUILD_MOTD", function() if panel:IsShown() then panel:OnShow() end end, Dashboard)
 end
 
-TG.Window:RegisterTab("overview", L["Overview"], build, 1, TG.icon)
+TG.Window:RegisterTab("overview", L["Overview"], build, 1, TG.icon, "Dashboard")

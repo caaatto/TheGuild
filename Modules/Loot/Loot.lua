@@ -71,6 +71,26 @@ local function itemLinks(items)
     return out
 end
 
+local function fromGroup(channel)
+    return channel == "RAID" or channel == "PARTY"
+end
+
+local function fromLeader(sender, channel)
+    if not fromGroup(channel) then return false end
+    local unit = TG.UnitForName(sender)
+    if not unit then return false end
+    local lead = UnitIsGroupLeader(unit)
+    if TG.usable(lead) and lead then return true end
+    local assist = UnitIsGroupAssistant and UnitIsGroupAssistant(unit)
+    return TG.usable(assist) and assist == true
+end
+
+local function winnerGUID(name)
+    local unit = TG.UnitForName(name)
+    local guid = unit and UnitGUID(unit)
+    return TG.usable(guid) and guid or nil
+end
+
 function Loot:Start(links)
     if not IsInGroup() then
         TG:Print(L["You need to be in a group."])
@@ -178,7 +198,7 @@ function Loot:Award(index, winner, responseID)
         SendChatMessage((L["%s awarded to %s (%s)"]:format(item.link, TG.ShortName(winner), plain)):sub(1, 255), chatType)
     end
     self:RecordHistory(item, winner, responseID, TG.MyName())
-    self.Trade:Add(item.link, winner)
+    self.Trade:Add(item.link, winner, winnerGUID(winner))
     TG:Fire("LOOT_SESSION")
 end
 
@@ -202,8 +222,9 @@ function Loot:History()
     return out
 end
 
-function Loot:OnStart(sender, data)
+function Loot:OnStart(sender, data, channel)
     if type(data) ~= "table" or type(data.id) ~= "string" or type(data.items) ~= "table" then return end
+    if not fromLeader(sender, channel) then return end
     if self.session and self.session.id ~= data.id then
         if self:IsOwner() then return end
         self.session = nil
@@ -226,7 +247,8 @@ function Loot:OnStart(sender, data)
     PlaySound(SOUNDKIT.IG_MAINMENU_OPEN)
 end
 
-function Loot:OnResponse(sender, data)
+function Loot:OnResponse(sender, data, channel)
+    if not fromGroup(channel) then return end
     local s = self.session
     if not s or type(data) ~= "table" or data.id ~= s.id then return end
     local index, r = tonumber(data.n), tonumber(data.r)
@@ -234,7 +256,8 @@ function Loot:OnResponse(sender, data)
     self:RecordResponse(sender, index, r, tonumber(data.roll) or 0)
 end
 
-function Loot:OnVote(sender, data)
+function Loot:OnVote(sender, data, channel)
+    if not fromGroup(channel) then return end
     local s = self.session
     if not s or type(data) ~= "table" or data.id ~= s.id then return end
     local item = s.items[tonumber(data.n) or 0]
@@ -245,9 +268,9 @@ function Loot:OnVote(sender, data)
     TG:Fire("LOOT_SESSION")
 end
 
-function Loot:OnAward(sender, data)
+function Loot:OnAward(sender, data, channel)
     local s = self.session
-    if not s or type(data) ~= "table" or data.id ~= s.id or sender ~= s.owner then return end
+    if not fromGroup(channel) or not s or type(data) ~= "table" or data.id ~= s.id or sender ~= s.owner then return end
     local item = s.items[tonumber(data.n) or 0]
     if not item or type(data.w) ~= "string" then return end
     item.awarded = { winner = data.w, r = tonumber(data.r), t = TG.Now() }
@@ -255,14 +278,14 @@ function Loot:OnAward(sender, data)
         TG:Print(L["You received %s"], item.link)
         PlaySound(SOUNDKIT.LOOT_WINDOW_COIN_SOUND)
     else
-        self.Trade:Add(item.link, data.w)
+        self.Trade:Add(item.link, data.w, winnerGUID(data.w))
     end
     TG:Fire("LOOT_SESSION")
 end
 
-function Loot:OnEnd(sender, data)
+function Loot:OnEnd(sender, data, channel)
     local s = self.session
-    if not s or type(data) ~= "table" or data.id ~= s.id or sender ~= s.owner then return end
+    if not fromGroup(channel) or not s or type(data) ~= "table" or data.id ~= s.id or sender ~= s.owner then return end
     self.session = nil
     TG:Fire("LOOT_SESSION")
     self.Frames:Hide()
@@ -296,6 +319,7 @@ function Loot:OnInitialize()
         if not self.enabled then return end
         rest = TG.Trim(rest)
         if rest == "end" then self:End() return end
+        if rest == "trade" then self.Trade:Place() return end
         if rest == "sr" then self.Reserves:OpenImport() return end
         if rest == "" then
             if self.session then self.Frames:ShowOwner() self.Frames:ShowResponse() else TG:Print(L["Usage: /tg loot <item link>, /tg loot end, /tg loot sr"]) end

@@ -215,4 +215,4 @@ local function build(panel)
     TG:On("MAP_PEERS", function() if panel:IsShown() then members:Refresh() end end, Voice)
 end
 
-TG.Window:RegisterTab("voice", L["Voice"], build, 26, "Interface\\Icons\\INV_Misc_Horn_01")
+TG.Window:RegisterTab("voice", L["Voice"], build, 26, "Interface\\Icons\\INV_Misc_Horn_01", "Voice")

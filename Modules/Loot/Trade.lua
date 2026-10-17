@@ -28,13 +28,13 @@ function Trade:Pending()
     return Loot.cdb.trades
 end
 
-function Trade:Add(link, winner)
+function Trade:Add(link, winner, guid)
     local id = itemID(link)
     if not id or TG.IsMe(winner) or not findInBags(id) then return false end
     for _, t in ipairs(Loot.cdb.trades) do
         if t.link == link and t.to == winner then return false end
     end
-    Loot.cdb.trades[#Loot.cdb.trades + 1] = { link = link, id = id, to = winner, t = TG.Now() }
+    Loot.cdb.trades[#Loot.cdb.trades + 1] = { link = link, id = id, to = winner, guid = guid, t = TG.Now() }
     TG:Print(L["%s is in your bags and belongs to %s. Open a trade to hand it over."], link, TG.ShortName(winner))
     TG:Fire("LOOT_TRADES")
     return true
@@ -66,19 +66,50 @@ local function sameFirstName(a, b)
     return fa ~= nil and fb ~= nil and fa:lower() == fb:lower()
 end
 
-function Trade:ForPartner(partner)
+function Trade:ForPartner(partner, guid)
     local out = {}
     for _, t in ipairs(Loot.cdb.trades) do
-        if sameFirstName(t.to, partner) then out[#out + 1] = t end
+        if t.guid and guid then
+            if t.guid == guid then out[#out + 1] = t end
+        elseif sameFirstName(t.to, partner) then
+            out[#out + 1] = t
+        end
     end
     return out
 end
 
+local function partnerList()
+    local partner = UnitName("NPC")
+    if not TG.usable(partner) or not partner then return {} end
+    local guid = UnitGUID and UnitGUID("NPC")
+    return Trade:ForPartner(partner, TG.usable(guid) and guid or nil)
+end
+
+local tradeButton
+
+local function tradeButtonFrame()
+    if tradeButton or not TradeFrame then return tradeButton end
+    tradeButton = CreateFrame("Button", "TheGuildTradeButton", TradeFrame, "UIPanelButtonTemplate")
+    tradeButton:SetSize(200, 22)
+    tradeButton:SetPoint("BOTTOM", TradeFrame, "TOP", 0, 2)
+    tradeButton:SetScript("OnClick", function() Trade:Place() end)
+    return tradeButton
+end
+
 function Trade:OnTradeShow()
     wipe(placed)
-    local partner = UnitName("NPC")
-    if not TG.usable(partner) or not partner then return end
-    local list = self:ForPartner(partner)
+    local list = partnerList()
+    local button = tradeButtonFrame()
+    if button then
+        button:SetText(L["Place %d awarded items"]:format(#list))
+        button:SetShown(#list > 0)
+    end
+    if #list > 0 then TG:Print(L["%d awarded items for this player are in your bags. Use the button above the trade window or /tg loot trade."], #list) end
+end
+
+function Trade:Place()
+    wipe(placed)
+    local list = partnerList()
     if #list == 0 or not (C_Container and C_Container.PickupContainerItem and ClickTradeButton) then return end
     local slot = 1
     for _, trade in ipairs(list) do
@@ -96,6 +127,7 @@ function Trade:OnTradeShow()
         end
     end
     if #placed > 0 then TG:Print(L["%d items placed in the trade window."], #placed) end
+    if tradeButton then tradeButton:Hide() end
 end
 
 function Trade:OnTradeComplete()
@@ -125,6 +157,7 @@ end
 function Trade:Enable(mod)
     mod:RegisterEvent("TRADE_SHOW", function() self:OnTradeShow() end)
     mod:RegisterEvent("TRADE_CLOSED", function()
+        if tradeButton then tradeButton:Hide() end
         TG.After(1, function()
             wipe(placed)
             if #Loot.cdb.trades > 0 then self:Prune() end

@@ -294,4 +294,4 @@ function Roster:OnEnable()
     end)
 end
 
-TG.Window:RegisterTab("members", L["Members"], build, 10, "Interface\\Icons\\INV_Misc_GroupLooking")
+TG.Window:RegisterTab("members", L["Members"], build, 10, "Interface\\Icons\\INV_Misc_GroupLooking", "Roster")

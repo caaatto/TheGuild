@@ -42,7 +42,7 @@ Named raid teams of 10, 20 or 40 kept in the guild store, one click invites for 
 
 ![Loot](Screenshots/loot.jpg)
 
-Loot sessions for the group leader or an assistant. Items come from the loot window or `/tg loot <link>`, everyone answers with Need, Greed, Offspec or Pass, officers vote, the owner awards. Awards are announced in group chat and kept in a shared history. Items your class cannot use are passed automatically. Soft reserves from softres.it can be pasted, reserved players are marked and the list travels with the session. The trade helper remembers awarded items in your bags, fills the trade window and clears the entry once the item changed hands. Rare or better finds are reported to the guild with their bind type.
+Loot sessions for the group leader or an assistant. Items come from the loot window or `/tg loot <link>`, everyone answers with Need, Greed, Offspec or Pass, officers vote, the owner awards. Awards are announced in group chat and kept in a shared history. Items your class cannot use are passed automatically. Soft reserves from softres.it can be pasted, reserved players are marked and the list travels with the session. The trade helper remembers awarded items in your bags, offers a button above the trade window that places them for the right player and clears the entry once the item changed hands. Rare or better finds are reported to the guild with their bind type.
 
 ### Board
 
@@ -60,7 +60,7 @@ Proximity voice on the Blizzard guild voice channel. Everyone joins the same cha
 
 ![Statistics](Screenshots/stats.jpg)
 
-Member counts and activity, class and level distribution, deaths by zone, level ups, loot awards and raid attendance with small rankings that each character can opt out of. Everything exports as text.
+Member counts and activity, class and level distribution, lifetime deaths by zone and member, lifetime level ups, loot awards and raid attendance with small rankings that each character can opt out of. Every character counts its own deaths and level ups and shares the totals, so the numbers survive logouts and grow for the life of the guild. Everything exports as text.
 
 ### Recruitment
 
@@ -103,6 +103,7 @@ The window is built from the client's own templates: a portrait frame with side 
 /tg export       settings as text, /tg import pastes them
 /tg demo         fill everything with made up data for a presentation
 /tg memory       memory of the addon and size of the shared data
+/tg keys         signing key status, /tg keys bench measures signing speed
 /tg sync         request a data sync
 /tg version      versions of guild members running the addon
 /tg help         list of commands
@@ -111,6 +112,8 @@ The window is built from the client's own templates: a portrait frame with side 
 ## How the data travels
 
 Everything the guild shares travels over the guild addon channel between members who run the addon. Shared data uses a revision per entry, the highest revision wins, every client checks the author's rank before accepting a change, and clients compare their data on login and every 20 minutes. Positions go out only while moving, sync answers are staggered and limited to three responders, bulk data is compressed and chunked.
+
+Trust rules: every entry is signed by its author with a key pair that each character generates on first login (Ed25519 style, implemented in Lua, a few milliseconds per signature). An entry is accepted directly from its author, whose name the client guarantees, or from anyone else when the signature matches a trusted key of the author. Keys become trusted when a member is seen directly, or through a certificate that an officer or the guild master signs automatically for keys they have seen. Entries relayed by an officer show up at once and are verified in the background, entries relayed by members wait for the verification, guild master settings always wait. Verification runs in small slices per frame, so it never stalls the game. Revisions must be whole numbers without huge jumps, unknown data types are dropped, and texts from other players lose texture and link escapes. Every entry is capped at 8 KB, every member at 300 entries per data type (officers 2000), and short lived data types have a retention period after which entries are dropped on every client: posts and polls 180 days, events and sign ups 60 days, bounties 90 days, death markers 14 days, voice groups 30 days. Statistics are never deleted: loot history, raid attendance, former members and the lifetime counters each member keeps for deaths and level ups stay forever. Deleted entries leave a marker for 45 days so late clients cannot revive them, then the marker goes too. A sync request is answered at most once per five minutes per requester. Guilds you have not visited for 90 days are removed from the saved data. Loot sessions are accepted only from the group leader or an assistant on the party or raid channel, items go into the trade window only after a click, and the trade partner is matched by GUID. Calls to arms are limited to one per sender per minute. Bulk messages are capped at 40 chunks with two open transfers per sender.
 
 - `TheGuildDB` (account wide): settings, guild data per guild, event log.
 - `TheGuildCharDB` (per character): position sharing, cooldowns.
@@ -141,6 +144,10 @@ Everything the guild shares travels over the guild addon channel between members
 Every push to `main` runs the release workflow in `.github/workflows/release.yml`, except pushes that only touch the READMEs, the roadmap or the screenshots. The workflow checks that every file listed in a TOC exists, raises the patch version in all TOCs, commits that as `release vX.Y.Z` with a tag, builds the zip in the release layout (`TheGuild` plus one `TheGuild_<Module>` folder per module, the layout `.pkgmeta` describes), publishes a GitHub release with the zip and uploads the file to CurseForge. The CurseForge game version is derived from `## Interface` and looked up in the Forever version type, so a client patch only needs the TOCs bumped.
 
 Minor and major versions are raised by hand in all TOCs before the push, the workflow only counts the last digit. The workflow can also be started by hand from the Actions tab with a release type of release, beta or alpha. It needs the repository variable `CF_PROJECT_ID` and the secret `CF_API_TOKEN`.
+
+## License
+
+TheGuild uses its own license, see `LICENSE`. You may use it freely, read and fork the source, change it for yourself or your guild and send contributions. Publishing the addon or a modified version somewhere else is not allowed while the project is maintained, meaning a release within the last twelve months, or within one month after a game update left the addon completely non functional. After that, modified versions may be published under a different name with a link back here. Selling the addon or a fork, or putting it behind a paywall, is never allowed. The bundled libraries keep their own licenses.
 
 ## Libraries
 

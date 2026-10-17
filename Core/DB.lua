@@ -26,6 +26,21 @@ function TG:InitDB()
     TG.cdb = TheGuildCharDB
 end
 
+local STALE_GUILD = 90 * 86400
+
+function TG:ForgetStaleGuilds()
+    local current = TG:GuildKey()
+    local now = TG.Now()
+    local removed = 0
+    for key, g in pairs(TG.db.guilds) do
+        if key ~= current and (g.seen or 0) < now - STALE_GUILD then
+            TG.db.guilds[key] = nil
+            removed = removed + 1
+        end
+    end
+    return removed
+end
+
 function TG:GuildKey()
     if TG.Demo and TG.Demo.active then return "Demo@Demo" end
     local name = GetGuildInfo("player")

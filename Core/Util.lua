@@ -62,6 +62,50 @@ function TG.Trim(s)
     return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", ""))
 end
 
+function TG.CleanText(s, max)
+    s = tostring(s or "")
+    s = s:gsub("|T.-|t", ""):gsub("|A.-|a", ""):gsub("|K.-|k", "")
+    s = s:gsub("|H(.-)|h(.-)|h", function(link, text)
+        if link:sub(1, 5) == "item:" then return "|H" .. link .. "|h" .. text .. "|h" end
+        return text
+    end)
+    if max and #s > max then s = s:sub(1, max) end
+    return s
+end
+
+function TG.CleanValue(v, depth)
+    depth = depth or 0
+    if type(v) == "string" then return TG.CleanText(v) end
+    if type(v) ~= "table" or depth > 4 then return v end
+    local out, n = {}, 0
+    for key, inner in pairs(v) do
+        n = n + 1
+        if n > 500 then break end
+        out[key] = TG.CleanValue(inner, depth + 1)
+    end
+    return out
+end
+
+function TG.Canon(v)
+    local t = type(v)
+    if t == "nil" then return "~" end
+    if t == "boolean" then return v and "T" or "F" end
+    if t == "number" then return "n" .. string.format("%.17g", v) end
+    if t == "string" then return "s" .. #v .. ":" .. v end
+    if t ~= "table" then return "?" end
+    local keys = {}
+    for k in pairs(v) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b)
+        local ta, tb = type(a), type(b)
+        if ta ~= tb then return ta < tb end
+        return a < b
+    end)
+    local out = { "{" }
+    for _, k in ipairs(keys) do out[#out + 1] = TG.Canon(k) .. "=" .. TG.Canon(v[k]) end
+    out[#out + 1] = "}"
+    return table.concat(out)
+end
+
 function TG.Count(t)
     local n = 0
     if t then for _ in pairs(t) do n = n + 1 end end

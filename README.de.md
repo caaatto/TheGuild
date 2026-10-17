@@ -42,7 +42,7 @@ Benannte Raidteams mit 10, 20 oder 40 Plätzen im Gildenspeicher, Einladungen al
 
 ![Loot](Screenshots/loot.jpg)
 
-Lootsitzungen für Gruppenleiter oder Assistenten. Gegenstände kommen aus dem Lootfenster oder per `/tg loot <Link>`, alle antworten mit Bedarf, Gier, Zweitspezialisierung oder Passen, Offiziere stimmen ab, der Leiter vergibt. Vergaben werden im Gruppenchat gemeldet und in einer gemeinsamen Historie gespeichert. Gegenstände, die deine Klasse nicht nutzen kann, werden automatisch gepasst. Soft Reserves von softres.it lassen sich einfügen, reservierte Spieler werden markiert und die Liste reist mit der Sitzung. Der Handelshelfer merkt sich vergebene Gegenstände in deinen Taschen, füllt das Handelsfenster und löscht den Eintrag, sobald der Gegenstand den Besitzer gewechselt hat. Seltene oder bessere Funde werden der Gilde mit Bindungsart gemeldet.
+Lootsitzungen für Gruppenleiter oder Assistenten. Gegenstände kommen aus dem Lootfenster oder per `/tg loot <Link>`, alle antworten mit Bedarf, Gier, Zweitspezialisierung oder Passen, Offiziere stimmen ab, der Leiter vergibt. Vergaben werden im Gruppenchat gemeldet und in einer gemeinsamen Historie gespeichert. Gegenstände, die deine Klasse nicht nutzen kann, werden automatisch gepasst. Soft Reserves von softres.it lassen sich einfügen, reservierte Spieler werden markiert und die Liste reist mit der Sitzung. Der Handelshelfer merkt sich vergebene Gegenstände in deinen Taschen, bietet über dem Handelsfenster einen Knopf, der sie für den richtigen Spieler einlegt, und löscht den Eintrag, sobald der Gegenstand den Besitzer gewechselt hat. Seltene oder bessere Funde werden der Gilde mit Bindungsart gemeldet.
 
 ### Board
 
@@ -60,7 +60,7 @@ Proximity-Voice über den Blizzard-Gildensprachkanal. Alle treten demselben Kana
 
 ![Statistik](Screenshots/stats.jpg)
 
-Mitgliederzahlen und Aktivität, Klassen- und Stufenverteilung, Tode nach Zone, Stufenaufstiege, Lootvergaben und Raidanwesenheit mit kleinen Ranglisten, aus denen sich jeder Charakter austragen kann. Alles lässt sich als Text exportieren.
+Mitgliederzahlen und Aktivität, Klassen- und Stufenverteilung, Tode insgesamt nach Zone und Mitglied, Stufenaufstiege insgesamt, Lootvergaben und Raid-Anwesenheit mit kleinen Ranglisten, aus denen sich jeder Charakter austragen kann. Jeder Charakter zählt seine eigenen Tode und Stufenaufstiege und teilt die Summen, deshalb überleben die Zahlen jeden Logout und wachsen über die Lebenszeit der Gilde. Alles lässt sich als Text exportieren.
 
 ### Rekrutierung
 
@@ -103,6 +103,7 @@ Das Fenster besteht aus den Vorlagen des Clients: Porträtrahmen mit Seitentabs 
 /tg export       Einstellungen als Text, /tg import fügt sie ein
 /tg demo         alles mit erfundenen Daten für eine Vorführung füllen
 /tg memory       Speicher des Addons und Größe der geteilten Daten
+/tg keys         Status des Signaturschlüssels, /tg keys bench misst die Signaturgeschwindigkeit
 /tg sync         Datenabgleich anfordern
 /tg version      Versionen der Gildenmitglieder mit Addon
 /tg help         Befehlsliste
@@ -111,6 +112,8 @@ Das Fenster besteht aus den Vorlagen des Clients: Porträtrahmen mit Seitentabs 
 ## Wie die Daten reisen
 
 Alles, was die Gilde teilt, läuft über den Gilden-Addonkanal zwischen Mitgliedern mit Addon. Jeder Eintrag trägt eine Revision, die höchste gewinnt, jeder Client prüft den Rang des Autors, bevor er eine Änderung annimmt, und die Clients gleichen ihre Daten beim Login und alle 20 Minuten ab. Positionen gehen nur beim Bewegen raus, Sync-Antworten sind gestaffelt und auf drei Antwortende begrenzt, große Daten werden komprimiert und gestückelt.
+
+Vertrauensregeln: jeder Eintrag ist von seinem Autor signiert, mit einem Schlüsselpaar, das jeder Charakter beim ersten Login erzeugt (Ed25519-Verfahren in Lua, wenige Millisekunden pro Signatur). Ein Eintrag wird direkt vom Autor angenommen, dessen Namen der Client garantiert, oder von jedem anderen, wenn die Signatur zu einem vertrauten Schlüssel des Autors passt. Schlüssel werden vertraut, wenn man ein Mitglied direkt gesehen hat, oder über ein Zertifikat, das Offiziere und Gildenmeister automatisch für gesehene Schlüssel signieren. Von Offizieren weitergereichte Einträge erscheinen sofort und werden im Hintergrund geprüft, von Mitgliedern weitergereichte warten auf die Prüfung, Gildenmeister-Einstellungen warten immer. Die Prüfung läuft in kleinen Häppchen pro Frame und bremst das Spiel nie. Revisionen müssen ganze Zahlen ohne riesige Sprünge sein, unbekannte Datentypen werden verworfen, Texte anderer Spieler verlieren Textur- und Link-Escapes. Jeder Eintrag ist auf 8 KB begrenzt, jedes Mitglied auf 300 Einträge pro Datentyp (Offiziere 2000), und kurzlebige Datentypen haben eine Aufbewahrungsfrist, nach der Einträge auf jedem Client verfallen: Beiträge und Umfragen 180 Tage, Events und Anmeldungen 60 Tage, Aufträge 90 Tage, Todesmarkierungen 14 Tage, Voice-Gruppen 30 Tage. Statistiken werden nie gelöscht: Loot-Historie, Raid-Anwesenheit, ehemalige Mitglieder und die Lebenszeitzähler, die jedes Mitglied für Tode und Stufenaufstiege führt, bleiben für immer. Gelöschte Einträge hinterlassen 45 Tage eine Markierung, damit späte Clients sie nicht wiederbeleben, dann verschwindet auch die. Eine Sync-Anfrage wird höchstens alle fünf Minuten pro Anfragendem beantwortet. Gilden, die du 90 Tage nicht besucht hast, werden aus den gespeicherten Daten entfernt. Lootsitzungen gelten nur vom Gruppenleiter oder Assistenten über den Gruppen- oder Schlachtzugskanal, Gegenstände landen erst nach einem Klick im Handelsfenster, der Handelspartner wird über die GUID erkannt. Rufe zu den Waffen sind auf einen pro Absender und Minute begrenzt. Große Nachrichten sind auf 40 Teile mit zwei offenen Übertragungen pro Absender begrenzt.
 
 - `TheGuildDB` (accountweit): Einstellungen, Gildendaten pro Gilde, Ereignislog.
 - `TheGuildCharDB` (pro Charakter): Positionsfreigabe, Abklingzeiten.
@@ -132,6 +135,10 @@ Die Nachrichtentypen stehen in der englischen README.
 Jeder Push auf `main` startet den Workflow in `.github/workflows/release.yml`, außer Pushes, die nur READMEs, Roadmap oder Screenshots ändern. Der Workflow prüft, dass jede in einer TOC gelistete Datei existiert, zählt die Patch-Version in allen TOCs hoch, committet das als `release vX.Y.Z` mit Tag, baut das Zip im Release-Layout (`TheGuild` plus je ein Ordner `TheGuild_<Modul>`, wie in `.pkgmeta` beschrieben), veröffentlicht ein GitHub-Release mit dem Zip und lädt die Datei zu CurseForge hoch. Die CurseForge-Spielversion wird aus `## Interface` abgeleitet und im Forever-Versionstyp gesucht, ein Client-Patch braucht also nur neue TOC-Werte.
 
 Minor- und Major-Versionen werden vor dem Push von Hand in allen TOCs gesetzt, der Workflow zählt nur die letzte Stelle. Über den Reiter Actions lässt er sich auch von Hand mit Typ release, beta oder alpha starten. Er braucht die Repository-Variable `CF_PROJECT_ID` und das Secret `CF_API_TOKEN`.
+
+## Lizenz
+
+TheGuild hat eine eigene Lizenz, siehe `LICENSE`. Du darfst es frei nutzen, den Quellcode lesen und forken, es für dich oder deine Gilde ändern und Beiträge einreichen. Das Addon oder eine geänderte Fassung woanders zu veröffentlichen ist nicht erlaubt, solange das Projekt gepflegt wird, also in den letzten zwölf Monaten einen Release hatte, oder innerhalb eines Monats, nachdem ein Spielupdate das Addon komplett funktionsunfähig gemacht hat. Danach dürfen geänderte Fassungen unter anderem Namen mit Verweis hierher veröffentlicht werden. Das Addon oder einen Fork zu verkaufen oder hinter eine Bezahlschranke zu stellen ist nie erlaubt. Die mitgelieferten Bibliotheken behalten ihre eigenen Lizenzen.
 
 ## Bibliotheken
 

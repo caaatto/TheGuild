@@ -97,4 +97,4 @@ local function build(panel)
     TG:On("MAP_SHARING", function() if panel:IsShown() then share:SetChecked(Map.cdb.share) end end, Map)
 end
 
-TG.Window:RegisterTab("map", L["Map"], build, 20, "Interface\\Icons\\INV_Misc_Map_01")
+TG.Window:RegisterTab("map", L["Map"], build, 20, "Interface\\Icons\\INV_Misc_Map_01", "Map")

@@ -11,7 +11,8 @@ local LibDeflate = LibStub("LibDeflate")
 local SEP = "\001"
 local MAX_MESSAGE = 255
 local CHUNK_SIZE = 200
-local MAX_CHUNKS = 300
+local MAX_CHUNKS = 40
+local MAX_PARTIALS = 2
 local CHUNK_TTL = 120
 local HELLO_INTERVAL = 300
 local PEER_TTL = 900
@@ -153,9 +154,9 @@ local function deliver(tag, sender, data, channel)
     end
 end
 
-local function senderAllowed(key)
+local function senderAllowed(key, channel)
     if TG.Roster:Get(key) then return true end
-    if not TG.Roster:IsReady() then return true end
+    if not TG.Roster:IsReady() then return channel == "GUILD" end
     if peers[key] and GetTime() - peers[key].seen < ROSTER_GRACE then return true end
     return false
 end
@@ -169,6 +170,11 @@ local function handleChunk(sender, body, channel)
     local key = sender .. "#" .. id
     local part = partials[key]
     if not part then
+        local open = 0
+        for k in pairs(partials) do
+            if k:sub(1, #sender + 1) == sender .. "#" then open = open + 1 end
+        end
+        if open >= MAX_PARTIALS then return end
         part = { n = n, tag = tag, pieces = {}, count = 0, at = GetTime() }
         partials[key] = part
     end
@@ -198,14 +204,15 @@ local function onAddonMessage(_, prefix, text, channel, sender)
     if not proto or not tag then return end
 
     if tag == "HI" then
-        local version, guid = strsplit(":", body and body:sub(2) or "")
+        local version, guid, pub = strsplit(":", body and body:sub(2) or "")
         if guid and guid ~= "" and guid == TG.MyGUID() then
             TG.LearnMyName(key)
             return
         end
         if TG.IsMe(key) then return end
-        if not senderAllowed(key) then Comm.stats.ignored = Comm.stats.ignored + 1 return end
+        if not senderAllowed(key, channel) then Comm.stats.ignored = Comm.stats.ignored + 1 return end
         peers[key] = { version = version, guid = guid, seen = GetTime(), proto = proto }
+        if pub and #pub == 64 and TG.Keys then TG.Keys:Learn(key, pub, "direct") end
         if version and TG.VersionNewer(version, TG.version) and warnedVersion ~= version then
             warnedVersion = version
             TG:Print(L["A newer version (%s) is available."], version)
@@ -218,7 +225,7 @@ local function onAddonMessage(_, prefix, text, channel, sender)
     if proto ~= TG.protocol then Comm.stats.ignored = Comm.stats.ignored + 1 return end
     if group then
         if not TG.InGroup(key) then Comm.stats.ignored = Comm.stats.ignored + 1 return end
-    elseif not senderAllowed(key) then
+    elseif not senderAllowed(key, channel) then
         Comm.stats.ignored = Comm.stats.ignored + 1
         return
     end
@@ -236,7 +243,7 @@ end
 function Comm:SendHello(prio)
     if not IsInGuild() then return end
     lastHello = GetTime()
-    self:Send("HI", ("%s:%s"):format(TG.version, TG.MyGUID() or "-"), prio or "ALERT")
+    self:Send("HI", ("%s:%s:%s"):format(TG.version, TG.MyGUID() or "-", TG.Keys and TG.Keys.pubHex or ""), prio or "ALERT")
 end
 
 function Comm:SeedPeer(key, version, guid)

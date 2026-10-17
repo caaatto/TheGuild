@@ -21,7 +21,7 @@ local Map = TG:NewModule("Map", {
         lowHealth = false, lowHealthThreshold = 30,
         deaths = true, pins = true, minLevel = 1,
     },
-    charDefaults = { share = true, hideStealth = true },
+    charDefaults = { share = true, hideStealth = true, shareNotice = false },
     settings = {
         { key = "share", scope = "char", type = "boolean", name = L["Share my position"], tooltip = L["Send your position to guild members running TheGuild."], default = true,
           onChange = function(mod) mod:Publish(true) end },
@@ -104,9 +104,11 @@ end
 
 function Map:OnPosition(sender, data)
     if type(data) ~= "string" then return end
+    if #data > 64 then return end
     local mapID, x, y, hp, flags = strsplit(":", data)
     mapID = tonumber(mapID)
-    flags = flags or ""
+    if mapID and (mapID < 1 or mapID > 100000 or mapID ~= math.floor(mapID)) then mapID = nil end
+    flags = (flags or ""):sub(1, 8)
     if not mapID or flags:find("x", 1, true) then
         if self.peers[sender] then
             self.peers[sender] = nil
@@ -119,7 +121,7 @@ function Map:OnPosition(sender, data)
     x, y = TG.Clamp(x, 0, 1) or 0, TG.Clamp(y, 0, 1) or 0
     local peer = self.peers[sender] or {}
     peer.mapID, peer.x, peer.y = mapID, x, y
-    peer.hp = tonumber(hp) or -1
+    peer.hp = TG.Clamp(tonumber(hp) or -1, -1, 100)
     peer.flags = flags
     peer.ts = GetTime()
     peer.hasPos = x > 0 and y > 0 and not flags:find("[is]")
@@ -203,6 +205,10 @@ end
 
 function Map:OnEnable()
     self:RegisterComm("P", "OnPosition")
+    if self.cdb.share and not self.cdb.shareNotice then
+        self.cdb.shareNotice = true
+        TG.After(15, function() if self.enabled then TG:Print(L["Your position is shared with guild members who run TheGuild. /tg share turns it off."]) end end)
+    end
     self:Ticker(TICK, function() self:Publish() end)
     self:Ticker(3600, function() TG:Fire("MAP_HOURLY") end)
     self:On("PEER_HELLO", function()

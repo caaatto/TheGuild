@@ -226,6 +226,9 @@ local function seedStore(me, mapID)
     for i = 2, 4 do Store:Seed("vmem", members[i].key, "gdemo1", members[i].key, t - 3000) end
     for i = 5, 6 do Store:Seed("vmem", members[i].key, "gdemo2", members[i].key, t - 1500) end
     Store:Seed("stat", members[10].key, 0, members[10].key, t - 5 * DAY)
+    for i = 2, 9 do
+        Store:Seed("stat", members[i].key, { d = 3 + i * 2, l = 10 + i, lt = members[i].level, z = { [L["Westfall"]] = i, [L["Duskwood"]] = 2 + i, [L["Stranglethorn Vale"]] = 1 } }, members[i].key, t - DAY)
+    end
 end
 
 local function seedProfessions()

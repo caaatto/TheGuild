@@ -496,4 +496,4 @@ local function build(panel)
     TG:RegisterEvent("CALENDAR_UPDATE_EVENT_LIST", function() if panel:IsShown() and Raids.view == "schedule" then panel:OnShow() end end, Raids)
 end
 
-TG.Window:RegisterTab("raids", L["Raids"], build, 25, "Interface\\Icons\\INV_Misc_Head_Dragon_01")
+TG.Window:RegisterTab("raids", L["Raids"], build, 25, "Interface\\Icons\\INV_Misc_Head_Dragon_01", "Raids")

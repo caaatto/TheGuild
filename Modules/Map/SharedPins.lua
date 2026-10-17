@@ -102,7 +102,7 @@ function SP:Cleanup()
     local me = TG.MyName()
     for key, item in pairs(TG.Store:Items(NS)) do
         local v = item.v
-        if type(v) == "table" and v.e and v.e > 0 and v.e < now and item.a == me then
+        if type(v) == "table" and v.e and v.e > 0 and v.e < now and (item.a == me or (TG.Roster:AmOfficer() and v.e < now - 86400)) then
             TG.Store:Delete(NS, key)
         end
     end

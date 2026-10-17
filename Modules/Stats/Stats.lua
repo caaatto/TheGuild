@@ -5,6 +5,7 @@ local UI = TG.UI
 local NS_STAT = "stat"
 local DAY = 86400
 local TOP = 5
+local MAX_ZONES = 30
 
 local Stats = TG:NewModule("Stats", {
     title = L["Statistics"],
@@ -21,17 +22,52 @@ local Stats = TG:NewModule("Stats", {
 
 TG.Store:DefinePolicy(NS_STAT, "self")
 
+local function myStat()
+    local v = TG.Store:Get(NS_STAT, TG.MyName())
+    if type(v) == "table" then return TG.CopyTable(v) end
+    if v == 0 then return { o = true } end
+    return {}
+end
+
+function Stats:Save(v)
+    if not TG.InGuild() or not TG.MyName() then return false end
+    return TG.Store:Set(NS_STAT, TG.MyName(), v)
+end
+
 function Stats:PublishOptIn(value)
-    if not TG.InGuild() then return end
-    if value then
-        TG.Store:Delete(NS_STAT, TG.MyName())
-    else
-        TG.Store:Set(NS_STAT, TG.MyName(), 0)
-    end
+    local v = myStat()
+    v.o = (not value) or nil
+    self:Save(v)
 end
 
 function Stats:Listed(name)
-    return TG.Store:Get(NS_STAT, name) ~= 0
+    local v = TG.Store:Get(NS_STAT, name)
+    if v == 0 then return false end
+    return not (type(v) == "table" and v.o == true)
+end
+
+function Stats:RecordDeath(zone)
+    local v = myStat()
+    v.d = (v.d or 0) + 1
+    v.z = v.z or {}
+    zone = TG.CleanText(TG.plain(zone, ""), 40)
+    if zone == "" then zone = "?" end
+    v.z[zone] = (v.z[zone] or 0) + 1
+    while TG.Count(v.z) > MAX_ZONES do
+        local minKey, minN
+        for k, n in pairs(v.z) do
+            if not minN or n < minN then minKey, minN = k, n end
+        end
+        v.z[minKey] = nil
+    end
+    self:Save(v)
+end
+
+function Stats:RecordLevel(level)
+    local v = myStat()
+    v.l = (v.l or 0) + 1
+    v.lt = tonumber(level)
+    self:Save(v)
 end
 
 local function header(rows, text)
@@ -108,36 +144,46 @@ function Stats:Collect()
     local names = { "1 - 19", "20 - 39", "40 - 59", "60" }
     for i, n in ipairs(brackets) do bar(rows, names[i], n, total) end
 
-    local deaths, byZone, byMember = 0, {}, {}
-    for key, item in pairs(TG.Store:Items("death")) do
+    local deaths, byZone, byMember, lifetimeUps, upsBy = 0, {}, {}, 0, {}
+    for key, item in pairs(TG.Store:Items(NS_STAT)) do
         local v = item.v
         if type(v) == "table" then
-            deaths = deaths + 1
-            local zone = (v.z and v.z ~= "") and v.z or L["Unknown"]
-            byZone[zone] = (byZone[zone] or 0) + 1
-            local who = key:match("^(.-)#") or item.a or "?"
-            byMember[who] = (byMember[who] or 0) + 1
+            if v.d then
+                deaths = deaths + v.d
+                byMember[key] = v.d
+            end
+            for zone, n in pairs(v.z or {}) do
+                local label = zone == "?" and L["Unknown"] or zone
+                byZone[label] = (byZone[label] or 0) + n
+            end
+            if v.l then
+                lifetimeUps = lifetimeUps + v.l
+                upsBy[key] = v.l
+            end
         end
+    end
+    local recentDeaths = 0
+    for _, item in pairs(TG.Store:Items("death")) do
+        if type(item.v) == "table" then recentDeaths = recentDeaths + 1 end
     end
     local listed = function(key) return self:Listed(key) end
     header(rows, L["Deaths"])
-    text(rows, L["Deaths shared"], deaths)
+    text(rows, L["Deaths recorded"], deaths)
+    text(rows, L["Deaths shared"], recentDeaths)
     for _, z in ipairs(top(byZone, TOP)) do bar(rows, z.key, z.n, deaths) end
     if self.db.rankings then
         for _, m in ipairs(top(byMember, TOP, listed)) do bar(rows, memberLabel(m.key), m.n, deaths, { r = 0.8, g = 0.3, b = 0.3 }) end
     end
 
-    local ups, upsBy = 0, {}
+    local ups = 0
     for _, item in ipairs(TG.Log:Entries(function(i) return i.kind == "level" end)) do
-        if (item.t or 0) >= now - 30 * DAY then
-            ups = ups + 1
-            upsBy[item.name] = (upsBy[item.name] or 0) + 1
-        end
+        if (item.t or 0) >= now - 30 * DAY then ups = ups + 1 end
     end
-    header(rows, L["Level ups in the last 30 days"])
-    text(rows, L["Level ups"], ups)
+    header(rows, L["Level ups"])
+    text(rows, L["Level ups recorded"], lifetimeUps)
+    text(rows, L["Level ups in the last 30 days"], ups)
     if self.db.rankings then
-        for _, m in ipairs(top(upsBy, TOP, listed)) do bar(rows, memberLabel(m.key), m.n, ups) end
+        for _, m in ipairs(top(upsBy, TOP, listed)) do bar(rows, memberLabel(m.key), m.n, lifetimeUps) end
     end
 
     local awards, byWinner = 0, {}
@@ -192,6 +238,8 @@ function Stats:Export()
 end
 
 function Stats:OnEnable()
+    self:RegisterEvent("PLAYER_DEAD", function() self:RecordDeath(GetZoneText()) end)
+    self:RegisterEvent("PLAYER_LEVEL_UP", function(_, level) self:RecordLevel(level) end)
     if not self.cdb.optIn then
         TG.After(30, function() if self.enabled then self:PublishOptIn(false) end end)
     end
@@ -259,4 +307,4 @@ local function build(panel)
     TG:On("STORE_CHANGED", function() if panel:IsShown() then panel:OnShow() end end, Stats)
 end
 
-TG.Window:RegisterTab("stats", L["Statistics"], build, 15, "Interface\\Icons\\INV_Misc_Book_09")
+TG.Window:RegisterTab("stats", L["Statistics"], build, 15, "Interface\\Icons\\INV_Misc_Book_09", "Stats")

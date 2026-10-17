@@ -1,0 +1,23 @@
+TheGuild License
+
+Copyright (c) 2026 Catto
+
+This license covers the TheGuild addon and its modules (the "Software"), except the third party libraries in the Libs folder, which keep their own licenses.
+
+1. Use. You may install and use the Software for World of Warcraft without restriction.
+
+2. Study and modification. You may read the source, fork the repository, and change the Software for your own use, for your guild, or to prepare contributions to the official project.
+
+3. Contributions. Changes you submit to the official repository are licensed to the project under this license, with you named as a contributor in the commit history.
+
+4. No redistribution while maintained. As long as the Software is maintained, you may not publish, upload or otherwise distribute the Software or a modified version of it, in whole or in substantial part, on CurseForge, Wago, GitHub releases, Discord servers, guild websites or anywhere else. Sharing a fork on GitHub for development and pull requests is allowed. Packaging it for players is not. The Software is maintained while the official repository at https://github.com/caaatto/TheGuild or the official CurseForge project has received a release within the previous twelve months. If the current official release is completely non functional, meaning the addon fails to load or none of its features work with the current game client, this period shrinks to one month counted from the game client update that broke it.
+
+5. Redistribution after abandonment. Once the Software is no longer maintained under section 4, you may distribute modified versions under a different name, provided you keep this copyright notice, state that your version is derived from TheGuild and link to the official repository.
+
+6. Non commercial. The Software, any fork and any modified version may never be sold, licensed for a fee, placed behind a paywall, donation gate or subscription, bundled with a paid product or service, or otherwise used to earn money. Platform reward programs that pay per download or per view, such as CurseForge Rewards or Wago, count as earning money. A fork published after abandonment under section 5 may only be uploaded to such a platform with the rewards for that project switched off. This applies at all times. Voluntary donations to the official project and the author's own earnings from official releases are not affected.
+
+7. Official releases. Only the official repository and the official CurseForge project are authorized distribution channels of the Software.
+
+8. No warranty. The Software is provided "as is", without warranty of any kind, express or implied. The author is not liable for any damages arising from its use.
+
+9. Termination. Any breach of section 4 or 6 ends your rights under sections 2, 3 and 5 until the breach is remedied.

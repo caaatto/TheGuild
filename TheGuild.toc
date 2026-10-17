@@ -28,6 +28,7 @@ Locales\deDE.lua
 
 Core\Init.lua
 Core\Util.lua
+Core\Crypto.lua
 Core\Calendar.lua
 Core\Events.lua
 Core\DB.lua
@@ -43,6 +44,7 @@ Core\Settings.lua
 Core\Minimap.lua
 Core\Blizzard.lua
 Core\Slash.lua
+Core\Keys.lua
 Core\Profile.lua
 Core\Demo.lua
 

@@ -456,4 +456,4 @@ local function build(panel)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Board)
 end
 
-TG.Window:RegisterTab("board", L["Board"], build, 28, "Interface\\Icons\\INV_Misc_Note_02")
+TG.Window:RegisterTab("board", L["Board"], build, 28, "Interface\\Icons\\INV_Misc_Note_02", "Board")

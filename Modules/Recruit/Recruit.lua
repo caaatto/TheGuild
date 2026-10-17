@@ -284,4 +284,4 @@ local function build(panel)
     TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Recruit)
 end
 
-TG.Window:RegisterTab("recruit", L["Recruitment"], build, 17, "Interface\\Icons\\Achievement_GuildPerk_FastTrack")
+TG.Window:RegisterTab("recruit", L["Recruitment"], build, 17, "Interface\\Icons\\Achievement_GuildPerk_FastTrack", "Recruit")

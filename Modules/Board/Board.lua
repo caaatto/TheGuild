@@ -17,9 +17,9 @@ local Board = TG:NewModule("Board", {
     },
 })
 
-TG.Store:DefinePolicy(NS_POST, "own")
-TG.Store:DefinePolicy(NS_POLL, "officer")
-TG.Store:DefinePolicy(NS_VOTE, "own")
+TG.Store:DefinePolicy(NS_POST, "own", 180 * 86400)
+TG.Store:DefinePolicy(NS_POLL, "officer", 180 * 86400)
+TG.Store:DefinePolicy(NS_VOTE, "own", 180 * 86400)
 
 local function authorOf(key)
     return key:match("^(.-)#") or key
