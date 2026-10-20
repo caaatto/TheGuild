@@ -319,7 +319,6 @@ function UI.Header(parent, columns, onSort)
             b:SetWidth(col.width)
             pos = pos + col.width - 2
         end
-        TG:Fire("COLUMNS_CHANGED", columns)
     end
     header:SetScript("OnSizeChanged", function(self) self:Fit() end)
     header.stretch = stretch
