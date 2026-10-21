@@ -111,7 +111,7 @@ local function gmIdentity()
 end
 
 function Map:PublishGuildMap(snap)
-    if not self.db.guildMap or gmUsers() == 0 then return end
+    if not self.db.guildMap or gmUsers() == 0 or TG.Comm.guildBlocked then return end
     local me, rank, level, class, race = gmIdentity()
     if not me then return end
     if not snap or snap.x <= 0 or snap.y <= 0 or snap.flags:find("[is]") then
@@ -168,6 +168,7 @@ function Map:Publish(force)
     local changed = snap.mapID ~= last.mapID or moved or snap.flags ~= last.flags
         or math.abs(snap.hp - (last.hp or -1)) >= 10
     if not force and not changed and now - last.at < HEARTBEAT then return end
+    if not force and TG.Comm.guildBlocked and now - last.at < 8 then return end
     last = snap
     last.at = now
     self.announced = true

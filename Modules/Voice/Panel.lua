@@ -188,7 +188,7 @@ local function build(panel)
         { target = modeDropdown, text = L["Group and proximity, proximity only or group only. Your voice group is always audible."], point = "bottom" },
         { target = micButton, text = L["Shows the movable microphone button with mute state and a list of who is in voice."], point = "bottom" },
         { target = membersHeader, text = L["Who is in the channel, who talks, how far away they are and how loud you hear them."], point = "bottom" },
-        { target = newGroup, text = L["Voice groups work like Discord rooms. Create one, others join, your party becomes one automatically."], point = "bottom" },
+        { target = newGroup, text = L["Voice groups work like Discord rooms. Create one, others join. A setting can turn your party into one."], point = "bottom" },
         { target = search, text = L["Search groups by name or by member."], point = "bottom" },
     })
 

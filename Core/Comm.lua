@@ -51,6 +51,9 @@ local function resultName(result)
 end
 
 Comm.echo = {}
+local MAX_FANOUT = 200
+local PROBE_DELAY = 12
+local REPROBE = 600
 
 local function onSent(_, didSend, result)
     if didSend then return end
@@ -148,14 +151,37 @@ function Comm:UnregisterAll(owner)
     end
 end
 
+function Comm:Targets(tag)
+    local out = {}
+    if tag == "HI" or tag == "PING" then
+        for _, e in ipairs(TG.Roster:Online()) do
+            if not TG.IsMe(e.key) then out[#out + 1] = e.key end
+            if #out >= MAX_FANOUT then break end
+        end
+    else
+        for key in pairs(self:Peers()) do out[#out + 1] = key end
+    end
+    return out
+end
+
 function Comm:Send(tag, payload, prio, target)
     if not IsInGuild() and not target then return false end
     if tag:find(SEP, 1, true) then return false end
-    local chatType = target and "WHISPER" or "GUILD"
     local body = encode(payload)
     local head = TG.protocol .. SEP .. tag .. SEP
+    local targets
+    if target then
+        targets = { target }
+    elseif self.guildBlocked then
+        targets = self:Targets(tag)
+        if #targets == 0 then return true end
+    else
+        targets = { false }
+    end
     if #head + #body <= MAX_MESSAGE then
-        dispatchRaw(head .. body, chatType, target, prio)
+        for _, t in ipairs(targets) do
+            dispatchRaw(head .. body, t and "WHISPER" or "GUILD", t or nil, prio)
+        end
         return true
     end
     seq = (seq % 99999) + 1
@@ -167,12 +193,39 @@ function Comm:Send(tag, payload, prio, target)
         i = j + 1
     end
     if #pieces > MAX_CHUNKS then return false end
-    for idx, piece in ipairs(pieces) do
-        local text = TG.protocol .. SEP .. "K" .. SEP .. ("%d:%d:%d:%s"):format(seq, idx, #pieces, tag) .. SEP .. piece
-        dispatchRaw(text, chatType, target, prio or "BULK")
+    for _, t in ipairs(targets) do
+        for idx, piece in ipairs(pieces) do
+            local text = TG.protocol .. SEP .. "K" .. SEP .. ("%d:%d:%d:%s"):format(seq, idx, #pieces, tag) .. SEP .. piece
+            dispatchRaw(text, t and "WHISPER" or "GUILD", t or nil, prio or "BULK")
+        end
     end
-    Comm.stats.chunks = Comm.stats.chunks + #pieces
+    Comm.stats.chunks = Comm.stats.chunks + #pieces * #targets
     return true
+end
+
+function Comm:Probe()
+    if not IsInGuild() or self.muted then return end
+    local me = TG.MyName()
+    if not me then return end
+    wipe(self.echo)
+    local start = GetTime()
+    local text = TG.protocol .. SEP .. "PING" .. SEP .. "="
+    dispatchRaw(text, "GUILD", nil, "ALERT")
+    dispatchRaw(text, "WHISPER", TG.Address(me), "ALERT")
+    TG.After(PROBE_DELAY, function()
+        local whisper = self.echo.WHISPER ~= nil and self.echo.WHISPER >= start
+        local guild = self.echo.GUILD ~= nil and self.echo.GUILD >= start
+        if whisper and not guild then
+            if not self.guildBlocked then
+                self.guildBlocked = true
+                TG:Print(L["The guild addon channel is not available here, messages go out as whispers to members who run TheGuild."])
+                self:SendHello("ALERT")
+                TG.After(5, function() TG.Store:RequestSync(true) end)
+            end
+        elseif guild and self.guildBlocked then
+            self.guildBlocked = false
+        end
+    end)
 end
 
 function Comm:SendForeign(prefix, text, prio)
@@ -272,7 +325,13 @@ local function onAddonMessage(_, prefix, text, channel, sender)
     if Comm:Blocked(key) then trace("blocked sender %s", key) return end
     Comm.stats.received = Comm.stats.received + 1
 
-    if TG.IsMe(key) then Comm.echo[channel] = GetTime() end
+    if TG.IsMe(key) then
+        Comm.echo[channel] = GetTime()
+        if channel == "GUILD" and Comm.guildBlocked then
+            Comm.guildBlocked = false
+            TG:Print(L["The guild addon channel works again."])
+        end
+    end
     local proto, tag, body = strsplit(SEP, text, 3)
     proto = tonumber(proto)
     if not proto or not tag then trace("malformed message from %s", key) return end
@@ -373,6 +432,7 @@ function Comm:PrintStats()
     TG:Print("in guild: %s, my name: %s, roster ready: %s, protocol %d, debug %s", tostring(IsInGuild()), tostring(TG.MyName()), tostring(TG.Roster:IsReady()), TG.protocol, self.debug and "on" or "off")
     local registered = C_ChatInfo.IsAddonMessagePrefixRegistered and C_ChatInfo.IsAddonMessagePrefixRegistered(TG.prefix)
     TG:Print("prefix %s registered: %s (%s)", TG.prefix, tostring(registered), enumName("RegisterAddonMessagePrefixResult", self.prefixResult))
+    TG:Print("guild channel: %s", self.guildBlocked and "not delivered, whispering to peers" or "ok")
     for key, p in pairs(self:Peers()) do TG:Print("peer %s: version %s, seen %s ago", key, tostring(p.version), TG.FormatAge(GetTime() - p.seen)) end
     if lockedDown() then TG:Print("chat messaging lockdown active, %d messages waiting", #held) end
 end
@@ -399,12 +459,16 @@ function Comm:SelfTest()
 end
 
 TG:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, initial)
-    if initial then TG.After(8, function() Comm:SendHello() end) end
+    if initial then TG.After(8, function() Comm:SendHello() Comm:Probe() end) end
 end)
 
 TG:On("GUILD_CHANGED", function()
     peers = {}
-    TG.After(5, function() Comm:SendHello() end)
+    TG.After(5, function() Comm:SendHello() Comm:Probe() end)
+end)
+
+TG.Ticker(REPROBE, function()
+    if Comm.guildBlocked then Comm:Probe() end
 end)
 
 TG:On("PEER_HELLO", function(key, info)

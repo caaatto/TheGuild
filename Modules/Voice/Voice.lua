@@ -12,7 +12,7 @@ local Voice = TG:NewModule("Voice", {
     title = L["Voice"],
     desc = L["Proximity voice and voice groups on the Blizzard guild voice channel."],
     order = 26,
-    defaults = { mode = "proximity", nearRange = 30, farRange = 90, announce = true, partyGroups = true, hud = true, hudLock = false, hudList = true, hideToasts = true },
+    defaults = { mode = "proximity", nearRange = 30, farRange = 90, announce = true, partyVoice = false, hud = true, hudLock = false, hudList = true, hideToasts = true },
     charDefaults = { autoJoin = false },
     settings = {
         { type = "binding", action = "THEGUILD_VOICE_MUTE" },
@@ -22,7 +22,7 @@ local Voice = TG:NewModule("Voice", {
           onChange = function(mod) mod:SetMode(mod.db.mode) end },
         { key = "nearRange", type = "number", name = L["Full volume up to (yards)"], default = 30, min = 5, max = 200, step = 5, onChange = function(mod) mod:Apply(true) end },
         { key = "farRange", type = "number", name = L["Silent beyond (yards)"], default = 90, min = 10, max = 400, step = 10, onChange = function(mod) mod:Apply(true) end },
-        { key = "partyGroups", type = "boolean", name = L["Turn your party into a voice group"],
+        { key = "partyVoice", type = "boolean", name = L["Turn your party into a voice group"],
           tooltip = L["Guild members in your party or raid share a voice group automatically. Voice stays on the guild channel, party voice is not used."], default = true,
           onChange = function(mod) mod:SyncPartyGroup() end },
         { key = "announce", type = "boolean", name = L["Announce group changes in chat"], default = true },
@@ -405,14 +405,14 @@ local function syncPartyGroup(self)
 end
 
 function Voice:SyncPartyGroup()
-    if self.syncing or not self.enabled or not self.db.partyGroups or not TG.InGuild() or not TG.MyName() then return end
+    if self.syncing or not self.enabled or not self.db.partyVoice or not TG.InGuild() or not TG.MyName() then return end
     self.syncing = true
     TG.SafeCall(syncPartyGroup, self)
     self.syncing = nil
 end
 
 function Voice:KeepGuildChannelActive(channelID)
-    if self.demoChannel or not self.db.partyGroups then return end
+    if self.demoChannel or not self.db.partyVoice then return end
     local channel = self:Channel()
     if not channel or channel.channelID == channelID then return end
     local other = C_VoiceChat.GetChannel and C_VoiceChat.GetChannel(channelID)
