@@ -34,7 +34,12 @@ local function hookCommunities()
     end)
     communitiesTab:SetScript("OnEnter", RightSideTabMixin.OnEnter)
     communitiesTab:SetScript("OnLeave", RightSideTabMixin.OnLeave or function() GameTooltip:Hide() end)
-    hooksecurefunc(CommunitiesFrame, "SetDisplayMode", layoutCommunitiesTab)
+    local event = CommunitiesFrameMixin and CommunitiesFrameMixin.Event and CommunitiesFrameMixin.Event.DisplayModeChanged
+    if event and CommunitiesFrame.RegisterCallback then
+        CommunitiesFrame:RegisterCallback(event, function() layoutCommunitiesTab() end, Blizzard)
+    else
+        hooksecurefunc(CommunitiesFrame, "SetDisplayMode", layoutCommunitiesTab)
+    end
     CommunitiesFrame:HookScript("OnShow", function() TG.After(0, layoutCommunitiesTab) end)
     if CommunitiesFrame.GuildPreferredPlaySettingsTab then
         CommunitiesFrame.GuildPreferredPlaySettingsTab:HookScript("OnShow", layoutCommunitiesTab)
