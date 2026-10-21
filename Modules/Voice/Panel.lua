@@ -66,7 +66,6 @@ local function build(panel)
         button.name:SetText(entry and TG.ClassText(entry.classFile, row.key) or row.key)
         button.speaker:SetShown(row.speaking)
         local groupText = groupName(row.group)
-        if row.quiet and groupText ~= "" then groupText = groupText .. " " .. GRAY_FONT_COLOR:WrapTextInColorCode(L["nearby only"]) end
         button.group:SetText(groupText)
         if row.isMe then
             button.distance:SetText("")
@@ -185,7 +184,7 @@ local function build(panel)
 
     TG.Tutorial:Define("voice", {
         { target = joinButton, text = L["Joins the guild voice channel. Everybody is in one channel, the addon regulates who you hear by distance."], point = "bottom" },
-        { target = modeDropdown, text = L["Group and proximity, proximity only or group only. Your voice group is always audible."], point = "bottom" },
+        { target = modeDropdown, text = L["Group and proximity, proximity only or group only. Group members are heard everywhere unless you pick proximity only."], point = "bottom" },
         { target = micButton, text = L["Shows the movable microphone button with mute state and a list of who is in voice."], point = "bottom" },
         { target = membersHeader, text = L["Who is in the channel, who talks, how far away they are and how loud you hear them."], point = "bottom" },
         { target = newGroup, text = L["Voice groups work like Discord rooms. Create one, others join. A setting can turn your party into one."], point = "bottom" },
@@ -221,7 +220,7 @@ local function build(panel)
     end
 
     TG:On("VOICE_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Voice)
-    TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "vgroup" or ns == "vmem" or ns == "vquiet") then panel:OnShow() end end, Voice)
+    TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "vgroup" or ns == "vmem") then panel:OnShow() end end, Voice)
     TG:On("MAP_PEERS", function() if panel:IsShown() then members:Refresh() end end, Voice)
 end
 

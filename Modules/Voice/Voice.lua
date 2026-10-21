@@ -1,7 +1,7 @@
 local TG = TheGuild
 local L = TG.L
 
-local NS_GROUP, NS_MEMBER, NS_QUIET = "vgroup", "vmem", "vquiet"
+local NS_GROUP, NS_MEMBER = "vgroup", "vmem"
 local MAX_NAME = 30
 local TICK = 1
 local FULL = 100
@@ -13,12 +13,12 @@ local Voice = TG:NewModule("Voice", {
     desc = L["Proximity voice and voice groups on the Blizzard guild voice channel."],
     order = 26,
     defaults = { mode = "proximity", nearRange = 30, farRange = 90, maxVolume = 80, announce = true, partyVoice = false, hud = true, hudLock = false, hudList = true, hideToasts = true },
-    charDefaults = { autoJoin = false },
+    charDefaults = { autoJoin = false, mutedByUs = {} },
     settings = {
         { type = "binding", action = "THEGUILD_VOICE_MUTE" },
         { key = "mode", type = "select", name = L["Voice mode"], default = "proximity",
           options = { { "proximity", L["Group and proximity"] }, { "solo", L["Proximity only"] }, { "group", L["Group only"] } },
-          tooltip = L["Group and proximity: your voice group is always audible, everyone else by distance. Proximity only: you still hear your group, but your group hears you only when you are close, like everyone else. Group only: nobody but your voice group."],
+          tooltip = L["Group and proximity: your voice group everywhere, everyone else by distance. Proximity only: everyone by distance, groups do not matter. Group only: nobody but your voice group."],
           onChange = function(mod) mod:SetMode(mod.db.mode) end },
         { key = "maxVolume", type = "number", name = L["Maximum member volume"], tooltip = L["Loudest level a member is set to. 100 tends to clip."], default = 80, min = 20, max = 100, step = 5, format = function(v) return v .. "%" end, onChange = function(mod) mod:Apply(true) end },
         { key = "nearRange", type = "number", name = L["Full volume up to (yards)"], default = 30, min = 5, max = 200, step = 5, onChange = function(mod) mod:Apply(true) end },
@@ -39,7 +39,6 @@ local Voice = TG:NewModule("Voice", {
 
 TG.Store:DefinePolicy(NS_GROUP, "any", 30 * 86400, TG.Store.Shape({ n = "string", o = "string", ts = "number", p = "boolean?" }))
 TG.Store:DefinePolicy(NS_MEMBER, "self", 30 * 86400, TG.Store.Text(40))
-TG.Store:DefinePolicy(NS_QUIET, "self", 3 * 86400, function(v) return v == true end)
 
 Voice.MODES = { { "proximity", L["Group and proximity"] }, { "solo", L["Proximity only"] }, { "group", L["Group only"] } }
 
@@ -209,7 +208,6 @@ function Voice:Leave()
     local channel = self:Channel()
     self.previousGroup = nil
     if self:MyGroup() then self:LeaveGroup() end
-    if TG.MyName() and TG.Store:Get(NS_QUIET, TG.MyName()) ~= nil then TG.Store:Delete(NS_QUIET, TG.MyName()) end
     self:Restore()
     if channel and not self.demoChannel then C_VoiceChat.LeaveChannel(channel.channelID) end
     TG:Fire("VOICE_UPDATED")
@@ -253,10 +251,28 @@ function Voice:Group(id)
     return nil
 end
 
+local function offline(key)
+    if TG.IsMe(key) or not TG.Roster:IsReady() then return false end
+    local entry = TG.Roster:Get(key)
+    if entry and entry.online then return false end
+    return not TG.GroupMembers()[key]
+end
+
 function Voice:GroupOf(key)
     local id = TG.Store:Get(NS_MEMBER, key)
     if type(id) ~= "string" or TG.Store:Get(NS_GROUP, id) == nil then return nil end
+    if offline(key) then return nil end
     return id
+end
+
+function Voice:PruneOffline()
+    if not TG.Roster:IsReady() or not TG.Roster:AmOfficer() then return end
+    for key in pairs(TG.Store:Items(NS_MEMBER)) do
+        if offline(key) then
+            TG.Store:Delete(NS_MEMBER, key)
+            return
+        end
+    end
 end
 
 function Voice:MyGroup()
@@ -290,6 +306,7 @@ end
 function Voice:JoinGroup(id)
     if TG.Store:Get(NS_GROUP, id) == nil then return false end
     if not TG.Store:Set(NS_MEMBER, TG.MyName(), id) then return false end
+    self.joinedThisSession = true
     self:Apply(true)
     return true
 end
@@ -457,18 +474,15 @@ function Voice:Distance(key)
     return math.sqrt(dx * dx + dy * dy)
 end
 
-function Voice:IsQuiet(key)
-    return TG.Store:Get(NS_QUIET, key) == true
-end
-
 function Voice:TargetVolume(key)
     local mine = self:MyGroup()
     local top = TG.Clamp(tonumber(self.db.maxVolume) or 80, 20, FULL)
+    local mode = self:Mode()
     local inGroup = mine ~= nil and self:GroupOf(key) == mine
-    if inGroup and not self:IsQuiet(key) then return top end
-    if self:Mode() == "group" and not inGroup then return 0 end
+    if inGroup and mode ~= "solo" then return top end
+    if mode == "group" then return 0 end
     local distance = self:Distance(key)
-    if not distance then return inGroup and top or 0 end
+    if not distance then return 0 end
     local near, far = self.db.nearRange, math.max(self.db.farRange, self.db.nearRange + 1)
     if distance <= near then return top end
     if distance >= far then return 0 end
@@ -521,15 +535,21 @@ local function setVolume(memberID, channelID, volume)
     if not pcall(C_VoiceChat.SetMemberVolume, location, volume) then return end
     applied[memberID] = volume
     if not C_VoiceChat.SetMemberMuted then return end
+    local key = resolveMember(memberID, channelID)
+    local remembered = key ~= nil and Voice.cdb.mutedByUs[key] == true
     if volume <= 0 then
         if not mutedByUs[memberID] then
             local ok, already = pcall(C_VoiceChat.IsMemberMuted, location)
-            if ok and TG.usable(already) and already ~= true and pcall(C_VoiceChat.SetMemberMuted, location, true) then
+            if ok and TG.usable(already) and (already ~= true or remembered) and pcall(C_VoiceChat.SetMemberMuted, location, true) then
                 mutedByUs[memberID] = true
+                if key then Voice.cdb.mutedByUs[key] = true end
             end
         end
-    elseif mutedByUs[memberID] then
-        if pcall(C_VoiceChat.SetMemberMuted, location, false) then mutedByUs[memberID] = nil end
+    elseif mutedByUs[memberID] or remembered then
+        if pcall(C_VoiceChat.SetMemberMuted, location, false) then
+            mutedByUs[memberID] = nil
+            if key then Voice.cdb.mutedByUs[key] = nil end
+        end
     end
 end
 
@@ -586,7 +606,10 @@ function Voice:Restore()
         end
         for memberID in pairs(mutedByUs) do
             local location = PlayerLocation and PlayerLocation.CreateFromVoiceID and PlayerLocation:CreateFromVoiceID(memberID, channel.channelID)
-            if location and C_VoiceChat.SetMemberMuted then pcall(C_VoiceChat.SetMemberMuted, location, false) end
+            if location and C_VoiceChat.SetMemberMuted and pcall(C_VoiceChat.SetMemberMuted, location, false) then
+                local key = resolved[memberID]
+                if key then self.cdb.mutedByUs[key] = nil end
+            end
         end
     end
     wipe(applied)
@@ -614,7 +637,6 @@ function Voice:Members()
             distance = distance,
             volume = isMe and FULL or math.min(FULL, math.floor((applied[member.memberID] or top) / top * FULL + 0.5)),
             group = key and self:GroupOf(key),
-            quiet = key ~= nil and not isMe and self:IsQuiet(key),
         }
     end
     table.sort(out, function(a, b)
@@ -641,21 +663,9 @@ function Voice:Mode()
     return self.db.mode
 end
 
-function Voice:PublishQuiet()
-    local me = TG.MyName()
-    if not me or not TG.InGuild() then return end
-    local quiet = self:Mode() == "solo"
-    if quiet and not self:IsQuiet(me) then
-        TG.Store:Set(NS_QUIET, me, true)
-    elseif not quiet and TG.Store:Get(NS_QUIET, me) ~= nil then
-        TG.Store:Delete(NS_QUIET, me)
-    end
-end
-
 function Voice:SetMode(mode)
     self.db.mode = mode
     self:Mode()
-    self:PublishQuiet()
     self:Apply(true)
 end
 
@@ -668,8 +678,8 @@ function Voice:ModeName()
 end
 
 function Voice:OnStoreChanged(ns, key, value)
-    if ns ~= NS_GROUP and ns ~= NS_MEMBER and ns ~= NS_QUIET then return end
-    if ns ~= NS_QUIET and not TG.IsMe(key) then self:SyncPartyGroup() end
+    if ns ~= NS_GROUP and ns ~= NS_MEMBER then return end
+    if not TG.IsMe(key) then self:SyncPartyGroup() end
     if ns == NS_MEMBER and self.db.announce and not TG.IsMe(key) then
         local mine = self:MyGroup()
         if mine and value == mine then
@@ -741,14 +751,23 @@ function Voice:OnEnable()
     self:RegisterEvent("VOICE_CHAT_CHANNEL_TRANSMIT_CHANGED", function(event, channelID, transmitting) trace(self, event, channelID, transmitting) TG:Fire("VOICE_UPDATED") end)
     self:RegisterEvent("GROUP_ROSTER_UPDATE", function() self:SyncPartyGroup() end)
     self:RegisterEvent("GROUP_LEFT", function() self:SyncPartyGroup() end)
-    self:On("ROSTER_UPDATED", function() self:SyncPartyGroup() self:PublishQuiet() end)
+    self:On("ROSTER_UPDATED", function() self:SyncPartyGroup() end)
+    self:RegisterEvent("PLAYER_LOGOUT", function() if self:MyGroup() then self:LeaveGroup() end end)
+    self:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, initial)
+        if not initial then return end
+        local loginGroup = self:MyGroup()
+        if not loginGroup then return end
+        TG.After(40, function()
+            if self.enabled and not self.joinedThisSession and self:MyGroup() == loginGroup then self:LeaveGroup() end
+        end)
+    end)
     self:RegisterEvent("VOICE_CHAT_ERROR", function(_, platformCode, statusCode)
         TG:Print(L["Voice chat error %s (%s)"], self:StatusName(statusCode), tostring(platformCode))
         TG:Fire("VOICE_UPDATED")
     end)
     self:On("STORE_CHANGED", function(ns, key, value) self:OnStoreChanged(ns, key, value) end)
     self:Ticker(TICK, function() self:Apply(false) end)
-    self:Ticker(10, function() self:SyncPartyGroup() end)
+    self:Ticker(10, function() self:SyncPartyGroup() self:PruneOffline() end)
     if self.cdb.autoJoin then
         TG.After(20, function() if self.enabled and self:Available() and not self:IsJoined() then self:Join() end end)
     end
@@ -795,7 +814,7 @@ function Voice:PrintDiagnostics()
                 local vname = C_VoiceChat.GetMemberName and C_VoiceChat.GetMemberName(member.memberID, channel.channelID)
                 local key = resolveMember(member.memberID, channel.channelID)
                 local distance = key and self:Distance(key)
-                lines[#lines + 1] = ("  member %s: name %s, guid %s, key %s, roster %s, group %s, mine %s, quiet %s, distance %s, target %d"):format(tostring(member.memberID), TG.usable(vname) and tostring(vname) or "secret", TG.usable(guid) and tostring(guid) or "secret", tostring(key), tostring(key and TG.Roster:Get(key) ~= nil), tostring(key and self:GroupOf(key)), tostring(self:MyGroup()), tostring(key and self:IsQuiet(key)), distance and ("%.0f"):format(distance) or "none", key and self:TargetVolume(key) or -1)
+                lines[#lines + 1] = ("  member %s: name %s, guid %s, key %s, roster %s, group %s, mine %s, distance %s, target %d"):format(tostring(member.memberID), TG.usable(vname) and tostring(vname) or "secret", TG.usable(guid) and tostring(guid) or "secret", tostring(key), tostring(key and TG.Roster:Get(key) ~= nil), tostring(key and self:GroupOf(key)), tostring(self:MyGroup()), distance and ("%.0f"):format(distance) or "none", key and self:TargetVolume(key) or -1)
             end
         end
         if C_VoiceChat.GetCurrentVoiceChatConnectionStatusCode then
