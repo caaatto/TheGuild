@@ -101,11 +101,15 @@ jobs:
           out = pathlib.Path("build")
           shutil.rmtree(out, ignore_errors=True)
           out.mkdir()
-          ignore = {".git", ".github", "Modules", "Screenshots", "build", "tools", ".pkgmeta", "README.md", "README.de.md", "ROADMAP.md"}
+          ignore = {".git", ".github", ".gitattributes", ".gitignore", "Modules", "Screenshots", "build", "tools", ".pkgmeta", "README.md", "README.de.md", "ROADMAP.md"}
           core = out / "TheGuild"
           shutil.copytree(".", core, ignore=lambda d, names: [n for n in names if pathlib.Path(d) == pathlib.Path(".") and n in ignore])
-          for toc in sorted(pathlib.Path("Modules").glob("*/TheGuild_*.toc")):
-              shutil.copytree(toc.parent, out / toc.stem)
+          for folder in sorted(p for p in pathlib.Path("Modules").iterdir() if p.is_dir()):
+              tocs = list(folder.glob("TheGuild_*.toc"))
+              if tocs:
+                  shutil.copytree(folder, out / tocs[0].stem)
+              else:
+                  shutil.copytree(folder, core / "Modules" / folder.name)
           archive = shutil.make_archive(f"TheGuild-{version}", "zip", out)
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"zip={archive}\n")
