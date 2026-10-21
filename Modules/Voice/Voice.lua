@@ -712,6 +712,14 @@ function Voice:PrintDiagnostics()
             tostring(C_VoiceChat.IsEnabled and C_VoiceChat.IsEnabled()),
             tostring(C_VoiceChat.IsLoggedIn and C_VoiceChat.IsLoggedIn()),
             tostring(C_VoiceChat.IsVoiceChatConnected and C_VoiceChat.IsVoiceChatConnected()))
+        if C_VoiceChat.GetActiveVoiceProviderID and Enum.VoiceProviderID then
+            local provider = C_VoiceChat.GetActiveVoiceProviderID()
+            local name = tostring(provider)
+            for key, value in pairs(Enum.VoiceProviderID) do
+                if value == provider then name = key end
+            end
+            lines[#lines + 1] = ("  active provider: %s"):format(name)
+        end
         if C_VoiceChat.GetCurrentVoiceChatConnectionStatusCode then
             lines[#lines + 1] = ("  connection status: %s"):format(self:StatusName(C_VoiceChat.GetCurrentVoiceChatConnectionStatusCode()))
         end
