@@ -464,10 +464,11 @@ end
 function Voice:TargetVolume(key)
     local mine = self:MyGroup()
     local top = TG.Clamp(tonumber(self.db.maxVolume) or 80, 20, FULL)
-    if mine ~= nil and self:GroupOf(key) == mine and not self:IsQuiet(key) then return top end
-    if self:Mode() == "group" then return 0 end
+    local inGroup = mine ~= nil and self:GroupOf(key) == mine
+    if inGroup and not self:IsQuiet(key) then return top end
+    if self:Mode() == "group" and not inGroup then return 0 end
     local distance = self:Distance(key)
-    if not distance then return 0 end
+    if not distance then return inGroup and top or 0 end
     local near, far = self.db.nearRange, math.max(self.db.farRange, self.db.nearRange + 1)
     if distance <= near then return top end
     if distance >= far then return 0 end
@@ -793,7 +794,8 @@ function Voice:PrintDiagnostics()
                 local guid = C_VoiceChat.GetMemberGUID and C_VoiceChat.GetMemberGUID(member.memberID, channel.channelID)
                 local vname = C_VoiceChat.GetMemberName and C_VoiceChat.GetMemberName(member.memberID, channel.channelID)
                 local key = resolveMember(member.memberID, channel.channelID)
-                lines[#lines + 1] = ("  member %s: name %s, guid %s, key %s, roster %s"):format(tostring(member.memberID), TG.usable(vname) and tostring(vname) or "secret", TG.usable(guid) and tostring(guid) or "secret", tostring(key), tostring(key and TG.Roster:Get(key) ~= nil))
+                local distance = key and self:Distance(key)
+                lines[#lines + 1] = ("  member %s: name %s, guid %s, key %s, roster %s, group %s, mine %s, quiet %s, distance %s, target %d"):format(tostring(member.memberID), TG.usable(vname) and tostring(vname) or "secret", TG.usable(guid) and tostring(guid) or "secret", tostring(key), tostring(key and TG.Roster:Get(key) ~= nil), tostring(key and self:GroupOf(key)), tostring(self:MyGroup()), tostring(key and self:IsQuiet(key)), distance and ("%.0f"):format(distance) or "none", key and self:TargetVolume(key) or -1)
             end
         end
         if C_VoiceChat.GetCurrentVoiceChatConnectionStatusCode then
