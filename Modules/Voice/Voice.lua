@@ -45,6 +45,7 @@ Voice.MODES = { { "proximity", L["Group and proximity"] }, { "solo", L["Proximit
 
 local applied = {}
 local original = {}
+local mutedByUs = {}
 local resolved = {}
 local speaking = {}
 local energy = {}
@@ -515,6 +516,17 @@ local function setVolume(memberID, channelID, volume)
     end
     if not pcall(C_VoiceChat.SetMemberVolume, location, volume) then return end
     applied[memberID] = volume
+    if not C_VoiceChat.SetMemberMuted then return end
+    if volume <= 0 then
+        if not mutedByUs[memberID] then
+            local ok, already = pcall(C_VoiceChat.IsMemberMuted, location)
+            if ok and TG.usable(already) and already ~= true and pcall(C_VoiceChat.SetMemberMuted, location, true) then
+                mutedByUs[memberID] = true
+            end
+        end
+    elseif mutedByUs[memberID] then
+        if pcall(C_VoiceChat.SetMemberMuted, location, false) then mutedByUs[memberID] = nil end
+    end
 end
 
 function Voice:Apply(force)
@@ -540,11 +552,16 @@ function Voice:Restore()
     if channel and not self.demoChannel then
         for memberID, volume in pairs(original) do
             local location = PlayerLocation and PlayerLocation.CreateFromVoiceID and PlayerLocation:CreateFromVoiceID(memberID, channel.channelID)
-            if location then C_VoiceChat.SetMemberVolume(location, volume) end
+            if location then pcall(C_VoiceChat.SetMemberVolume, location, volume) end
+        end
+        for memberID in pairs(mutedByUs) do
+            local location = PlayerLocation and PlayerLocation.CreateFromVoiceID and PlayerLocation:CreateFromVoiceID(memberID, channel.channelID)
+            if location and C_VoiceChat.SetMemberMuted then pcall(C_VoiceChat.SetMemberMuted, location, false) end
         end
     end
     wipe(applied)
     wipe(original)
+    wipe(mutedByUs)
     wipe(resolved)
 end
 
