@@ -46,6 +46,8 @@ Voice.MODES = { { "proximity", L["Group and proximity"] }, { "solo", L["Proximit
 local applied = {}
 local original = {}
 local mutedByUs = {}
+local voiceKeys = {}
+local announcedID
 local resolved = {}
 local speaking = {}
 local energy = {}
@@ -482,6 +484,7 @@ local function resolveMember(memberID, channelID)
         local entry = TG.Roster:GetByGUID(guid)
         key = entry and entry.key
     end
+    key = key or voiceKeys[channelID .. ":" .. memberID]
     if key then
         resolved[memberID] = key
         return key
@@ -526,6 +529,32 @@ local function setVolume(memberID, channelID, volume)
         end
     elseif mutedByUs[memberID] then
         if pcall(C_VoiceChat.SetMemberMuted, location, false) then mutedByUs[memberID] = nil end
+    end
+end
+
+function Voice:MemberKey(memberID, channelID)
+    return resolveMember(memberID, channelID)
+end
+
+function Voice:AnnounceVoiceID(force)
+    if self.demoChannel or not TG.InGuild() then return end
+    local member, channel = self:LocalMember()
+    if not member or not channel then return end
+    local id = channel.channelID .. ":" .. member.memberID
+    if not force and announcedID == id then return end
+    announcedID = id
+    TG.Comm:Send("VM", id, "NORMAL")
+end
+
+function Voice:OnVoiceID(sender, data)
+    if type(data) ~= "string" or #data > 40 then return end
+    local channelID, memberID = data:match("^(%d+):(%d+)$")
+    if not channelID then return end
+    voiceKeys[channelID .. ":" .. memberID] = sender
+    local channel = self:Channel()
+    if channel and tostring(channel.channelID) == channelID then
+        resolved[tonumber(memberID)] = sender
+        self:Apply(true)
     end
 end
 
@@ -667,7 +696,10 @@ end
 
 function Voice:OnEnable()
     self:ApplyToasts()
-    self:RegisterEvent("VOICE_CHAT_CHANNEL_JOINED", function(...) trace(self, ...) wipe(resolved) self:Apply(true) TG:Fire("VOICE_UPDATED") end)
+    self:RegisterComm("VM", "OnVoiceID")
+    self:On("PEER_HELLO", function() TG.After(math.random(1, 3), function() if self.enabled then self:AnnounceVoiceID(true) end end) end)
+    self:Ticker(300, function() self:AnnounceVoiceID(true) end)
+    self:RegisterEvent("VOICE_CHAT_CHANNEL_JOINED", function(...) trace(self, ...) wipe(resolved) self:Apply(true) TG:Fire("VOICE_UPDATED") TG.After(1, function() if self.enabled then self:AnnounceVoiceID() end end) end)
     self:RegisterEvent("VOICE_CHAT_CHANNEL_REMOVED", function() wipe(applied) wipe(original) wipe(resolved) TG:Fire("VOICE_UPDATED") end)
     self:RegisterEvent("VOICE_CHAT_CHANNEL_MEMBER_ADDED", function() self:Apply(true) end)
     self:RegisterEvent("VOICE_CHAT_CHANNEL_MEMBER_REMOVED", function(_, memberID)
