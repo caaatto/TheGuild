@@ -3,7 +3,7 @@
 ## Notes: Guild members on the world map and minimap, shared guild pins and the death map.
 ## Notes-deDE: Gildenmitglieder auf Weltkarte und Minikarte, Gildenmarkierungen und Todeskarte.
 ## Author: Catto
-## Version: 0.2.17
+## Version: 0.2.18
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
