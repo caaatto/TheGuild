@@ -3,7 +3,7 @@
 ## Notes: Searchable guild roster with shared roles and main/alt links.
 ## Notes-deDE: Durchsuchbare Gildenliste mit geteilten Rollen und Main/Twink-Verknüpfungen.
 ## Author: Catto
-## Version: 0.2.16
+## Version: 0.2.17
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
