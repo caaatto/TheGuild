@@ -383,6 +383,16 @@ local function apply(msg, sender, relayed)
     local item = { v = TG.CleanValue(msg.v), r = msg.r, t = t, a = author }
     if type(msg.s) == "string" then item.s = msg.s end
     if TG.Canon(item.v) ~= TG.Canon(msg.v) then item.o = msg.v end
+    if existing and existing.a == author and TG.IsMe(author) and msg.r > existing.r then
+        existing.r = msg.r
+        if t <= (existing.t or 0) then
+            if TG.Canon(existing.v) ~= TG.Canon(msg.v) then
+                local keep = existing.v
+                TG.After(0, function() Store:Set(msg.ns, msg.k, keep) end)
+            end
+            return false
+        end
+    end
     if not newer(item, existing) then return false end
     if author == sender then
         d[msg.ns][msg.k] = item

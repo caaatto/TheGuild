@@ -5,7 +5,9 @@ local Live = {}
 Map.Live = Live
 
 local units = {}
-local LIVE_TICK = 0.2
+local LIVE_TICK = 0.05
+local RAID_EVERY = 4
+local beat = 0
 
 local function rebuild()
     for key in pairs(units) do
@@ -42,6 +44,8 @@ end
 
 local function tick()
     if not Map.enabled or not next(units) then return end
+    beat = beat + 1
+    if TG.Count(units) > 5 and beat % RAID_EVERY ~= 0 then return end
     local changed = false
     local now = GetTime()
     for key, unit in pairs(units) do
