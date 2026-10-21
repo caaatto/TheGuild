@@ -16,3 +16,4 @@ MinimapPins.lua
 SharedPins.lua
 Deaths.lua
 Panel.lua
+Live.lua

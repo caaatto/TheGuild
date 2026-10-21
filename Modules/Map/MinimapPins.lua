@@ -47,6 +47,15 @@ local function releaseAll()
     wipe(active)
 end
 
+function MP:Move(key, peer)
+    for _, f in ipairs(active) do
+        if f.key == key then
+            HBDPins:AddMinimapIconMap(MP, f, peer.mapID, peer.x, peer.y, true, true)
+            return
+        end
+    end
+end
+
 function MP:Refresh()
     HBDPins:RemoveAllMinimapIcons(MP)
     releaseAll()

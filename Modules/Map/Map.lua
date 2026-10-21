@@ -1,7 +1,7 @@
 local TG = TheGuild
 local L = TG.L
 
-local TICK = 3
+local TICK = 1
 local MOVE_EPS = 0.002
 local HEARTBEAT = 25
 local PEER_TTL = 120
@@ -20,7 +20,7 @@ local Map = TG:NewModule("Map", {
     order = 10,
     defaults = {
         worldMap = true, minimap = true, names = true, iconStyle = "icon",
-        worldSize = 22, minimapSize = 14,
+        worldSize = 18, minimapSize = 12, smallIcons = false,
         lowHealth = false, lowHealthThreshold = 30,
         deaths = true, pins = true, minLevel = 1, guildMap = true,
     },
@@ -36,8 +36,8 @@ local Map = TG:NewModule("Map", {
         { key = "names", type = "boolean", name = L["Show names"], default = true, onChange = refreshAll },
         { key = "iconStyle", type = "select", name = L["Icon style"], default = "icon", onChange = refreshAll,
           options = { { "icon", L["Class icon"] }, { "dot", L["Class colored dot"] } } },
-        { key = "worldSize", type = "number", name = L["World map icon size"], default = 22, min = 12, max = 40, step = 2, onChange = refreshAll },
-        { key = "minimapSize", type = "number", name = L["Minimap icon size"], default = 14, min = 8, max = 24, step = 1, onChange = refreshAll },
+        { key = "worldSize", type = "number", name = L["World map icon size"], default = 18, min = 12, max = 40, step = 2, onChange = refreshAll },
+        { key = "minimapSize", type = "number", name = L["Minimap icon size"], default = 12, min = 8, max = 24, step = 1, onChange = refreshAll },
         { key = "minLevel", type = "number", name = L["Hide members below level"], default = 1, min = 1, max = 60, step = 1, onChange = refreshAll },
         { key = "lowHealth", type = "boolean", name = L["Low health warning"], tooltip = L["Warn when a guild member drops below the health threshold."], default = false },
         { key = "lowHealthThreshold", type = "number", name = L["Health threshold"], default = 30, min = 10, max = 90, step = 5, format = function(v) return v .. "%" end },
@@ -168,7 +168,11 @@ function Map:Publish(force)
     local changed = snap.mapID ~= last.mapID or moved or snap.flags ~= last.flags
         or math.abs(snap.hp - (last.hp or -1)) >= 10
     if not force and not changed and now - last.at < HEARTBEAT then return end
-    if not force and TG.Comm.guildBlocked and now - last.at < 8 then return end
+    if not force and TG.Comm.guildBlocked then
+        local peers = TG.Comm:PeerCount()
+        local gap = peers <= 5 and 2 or (peers <= 15 and 4 or 8)
+        if now - last.at < gap then return end
+    end
     last = snap
     last.at = now
     self.announced = true
@@ -181,7 +185,7 @@ end
 function Map:Changed()
     if pendingFire then return end
     pendingFire = true
-    TG.After(0.3, function()
+    TG.After(0.1, function()
         pendingFire = false
         TG:Fire("MAP_PEERS")
     end)
@@ -206,6 +210,11 @@ function Map:OnPosition(sender, data)
     if entry and entry.guid and entry.guid == TG.MyGUID() then return end
     x, y = TG.Clamp(x, 0, 1) or 0, TG.Clamp(y, 0, 1) or 0
     local peer = self.peers[sender] or {}
+    if peer.live then
+        peer.native = GetTime()
+        peer.gm = nil
+        return
+    end
     peer.mapID, peer.x, peer.y = mapID, x, y
     peer.hp = TG.Clamp(tonumber(hp) or -1, -1, 100)
     peer.flags = flags
@@ -232,7 +241,7 @@ function Map:OnGuildMapMessage(_, prefix, text, channel, sender)
     local now = GetTime()
     if not TG.Comm:HasAddon(key) then gmSeen[key] = now end
     local peer = self.peers[key]
-    if peer and peer.native and now - peer.native < NATIVE_HOLD then return end
+    if peer and ((peer.native and now - peer.native < NATIVE_HOLD) or peer.live) then return end
     local _, _, _, class, _, x, y, mapID, hp = strsplit(",", text)
     mapID = tonumber(mapID)
     x, y = TG.Clamp(x, 0, 1) or 0, TG.Clamp(y, 0, 1) or 0
@@ -275,7 +284,7 @@ function Map:Peers()
     local now = GetTime()
     for key, p in pairs(self.peers) do
         local entry = TG.Roster:Get(key)
-        if now - p.ts > PEER_TTL or (TG.Roster:IsReady() and (not entry or not entry.online)) then
+        if not p.live and (now - p.ts > PEER_TTL or (TG.Roster:IsReady() and (not entry or not entry.online))) then
             self.peers[key] = nil
         end
     end
@@ -348,6 +357,11 @@ function Map:PrintDiagnostics()
 end
 
 function Map:OnInitialize()
+    if not self.db.smallIcons then
+        self.db.smallIcons = true
+        if self.db.worldSize == 22 then self.db.worldSize = 18 end
+        if self.db.minimapSize == 14 then self.db.minimapSize = 12 end
+    end
     TG:RegisterSlash("share", function(rest)
         local cmd = tostring(rest or ""):match("^(%S*)"):lower()
         if cmd == "status" then
@@ -378,7 +392,8 @@ function Map:OnEnable()
         TG.After(math.random(1, 4), function() if self.enabled then last.at = 0 self:Publish(true) end end)
     end)
     self:On("MEMBER_OFFLINE", function(e)
-        if self.peers[e.key] then self.peers[e.key] = nil self:Changed() end
+        local peer = self.peers[e.key]
+        if peer and not peer.live then self.peers[e.key] = nil self:Changed() end
     end)
     self:On("GUILD_CHANGED", function() wipe(self.peers) wipe(gmSeen) gmAnnounced = false self:Changed() end)
     self:RegisterEvent("PLAYER_ENTERING_WORLD", function() last = { at = 0 } end)
@@ -386,6 +401,7 @@ function Map:OnEnable()
     self.MinimapPins:Enable()
     self.SharedPins:Enable()
     self.Deaths:Enable()
+    self.Live:Enable()
     self.announced = false
     gmAnnounced = false
 end
@@ -398,6 +414,7 @@ function Map:OnDisable()
     self.WorldMap:Disable()
     self.MinimapPins:Disable()
     self.Deaths:Disable()
+    self.Live:Disable()
     wipe(self.peers)
     TG:Fire("MAP_PEERS")
 end

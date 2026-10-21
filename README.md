@@ -30,7 +30,7 @@ Searchable and sortable roster with roles (tank, healer, damage) and main and al
 
 ![Map](Screenshots/map.jpg)
 
-Guild members on the world map and the minimap with class icon or class colored dot, name, rank badge, health and tooltip. Positions are sent every few seconds while moving, never from inside an instance, optionally hidden while stealthed. Ctrl + right click on the world map places a guild pin for everyone, temporary or permanent. Deaths show up as skulls. Toggles live in the world map and minimap tracking menus. Members who run GuildMap instead of TheGuild appear as well, and your position is sent in GuildMap format as long as one of them is online, so both addons see each other.
+Guild members on the world map and the minimap with class icon or class colored dot, name, rank badge, health and tooltip. Positions are sent every second while moving, never from inside an instance, optionally hidden while stealthed. Party and raid members are read live from the client and move as smoothly as the standard group dots. Ctrl + right click on the world map places a guild pin for everyone, temporary or permanent. Deaths show up as skulls. Toggles live in the world map and minimap tracking menus. Members who run GuildMap instead of TheGuild appear as well, and your position is sent in GuildMap format as long as one of them is online, so both addons see each other.
 
 ### Raids
 
@@ -66,7 +66,7 @@ Member counts and activity, class and level distribution, lifetime deaths by zon
 
 ![Recruitment](Screenshots/recruit.jpg)
 
-The tab is visible to officers and the guild master only. Officers keep a shared candidate list with notes and status. Candidates can be added from the unit menu of any player. Whisper and guild invite are one click. Candidates who join are marked and get a welcome whisper from the officer who invited them. A recruitment message can be posted into a chosen chat channel.
+The tab is visible to officers and the guild master only. Officers keep a shared candidate list with notes and status. Candidates can be added from the unit menu of any player. A welcome whisper to joiners you invited is available but off by default. Whisper and guild invite are one click. Candidates who join are marked and get a welcome whisper from the officer who invited them. A recruitment message can be posted into a chosen chat channel.
 
 ### Professions
 

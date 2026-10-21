@@ -12,12 +12,12 @@ local Recruit = TG:NewModule("Recruit", {
     desc = L["Candidate list for officers with whisper, guild invite and status tracking."],
     order = 35,
     defaults = {
-        welcomeWhisper = true,
+        whisperWelcome = false,
         welcome = L["Welcome to %g, %n! If you have questions, just ask in guild chat."],
         message = L["%g is recruiting! Friendly guild, regular raids and dungeons. Whisper me for an invite."],
     },
     settings = {
-        { key = "welcomeWhisper", type = "boolean", name = L["Whisper a welcome to candidates you invited once they join"], default = true },
+        { key = "whisperWelcome", type = "boolean", name = L["Whisper a welcome to candidates you invited once they join"], default = false },
     },
 })
 
@@ -115,7 +115,7 @@ function Recruit:OnJoined(entry)
     local v = TG.Store:Get(NS, entry.key)
     if type(v) ~= "table" then return end
     TG.Log:Add("recruited", entry.key, {})
-    if self.db.welcomeWhisper and v.i and TG.IsMe(v.i) and v.s ~= 4 then
+    if self.db.whisperWelcome and v.i and TG.IsMe(v.i) and v.s ~= 4 then
         local text = fill(self.db.welcome, entry.key)
         if text ~= "" then SendChatMessage(text:sub(1, 255), "WHISPER", nil, TG.Address(entry.key)) end
     end

@@ -13,7 +13,19 @@ local MARKER_TEMPLATE = "TheGuildMarkerPinTemplate"
 local GM_ICON = "Interface\\GroupFrame\\UI-Group-LeaderIcon"
 local OFFICER_ICON = "Interface\\GroupFrame\\UI-Group-AssistantIcon"
 
+local function round(texture)
+    if texture.tgMask or not texture.AddMaskTexture then return end
+    local parent = texture:GetParent()
+    if not parent or not parent.CreateMaskTexture then return end
+    local mask = parent:CreateMaskTexture()
+    mask:SetTexture("Interface\\CharacterFrame\\TempPortraitAlphaMask", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask:SetAllPoints(texture)
+    texture:AddMaskTexture(mask)
+    texture.tgMask = mask
+end
+
 function WM.Style(texture, classFile, peer, style)
+    round(texture)
     if style == "dot" then
         texture:SetTexture("Interface\\COMMON\\Indicator-Gray")
         texture:SetTexCoord(0, 1, 0, 1)
@@ -225,6 +237,18 @@ function WM:Refresh()
         refreshPending = false
         if added and WorldMapFrame:IsShown() then provider:RefreshAllData() end
     end)
+end
+
+function WM:Move(key, peer)
+    if not added or not WorldMapFrame or not WorldMapFrame:IsShown() then return end
+    local mapID = WorldMapFrame:GetMapID()
+    for pin in WorldMapFrame:EnumeratePinsByTemplate(MEMBER_TEMPLATE) do
+        if pin.key == key then
+            local x, y = WM:Project(peer, mapID)
+            if x then pin:SetPosition(x, y) else self:Refresh() end
+            return
+        end
+    end
 end
 
 function WM:Ping(key)
