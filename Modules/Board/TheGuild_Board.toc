@@ -3,7 +3,7 @@
 ## Notes: Guild bulletin board, polls, events and bounties, shared through the guild store.
 ## Notes-deDE: Schwarzes Brett, Umfragen, Events und Aufträge der Gilde, geteilt über den Gildenspeicher.
 ## Author: Catto
-## Version: 0.2.19
+## Version: 0.2.20
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
