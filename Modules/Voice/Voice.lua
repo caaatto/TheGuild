@@ -12,7 +12,7 @@ local Voice = TG:NewModule("Voice", {
     title = L["Voice"],
     desc = L["Proximity voice and voice groups on the Blizzard guild voice channel."],
     order = 26,
-    defaults = { mode = "proximity", nearRange = 30, farRange = 90, announce = true, partyVoice = false, hud = true, hudLock = false, hudList = true, hideToasts = true },
+    defaults = { mode = "proximity", nearRange = 30, farRange = 90, maxVolume = 80, announce = true, partyVoice = false, hud = true, hudLock = false, hudList = true, hideToasts = true },
     charDefaults = { autoJoin = false },
     settings = {
         { type = "binding", action = "THEGUILD_VOICE_MUTE" },
@@ -20,6 +20,7 @@ local Voice = TG:NewModule("Voice", {
           options = { { "proximity", L["Group and proximity"] }, { "solo", L["Proximity only"] }, { "group", L["Group only"] } },
           tooltip = L["Group and proximity: your voice group is always audible, everyone else by distance. Proximity only: you still hear your group, but your group hears you only when you are close, like everyone else. Group only: nobody but your voice group."],
           onChange = function(mod) mod:SetMode(mod.db.mode) end },
+        { key = "maxVolume", type = "number", name = L["Maximum member volume"], tooltip = L["Loudest level a member is set to. 100 tends to clip."], default = 80, min = 20, max = 100, step = 5, format = function(v) return v .. "%" end, onChange = function(mod) mod:Apply(true) end },
         { key = "nearRange", type = "number", name = L["Full volume up to (yards)"], default = 30, min = 5, max = 200, step = 5, onChange = function(mod) mod:Apply(true) end },
         { key = "farRange", type = "number", name = L["Silent beyond (yards)"], default = 90, min = 10, max = 400, step = 10, onChange = function(mod) mod:Apply(true) end },
         { key = "partyVoice", type = "boolean", name = L["Turn your party into a voice group"],
@@ -459,14 +460,15 @@ end
 
 function Voice:TargetVolume(key)
     local mine = self:MyGroup()
-    if mine ~= nil and self:GroupOf(key) == mine and not self:IsQuiet(key) then return FULL end
+    local top = TG.Clamp(tonumber(self.db.maxVolume) or 80, 20, FULL)
+    if mine ~= nil and self:GroupOf(key) == mine and not self:IsQuiet(key) then return top end
     if self:Mode() == "group" then return 0 end
     local distance = self:Distance(key)
     if not distance then return 0 end
     local near, far = self.db.nearRange, math.max(self.db.farRange, self.db.nearRange + 1)
-    if distance <= near then return FULL end
+    if distance <= near then return top end
     if distance >= far then return 0 end
-    return math.floor(FULL * (far - distance) / (far - near) + 0.5)
+    return math.floor(top * (far - distance) / (far - near) + 0.5)
 end
 
 local function resolveMember(memberID, channelID)
@@ -535,6 +537,7 @@ function Voice:Members()
     local out = {}
     local channel = self:ActiveChannel()
     if not channel then return out end
+    local top = TG.Clamp(tonumber(self.db.maxVolume) or 80, 20, FULL)
     for _, member in ipairs(channel.members or {}) do
         local isMe = isLocal(member.memberID, channel.channelID)
         local key = isMe and TG.MyName() or resolveMember(member.memberID, channel.channelID)
@@ -547,7 +550,7 @@ function Voice:Members()
             active = member.isActive ~= false,
             muted = member.isMutedForAll == true or member.isSilenced == true,
             distance = distance,
-            volume = isMe and FULL or applied[member.memberID] or FULL,
+            volume = isMe and FULL or math.min(FULL, math.floor((applied[member.memberID] or top) / top * FULL + 0.5)),
             group = key and self:GroupOf(key),
             quiet = key ~= nil and not isMe and self:IsQuiet(key),
         }
