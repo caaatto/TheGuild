@@ -10,7 +10,7 @@ local Social = TG:NewModule("Social", {
     desc = L["Greet members who come online"],
     order = 40,
     defaults = {
-        greet = false, welcome = true, levelup = false, cooldownHours = 12, polite = true, muteChat = true,
+        greet = false, welcomeChat = false, levelup = false, cooldownHours = 12, polite = true, muteChat = true,
         greetings = { L["Hi %n!"], L["Hey %n, good to see you!"], L["Welcome back, %n!"] },
         welcomes = { L["Welcome to %g, %n!"], L["Hey %n, welcome!"], L["Welcome aboard, %n!"] },
         levelups = { L["Grats on %l, %n!"], L["%n hit %l, grats!"], L["Nice, level %l %n!"] },
@@ -18,7 +18,7 @@ local Social = TG:NewModule("Social", {
     },
     charDefaults = { greeted = {} },
     settings = {
-        { key = "welcome", type = "boolean", name = L["Welcome new members"], default = true },
+        { key = "welcomeChat", type = "boolean", name = L["Welcome new members"], default = false },
         { key = "greet", type = "boolean", name = L["Greet members who come online"], default = false },
         { key = "levelup", type = "boolean", name = L["Congratulate level ups"], default = false },
         { key = "cooldownHours", type = "number", name = L["Greeting cooldown (hours)"], default = 12, min = 1, max = 72, step = 1 },
@@ -81,7 +81,7 @@ end
 local joinBurst = {}
 
 function Social:OnJoined(entry)
-    if not self.db.welcome or GetTime() - loginAt < 15 then return end
+    if not self.db.welcomeChat or GetTime() - loginAt < 15 then return end
     local now = GetTime()
     for i = #joinBurst, 1, -1 do
         if now - joinBurst[i] > 60 then table.remove(joinBurst, i) end

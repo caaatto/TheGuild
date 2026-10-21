@@ -76,7 +76,7 @@ Records your recipes when a profession window opens, shares them with the guild 
 
 ### Call to Arms and Messages
 
-`/tg cta`, a key binding or the overview button sends your location to the guild. Receivers get a raid warning, a sound and a popup with a waypoint button. The Messages module welcomes new members, optionally greets logins and congratulates milestone levels, and hides chat from muted players.
+`/tg cta`, a key binding or the overview button sends your location to the guild. Receivers get a raid warning, a sound and a popup with a waypoint button. The Messages module can welcome new members and greet logins (both off by default) and congratulates milestone levels, and hides chat from muted players.
 
 ## Blizzard integration
 
