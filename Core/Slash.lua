@@ -73,7 +73,14 @@ SlashCmdList.THEGUILD = function(msg)
 end
 
 TG:RegisterSlash("config", function() TG:OpenSettings() end, L["open the settings"])
-TG:RegisterSlash("comms", function() TG.Comm:PrintStats() end, L["show communication statistics"])
+TG:RegisterSlash("comms", function(rest)
+    if tostring(rest or ""):match("^%S*"):lower() == "debug" then
+        TG.Comm.debug = not TG.Comm.debug
+        TG:Print("comm debug %s", TG.Comm.debug and "on" or "off")
+        return
+    end
+    TG.Comm:PrintStats()
+end, L["show communication statistics, debug logs every message"])
 local function addonMemory()
     local out, total = {}, 0
     if not (UpdateAddOnMemoryUsage and GetAddOnMemoryUsage and C_AddOns.GetNumAddOns) then return out, total end

@@ -161,7 +161,8 @@ local function build(panel)
             local entry = TG.Roster:Get(key)
             names[#names + 1] = entry and TG.ClassText(entry.classFile, TG.ShortName(key)) or TG.ShortName(key)
         end
-        local meta = L["%d in group"]:format(#group.members)
+        local meta = L["%d in group"]:format(group.online)
+        if group.total > group.online then meta = meta .. " " .. L["(+%d offline)"]:format(group.total - group.online) end
         if group.party then meta = L["Party group"] .. "   " .. meta end
         button.meta:SetText(("%s   %s"):format(meta, table.concat(names, ", ")))
         button.join:SetShown(not mine)

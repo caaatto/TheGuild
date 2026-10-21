@@ -171,7 +171,9 @@ function Map:Publish(force)
     last = snap
     last.at = now
     self.announced = true
-    TG.Comm:Send("P", ("%d:%.4f:%.4f:%d:%s"):format(snap.mapID, snap.x, snap.y, snap.hp, snap.flags), force and "ALERT" or "NORMAL")
+    local payload = ("%d:%.4f:%.4f:%d:%s"):format(snap.mapID, snap.x, snap.y, snap.hp, snap.flags)
+    TG.Comm:Send("P", payload, force and "ALERT" or "NORMAL")
+    if self.debug then TG:Print("map sent %s", payload) end
     self:PublishGuildMap(snap)
 end
 
@@ -186,6 +188,7 @@ end
 
 function Map:OnPosition(sender, data)
     if type(data) ~= "string" then return end
+    if self.debug then TG:Print("map from %s: %s", tostring(sender), data) end
     if #data > 64 then return end
     local mapID, x, y, hp, flags = strsplit(":", data)
     mapID = tonumber(mapID)
@@ -321,8 +324,40 @@ function Map:ToggleSharing()
     TG:Fire("MAP_SHARING", self.cdb.share)
 end
 
+function Map:PrintDiagnostics()
+    TG:Print(L["Map"])
+    local lines = {}
+    lines[#lines + 1] = ("  sharing: %s, in guild: %s, module enabled: %s, debug: %s"):format(tostring(self.cdb.share), tostring(TG.InGuild()), tostring(self.enabled), tostring(self.debug == true))
+    local mapID = C_Map.GetBestMapForUnit("player")
+    lines[#lines + 1] = ("  best map: %s"):format(TG.usable(mapID) and tostring(mapID) or "not usable")
+    local snap = self:Snapshot()
+    if snap then
+        lines[#lines + 1] = ("  snapshot: map %d, x %.4f, y %.4f, hp %d, flags '%s'"):format(snap.mapID, snap.x, snap.y, snap.hp, snap.flags)
+    else
+        lines[#lines + 1] = "  snapshot: none"
+    end
+    lines[#lines + 1] = ("  last sent: %s, announced: %s, GuildMap users: %d, addon users online: %d"):format(last.at > 0 and TG.FormatAge(GetTime() - last.at) .. " ago" or "never", tostring(self.announced), gmUsers(), TG.Comm:PeerCount())
+    local n = 0
+    for key, p in pairs(self.peers) do
+        n = n + 1
+        lines[#lines + 1] = ("  peer %s: map %s, position %s, flags '%s', %s ago%s"):format(key, tostring(p.mapID), tostring(p.hasPos), p.flags or "", TG.FormatAge(GetTime() - p.ts), p.gm and ", GuildMap" or "")
+    end
+    lines[#lines + 1] = ("  peers with position data: %d"):format(n)
+    for _, line in ipairs(lines) do DEFAULT_CHAT_FRAME:AddMessage(line) end
+end
+
 function Map:OnInitialize()
-    TG:RegisterSlash("share", function() if self.enabled then self:ToggleSharing() end end, L["toggle position sharing"])
+    TG:RegisterSlash("share", function(rest)
+        local cmd = tostring(rest or ""):match("^(%S*)"):lower()
+        if cmd == "status" then
+            self:PrintDiagnostics()
+        elseif cmd == "debug" then
+            self.debug = not self.debug
+            TG:Print("map debug %s", self.debug and "on" or "off")
+        elseif self.enabled then
+            self:ToggleSharing()
+        end
+    end, L["toggle position sharing, status or debug"])
 end
 
 function Map:OnEnable()

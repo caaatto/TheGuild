@@ -34,7 +34,31 @@ local lastHello = 0
 local warnedVersion
 local sendDeflateOpts = { level = 5 }
 
-Comm.stats = { sent = 0, held = 0, received = 0, ignored = 0, chunks = 0, reassembled = 0, lastTag = nil, lastFrom = nil }
+Comm.stats = { sent = 0, held = 0, received = 0, ignored = 0, chunks = 0, reassembled = 0, lastTag = nil, lastFrom = nil, failed = 0, raw = 0, unusable = 0 }
+local warnedResult = {}
+
+local function resultName(result)
+    if type(Enum) == "table" and type(Enum.SendAddonMessageResult) == "table" then
+        for name, value in pairs(Enum.SendAddonMessageResult) do
+            if value == result then return name end
+        end
+    end
+    return tostring(result)
+end
+
+local function onSent(_, didSend, result)
+    if didSend then return end
+    Comm.stats.failed = Comm.stats.failed + 1
+    Comm.stats.lastResult = result
+    if not warnedResult[result] then
+        warnedResult[result] = true
+        TG:Print(L["Addon message not sent: %s"], resultName(result))
+    end
+end
+
+local function trace(fmt, ...)
+    if Comm.debug then TG:Print("comm " .. fmt, ...) end
+end
 
 local function lockedDown()
     return C_ChatInfo.InChatMessagingLockdown and C_ChatInfo.InChatMessagingLockdown() == true
@@ -100,7 +124,7 @@ local function dispatchRaw(text, chatType, target, prio, prefix)
         Comm.stats.held = Comm.stats.held + 1
         return
     end
-    CTL:SendAddonMessage(prio or "NORMAL", prefix or TG.prefix, text, chatType, target)
+    CTL:SendAddonMessage(prio or "NORMAL", prefix or TG.prefix, text, chatType, target, nil, onSent)
     Comm.stats.sent = Comm.stats.sent + 1
 end
 
@@ -226,17 +250,26 @@ end
 
 local function onAddonMessage(_, prefix, text, channel, sender)
     if prefix ~= TG.prefix then return end
-    if not TG.usable(text) or not TG.usable(sender) then return end
+    Comm.stats.raw = Comm.stats.raw + 1
+    if not TG.usable(text) or not TG.usable(sender) then
+        Comm.stats.unusable = Comm.stats.unusable + 1
+        trace("dropped a message with a secret sender or text")
+        return
+    end
     local group = channel == "RAID" or channel == "PARTY"
-    if channel ~= "GUILD" and channel ~= "WHISPER" and not group then return end
+    if channel ~= "GUILD" and channel ~= "WHISPER" and not group then
+        trace("ignored channel %s from %s", tostring(channel), tostring(sender))
+        return
+    end
     local key = TG.StripRealm(sender)
     if not key then return end
-    if Comm:Blocked(key) then return end
+    if Comm:Blocked(key) then trace("blocked sender %s", key) return end
     Comm.stats.received = Comm.stats.received + 1
 
     local proto, tag, body = strsplit(SEP, text, 3)
     proto = tonumber(proto)
-    if not proto or not tag then return end
+    if not proto or not tag then trace("malformed message from %s", key) return end
+    trace("%s from %s (%s) protocol %d, %d bytes", tag, key, tostring(sender), proto, #text)
 
     if tag == "HI" then
         local version, guid, pub = strsplit(":", body and body:sub(2) or "")
@@ -246,8 +279,8 @@ local function onAddonMessage(_, prefix, text, channel, sender)
             if TG.usable(first) and first and TG.FirstName(key) == first then TG.LearnMyName(key) end
             return
         end
-        if TG.IsMe(key) then return end
-        if not senderAllowed(key, channel) then Comm.stats.ignored = Comm.stats.ignored + 1 return end
+        if TG.IsMe(key) then trace("own hello echoed as %s", key) return end
+        if not senderAllowed(key, channel) then Comm.stats.ignored = Comm.stats.ignored + 1 trace("hello from %s rejected, not in the roster", key) return end
         local repeated = lastHi[key] ~= nil and GetTime() - lastHi[key] < HI_COOLDOWN
         lastHi[key] = GetTime()
         if repeated then
@@ -264,12 +297,13 @@ local function onAddonMessage(_, prefix, text, channel, sender)
         return
     end
 
-    if TG.IsMe(key) then return end
-    if proto ~= TG.protocol then Comm.stats.ignored = Comm.stats.ignored + 1 return end
+    if TG.IsMe(key) then trace("own message echoed as %s", key) return end
+    if proto ~= TG.protocol then Comm.stats.ignored = Comm.stats.ignored + 1 trace("%s runs protocol %d, we need %d", key, proto, TG.protocol) return end
     if group then
-        if not TG.InGroup(key) then Comm.stats.ignored = Comm.stats.ignored + 1 return end
+        if not TG.InGroup(key) then Comm.stats.ignored = Comm.stats.ignored + 1 trace("%s is not in our group", key) return end
     elseif not senderAllowed(key, channel) then
         Comm.stats.ignored = Comm.stats.ignored + 1
+        trace("%s rejected, not in the roster", key)
         return
     end
     if peers[key] then peers[key].seen = GetTime() end
@@ -325,9 +359,12 @@ end
 
 function Comm:PrintStats()
     local s = self.stats
-    TG:Print("sent %d, held %d, received %d, ignored %d, chunks %d, reassembled %d, peers %d",
-        s.sent, s.held, s.received, s.ignored, s.chunks, s.reassembled, self:PeerCount())
+    TG:Print("sent %d, failed %d, held %d, received %d (raw %d, unusable %d), ignored %d, chunks %d, reassembled %d, peers %d",
+        s.sent, s.failed, s.held, s.received, s.raw, s.unusable, s.ignored, s.chunks, s.reassembled, self:PeerCount())
+    if s.lastResult then TG:Print("last send failure: %s", resultName(s.lastResult)) end
     if s.lastTag then TG:Print("last: %s from %s", s.lastTag, tostring(s.lastFrom)) end
+    TG:Print("in guild: %s, my name: %s, roster ready: %s, protocol %d, debug %s", tostring(IsInGuild()), tostring(TG.MyName()), tostring(TG.Roster:IsReady()), TG.protocol, self.debug and "on" or "off")
+    for key, p in pairs(self:Peers()) do TG:Print("peer %s: version %s, seen %s ago", key, tostring(p.version), TG.FormatAge(GetTime() - p.seen)) end
     if lockedDown() then TG:Print("chat messaging lockdown active, %d messages waiting", #held) end
 end
 

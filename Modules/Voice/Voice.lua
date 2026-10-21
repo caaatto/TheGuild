@@ -5,6 +5,8 @@ local NS_GROUP, NS_MEMBER, NS_QUIET = "vgroup", "vmem", "vquiet"
 local MAX_NAME = 30
 local TICK = 1
 local FULL = 100
+local PARTY_GROUP_TTL = 8 * 3600
+local PARTY_GROUP_GRACE = 120
 
 local Voice = TG:NewModule("Voice", {
     title = L["Voice"],
@@ -218,12 +220,19 @@ function Voice:Groups()
         end
     end
     local out = {}
+    local ready = TG.Roster:IsReady()
+    local party = TG.GroupMembers()
     for id, item in pairs(TG.Store:Items(NS_GROUP)) do
         local v = item.v
         if type(v) == "table" then
-            local members = counts[id] or {}
-            table.sort(members)
-            out[#out + 1] = { id = id, name = v.n or "?", owner = v.o or item.a, time = v.ts or item.t or 0, members = members, party = v.p == true }
+            local all = counts[id] or {}
+            table.sort(all)
+            local members = {}
+            for _, key in ipairs(all) do
+                local entry = TG.Roster:Get(key)
+                if TG.IsMe(key) or not ready or (entry and entry.online) or party[key] then members[#members + 1] = key end
+            end
+            out[#out + 1] = { id = id, name = v.n or "?", owner = v.o or item.a, time = v.ts or item.t or 0, members = members, online = #members, total = #all, party = v.p == true }
         end
     end
     table.sort(out, function(a, b)
@@ -257,7 +266,15 @@ function Voice:CreateGroup(name, party)
         TG:Print(L["Voice groups need a guild and a loaded roster."])
         return nil
     end
-    local id = ("%s%d%d"):format(party and "p" or "g", TG.Now(), math.random(10, 99))
+    if not party then
+        for _, g in ipairs(self:Groups()) do
+            if not g.party and g.name:lower() == name:lower() then
+                self:JoinGroup(g.id)
+                return g.id
+            end
+        end
+    end
+    local id = ("%s%d%02d%s"):format(party and "p" or "g", TG.Now(), math.random(0, 99), TG.ShortName(TG.MyName()))
     if not TG.Store:Set(NS_GROUP, id, { n = name, o = TG.MyName(), ts = TG.Now(), p = party or nil }) then
         TG:Print(L["The voice group could not be saved."])
         return nil
@@ -275,29 +292,43 @@ end
 
 function Voice:LeaveGroup()
     local had = self:MyGroup()
+    local wasSyncing = self.syncing
+    self.syncing = true
     TG.Store:Delete(NS_MEMBER, TG.MyName())
     if had then self:PruneGroup(had) end
+    self.syncing = wasSyncing
     self:Apply(true)
 end
 
+function Voice:InActiveParty(group)
+    if not group.party or group.id ~= self:MyGroup() then return false end
+    local _, n = self:PartyKeys()
+    return n > 0
+end
+
 function Voice:CanManageGroup(group)
-    return group.owner == TG.MyName() or TG.Roster:AmOfficer()
+    if self:InActiveParty(group) then return false end
+    return group.owner == TG.MyName()
 end
 
 function Voice:DeleteGroup(id)
     local group = self:Group(id)
     if not group or not self:CanManageGroup(group) then return false end
-    if not TG.Store:Delete(NS_GROUP, id) then return false end
+    local wasSyncing = self.syncing
+    self.syncing = true
+    local officer = TG.Roster:AmOfficer()
     for _, key in ipairs(group.members) do
-        if TG.IsMe(key) or TG.Roster:AmOfficer() then TG.Store:Delete(NS_MEMBER, key) end
+        if TG.IsMe(key) or officer then TG.Store:Delete(NS_MEMBER, key) end
     end
+    local ok = TG.Store:Delete(NS_GROUP, id)
+    self.syncing = wasSyncing
     self:Apply(true)
-    return true
+    return ok
 end
 
 function Voice:PruneGroup(id)
     local group = self:Group(id)
-    if group and #group.members == 0 then TG.Store:Delete(NS_GROUP, id) end
+    if group and group.total == 0 then TG.Store:Delete(NS_GROUP, id) end
 end
 
 function Voice:PartyKeys()
@@ -313,10 +344,17 @@ function Voice:PartyKeys()
     return keys, n
 end
 
+local function staleParty(g, now)
+    if not g.party then return false end
+    local age = now - (g.time or 0)
+    return age > PARTY_GROUP_TTL or (g.online == 0 and age > PARTY_GROUP_GRACE)
+end
+
 local function partyGroupFor(keys)
     local best
+    local now = TG.Now()
     for _, g in ipairs(Voice:Groups()) do
-        if g.party then
+        if g.party and not staleParty(g, now) then
             for _, member in ipairs(g.members) do
                 local inParty = TG.IsMe(member)
                 for _, key in ipairs(keys) do if key == member then inParty = true end end
@@ -339,6 +377,10 @@ local function syncPartyGroup(self)
     if not self:IsJoined() then return end
     local keys, n = self:PartyKeys()
     local mine = self:MyGroup()
+    local now = TG.Now()
+    for _, g in ipairs(self:Groups()) do
+        if g.id ~= mine and staleParty(g, now) then TG.Store:Delete(NS_GROUP, g.id) end
+    end
     local mineGroup = mine and self:Group(mine)
     if n == 0 then
         if mineGroup and mineGroup.party then
@@ -450,10 +492,11 @@ local function setVolume(memberID, channelID, volume)
     local location = PlayerLocation and PlayerLocation.CreateFromVoiceID and PlayerLocation:CreateFromVoiceID(memberID, channelID)
     if not location then return end
     if original[memberID] == nil then
-        local current = C_VoiceChat.GetMemberVolume and C_VoiceChat.GetMemberVolume(location)
+        local ok, current = pcall(C_VoiceChat.GetMemberVolume, location)
+        if not ok then return end
         original[memberID] = TG.usable(current) and tonumber(current) or FULL
     end
-    C_VoiceChat.SetMemberVolume(location, volume)
+    if not pcall(C_VoiceChat.SetMemberVolume, location, volume) then return end
     applied[memberID] = volume
 end
 
@@ -568,7 +611,7 @@ function Voice:OnStoreChanged(ns, key, value)
             TG:Print(L["%s joined your voice group."], TG.ShortName(key))
         end
     end
-    self:Apply(true)
+    self:Apply(false)
 end
 
 local DEFAULT_TOASTS = { "VoiceActivityNotificationTemplate" }

@@ -305,20 +305,38 @@ function TG.SetWaypoint(mapID, x, y)
     return ok
 end
 
+local function unitKey(unit)
+    local guid = UnitGUID(unit)
+    local entry = TG.usable(guid) and guid and TG.Roster:GetByGUID(guid)
+    if entry then return entry.key end
+    if UnitFullName then
+        local first, second = UnitFullName(unit)
+        if TG.usable(first) and TG.usable(second) and second ~= "" and second ~= GetNormalizedRealmName() then
+            return first .. " " .. second
+        end
+    end
+    local name = UnitName(unit)
+    return TG.usable(name) and TG.StripRealm(name) or nil
+end
+TG.UnitKey = unitKey
+
 function TG.GroupMembers()
     local names = {}
     local n = GetNumGroupMembers()
     if not TG.usable(n) then return names end
-    if IsInRaid() then
-        for i = 1, n do
+    local raid = IsInRaid()
+    local prefix = raid and "raid" or "party"
+    for i = 1, (raid and n or n - 1) do
+        local unit = prefix .. i
+        local guid = UnitGUID(unit)
+        local entry = TG.usable(guid) and guid and TG.Roster:GetByGUID(guid)
+        local key = entry and entry.key
+        if not key and raid then
             local name = GetRaidRosterInfo(i)
-            if TG.usable(name) then names[TG.StripRealm(name)] = true end
+            key = TG.usable(name) and TG.StripRealm(name) or nil
         end
-    else
-        for i = 1, n - 1 do
-            local name = UnitName("party" .. i)
-            if TG.usable(name) then names[TG.StripRealm(name)] = true end
-        end
+        key = key or unitKey(unit)
+        if key then names[key] = true end
     end
     names[TG.MyName()] = true
     return names
