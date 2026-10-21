@@ -133,8 +133,13 @@ local function build()
 
     tinsert(UISpecialFrames, "TheGuildFrame")
 
-    frame:EnableKeyboard(not InCombatLockdown())
-    frame:SetPropagateKeyboardInput(true)
+    local function allowKeys()
+        if InCombatLockdown() then return end
+        frame:EnableKeyboard(true)
+        frame:SetPropagateKeyboardInput(true)
+    end
+    frame:EnableKeyboard(false)
+    allowKeys()
     frame:SetScript("OnKeyDown", function(self, key)
         local handled = false
         if key == "TAB" and IsControlKeyDown() then
@@ -155,7 +160,7 @@ local function build()
         end)
     end
     TG:RegisterEvent("PLAYER_REGEN_DISABLED", function() frame:EnableKeyboard(false) end)
-    TG:RegisterEvent("PLAYER_REGEN_ENABLED", function() frame:EnableKeyboard(true) end)
+    TG:RegisterEvent("PLAYER_REGEN_ENABLED", allowKeys)
 
     sideTabs = UI.HasAtlas("common-sidetab")
     if sideTabs then buildSideTabs() else buildBottomTabs() end
