@@ -74,13 +74,17 @@ end
 
 TG:RegisterSlash("config", function() TG:OpenSettings() end, L["open the settings"])
 TG:RegisterSlash("comms", function(rest)
-    if tostring(rest or ""):match("^%S*"):lower() == "debug" then
+    local cmd = tostring(rest or ""):match("^%S*"):lower()
+    if cmd == "debug" then
         TG.Comm.debug = not TG.Comm.debug
         TG:Print("comm debug %s", TG.Comm.debug and "on" or "off")
         return
+    elseif cmd == "test" then
+        TG.Comm:SelfTest()
+        return
     end
     TG.Comm:PrintStats()
-end, L["show communication statistics, debug logs every message"])
+end, L["show communication statistics, debug logs every message, test checks the channel"])
 local function addonMemory()
     local out, total = {}, 0
     if not (UpdateAddOnMemoryUsage and GetAddOnMemoryUsage and C_AddOns.GetNumAddOns) then return out, total end

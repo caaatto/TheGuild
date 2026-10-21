@@ -37,14 +37,20 @@ local sendDeflateOpts = { level = 5 }
 Comm.stats = { sent = 0, held = 0, received = 0, ignored = 0, chunks = 0, reassembled = 0, lastTag = nil, lastFrom = nil, failed = 0, raw = 0, unusable = 0 }
 local warnedResult = {}
 
-local function resultName(result)
-    if type(Enum) == "table" and type(Enum.SendAddonMessageResult) == "table" then
-        for name, value in pairs(Enum.SendAddonMessageResult) do
+local function enumName(list, result)
+    if type(Enum) == "table" and type(Enum[list]) == "table" then
+        for name, value in pairs(Enum[list]) do
             if value == result then return name end
         end
     end
     return tostring(result)
 end
+
+local function resultName(result)
+    return enumName("SendAddonMessageResult", result)
+end
+
+Comm.echo = {}
 
 local function onSent(_, didSend, result)
     if didSend then return end
@@ -266,6 +272,7 @@ local function onAddonMessage(_, prefix, text, channel, sender)
     if Comm:Blocked(key) then trace("blocked sender %s", key) return end
     Comm.stats.received = Comm.stats.received + 1
 
+    if TG.IsMe(key) then Comm.echo[channel] = GetTime() end
     local proto, tag, body = strsplit(SEP, text, 3)
     proto = tonumber(proto)
     if not proto or not tag then trace("malformed message from %s", key) return end
@@ -364,13 +371,32 @@ function Comm:PrintStats()
     if s.lastResult then TG:Print("last send failure: %s", resultName(s.lastResult)) end
     if s.lastTag then TG:Print("last: %s from %s", s.lastTag, tostring(s.lastFrom)) end
     TG:Print("in guild: %s, my name: %s, roster ready: %s, protocol %d, debug %s", tostring(IsInGuild()), tostring(TG.MyName()), tostring(TG.Roster:IsReady()), TG.protocol, self.debug and "on" or "off")
+    local registered = C_ChatInfo.IsAddonMessagePrefixRegistered and C_ChatInfo.IsAddonMessagePrefixRegistered(TG.prefix)
+    TG:Print("prefix %s registered: %s (%s)", TG.prefix, tostring(registered), enumName("RegisterAddonMessagePrefixResult", self.prefixResult))
     for key, p in pairs(self:Peers()) do TG:Print("peer %s: version %s, seen %s ago", key, tostring(p.version), TG.FormatAge(GetTime() - p.seen)) end
     if lockedDown() then TG:Print("chat messaging lockdown active, %d messages waiting", #held) end
 end
 
 TG:RegisterEvent("CHAT_MSG_ADDON", onAddonMessage)
 
-C_ChatInfo.RegisterAddonMessagePrefix(TG.prefix)
+Comm.prefixResult = C_ChatInfo.RegisterAddonMessagePrefix(TG.prefix)
+
+function Comm:SelfTest()
+    local me = TG.MyName()
+    if not me then return end
+    wipe(self.echo)
+    local start = GetTime()
+    if IsInGuild() then dispatchRaw(TG.protocol .. SEP .. "PING" .. SEP .. "=", "GUILD", nil, "ALERT") end
+    dispatchRaw(TG.protocol .. SEP .. "PING" .. SEP .. "=", "WHISPER", TG.Address(me), "ALERT")
+    TG:Print("comm test: sent a ping to the guild and to myself, waiting 3 seconds")
+    TG.After(3, function()
+        local function age(channel)
+            local at = self.echo[channel]
+            return at and at >= start and "arrived" or "nothing"
+        end
+        TG:Print("comm test: guild echo %s, whisper echo %s, raw events %d, send failures %d", age("GUILD"), age("WHISPER"), self.stats.raw, self.stats.failed)
+    end)
+end
 
 TG:RegisterEvent("PLAYER_ENTERING_WORLD", function(_, initial)
     if initial then TG.After(8, function() Comm:SendHello() end) end
