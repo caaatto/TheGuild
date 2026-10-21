@@ -481,12 +481,27 @@ local function resolveMember(memberID, channelID)
         local entry = TG.Roster:GetByGUID(guid)
         key = entry and entry.key
     end
-    if not key then
-        local name = C_VoiceChat.GetMemberName(memberID, channelID)
-        if TG.usable(name) and name then key = TG.Key(name) end
+    if key then
+        resolved[memberID] = key
+        return key
     end
-    if key then resolved[memberID] = key end
-    return key
+    local name = C_VoiceChat.GetMemberName(memberID, channelID)
+    if not TG.usable(name) or not name then return nil end
+    local entry = TG.Roster:Find(name)
+    if not entry then
+        local first = TG.FirstName(name)
+        for _, e in ipairs(TG.Roster:Online()) do
+            if TG.FirstName(e.key) == first then
+                if entry then entry = nil break end
+                entry = e
+            end
+        end
+    end
+    if entry then
+        resolved[memberID] = entry.key
+        return entry.key
+    end
+    return TG.Key(name)
 end
 
 local function setVolume(memberID, channelID, volume)
@@ -722,6 +737,15 @@ function Voice:PrintDiagnostics()
                 if value == provider then name = key end
             end
             lines[#lines + 1] = ("  active provider: %s"):format(name)
+        end
+        local channel = self:ActiveChannel()
+        if channel then
+            for _, member in ipairs(channel.members or {}) do
+                local guid = C_VoiceChat.GetMemberGUID and C_VoiceChat.GetMemberGUID(member.memberID, channel.channelID)
+                local vname = C_VoiceChat.GetMemberName and C_VoiceChat.GetMemberName(member.memberID, channel.channelID)
+                local key = resolveMember(member.memberID, channel.channelID)
+                lines[#lines + 1] = ("  member %s: name %s, guid %s, key %s, roster %s"):format(tostring(member.memberID), TG.usable(vname) and tostring(vname) or "secret", TG.usable(guid) and tostring(guid) or "secret", tostring(key), tostring(key and TG.Roster:Get(key) ~= nil))
+            end
         end
         if C_VoiceChat.GetCurrentVoiceChatConnectionStatusCode then
             lines[#lines + 1] = ("  connection status: %s"):format(self:StatusName(C_VoiceChat.GetCurrentVoiceChatConnectionStatusCode()))
