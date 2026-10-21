@@ -226,13 +226,14 @@ function TG.SetClassIcon(texture, classFile)
         return true
     end
     local c = classFile and CLASS_ICON_TCOORDS and CLASS_ICON_TCOORDS[classFile]
-    texture:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
     if c then
+        texture:SetTexture("Interface\\TargetingFrame\\UI-Classes-Circles")
         texture:SetTexCoord(c[1], c[2], c[3], c[4])
-    else
-        texture:SetTexCoord(0, 1, 0, 1)
+        return true
     end
-    return c ~= nil
+    texture:SetTexture("Interface\\CharacterFrame\\TempPortrait")
+    texture:SetTexCoord(0, 1, 0, 1)
+    return false
 end
 
 local ROLE_ATLAS = { T = "roleicon-tiny-tank", H = "roleicon-tiny-healer", D = "roleicon-tiny-dps" }
