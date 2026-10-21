@@ -3,7 +3,7 @@
 ## Notes: Rally the guild to your position with a raid warning, sound and waypoint.
 ## Notes-deDE: Ruft die Gilde mit Schlachtzugswarnung, Ton und Wegpunkt zu deiner Position.
 ## Author: Catto
-## Version: 0.2.12
+## Version: 0.2.13
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild

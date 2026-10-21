@@ -3,7 +3,7 @@
 ## Notes: Proximity voice and voice groups on the Blizzard guild voice channel.
 ## Notes-deDE: Proximity-Voice und Voice-Gruppen über den Blizzard-Gildensprachkanal.
 ## Author: Catto
-## Version: 0.2.12
+## Version: 0.2.13
 ## Dependencies: TheGuild
 ## OptionalDeps: TheGuild_Map
 ## Group: TheGuild

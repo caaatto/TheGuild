@@ -3,7 +3,7 @@
 ## Notes: Raid teams with invites, raid builder, schedule with calendar export and attendance tracking.
 ## Notes-deDE: Raidgruppen mit Einladung, Raidplaner, Terminen mit Kalenderexport und Anwesenheitserfassung.
 ## Author: Catto
-## Version: 0.2.12
+## Version: 0.2.13
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
