@@ -42,6 +42,7 @@ function WM.Tooltip(tooltip, key, peer)
     if peer.flags:find("d", 1, true) then GameTooltip_AddColoredLine(tooltip, L["Dead"], RED_FONT_COLOR) end
     if peer.flags:find("i", 1, true) then GameTooltip_AddNormalLine(tooltip, L["In an instance"]) end
     if peer.flags:find("s", 1, true) then GameTooltip_AddNormalLine(tooltip, L["Stealthed"]) end
+    if peer.gm then GameTooltip_AddDisabledLine(tooltip, L["via GuildMap"]) end
     GameTooltip_AddDisabledLine(tooltip, L["Updated %s ago"]:format(TG.FormatAge(GetTime() - peer.ts)))
 end
 

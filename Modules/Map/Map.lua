@@ -6,6 +6,9 @@ local MOVE_EPS = 0.002
 local HEARTBEAT = 25
 local PEER_TTL = 120
 local HEALTH_WARN_GAP = 60
+local GM_PREFIX = "GuildMapEx1"
+local GM_TTL = 180
+local NATIVE_HOLD = 60
 
 local function refreshAll(mod)
     TG:Fire("MAP_PEERS")
@@ -19,13 +22,15 @@ local Map = TG:NewModule("Map", {
         worldMap = true, minimap = true, names = true, iconStyle = "icon",
         worldSize = 22, minimapSize = 14,
         lowHealth = false, lowHealthThreshold = 30,
-        deaths = true, pins = true, minLevel = 1,
+        deaths = true, pins = true, minLevel = 1, guildMap = true,
     },
     charDefaults = { share = true, hideStealth = true, shareNotice = false },
     settings = {
         { key = "share", scope = "char", type = "boolean", name = L["Share my position"], tooltip = L["Send your position to guild members running TheGuild."], default = true,
           onChange = function(mod) mod:Publish(true) end },
         { key = "hideStealth", scope = "char", type = "boolean", name = L["Hide while stealthed"], tooltip = L["Do not send a position while you are stealthed."], default = true },
+        { key = "guildMap", type = "boolean", name = L["GuildMap compatibility"], tooltip = L["Show members who run GuildMap and let them see you. Positions go out in GuildMap format only while somebody without TheGuild uses it."], default = true,
+          onChange = function(mod) mod:GuildMapChanged() end },
         { key = "worldMap", type = "boolean", name = L["Show guild members on the world map"], default = true, onChange = refreshAll },
         { key = "minimap", type = "boolean", name = L["Show guild members on the minimap"], default = true, onChange = refreshAll },
         { key = "names", type = "boolean", name = L["Show names"], default = true, onChange = refreshAll },
@@ -44,6 +49,8 @@ local Map = TG:NewModule("Map", {
 Map.peers = {}
 local last = { at = 0 }
 local pendingFire = false
+local gmSeen = {}
+local gmAnnounced = false
 
 local function health()
     if UnitHealthPercent then
@@ -76,12 +83,80 @@ function Map:Snapshot()
     return { mapID = mapID, x = x, y = y, hp = health(), flags = flags }
 end
 
+local function gmUsers()
+    local now = GetTime()
+    local n = 0
+    for key, at in pairs(gmSeen) do
+        local entry = TG.Roster:Get(key)
+        if now - at > GM_TTL or (entry and not entry.online) then
+            gmSeen[key] = nil
+        else
+            n = n + 1
+        end
+    end
+    return n
+end
+
+function Map:GuildMapUsers()
+    return gmUsers()
+end
+
+local function gmIdentity()
+    local me = TG.MyName()
+    local entry = me and TG.Roster:Get(me)
+    if not entry then return nil end
+    local _, class = UnitClass("player")
+    local _, race = UnitRace("player")
+    return me, entry.rankIndex or 4, entry.level or 1, TG.plain(class, "UNKNOWN"), TG.plain(race, "Unknown")
+end
+
+function Map:PublishGuildMap(snap)
+    if not self.db.guildMap or gmUsers() == 0 then return end
+    local me, rank, level, class, race = gmIdentity()
+    if not me then return end
+    if not snap or snap.x <= 0 or snap.y <= 0 or snap.flags:find("[is]") then
+        self:HideFromGuildMap()
+        return
+    end
+    local hp = snap.hp
+    if snap.flags:find("d", 1, true) then
+        hp = 0
+    elseif hp <= 0 then
+        hp = hp == 0 and 1 or 100
+    end
+    gmAnnounced = true
+    TG.Comm:SendForeign(GM_PREFIX, ("%s,%d,%d,%s,%s,%.3f,%.3f,%d,%d,0,%s,0"):format(me, rank, level, class, race, snap.x, snap.y, snap.mapID, hp, TG.version))
+end
+
+function Map:HideFromGuildMap()
+    if not gmAnnounced then return end
+    gmAnnounced = false
+    local me, rank, level, _, race = gmIdentity()
+    if not me then return end
+    TG.Comm:SendForeign(GM_PREFIX, ("%s,%d,%d,STEALTH,%s,0.000,0.000,0,100,0,%s,0"):format(me, rank, level, race, TG.version))
+end
+
+function Map:GuildMapChanged()
+    if self.db.guildMap then
+        last.at = 0
+        self:Publish(true)
+    else
+        self:HideFromGuildMap()
+        local changed = false
+        for key, peer in pairs(self.peers) do
+            if peer.gm then self.peers[key] = nil changed = true end
+        end
+        if changed then self:Changed() end
+    end
+end
+
 function Map:Publish(force)
     if not TG.InGuild() then return end
     if not self.cdb.share then
         if self.announced then
             self.announced = false
             TG.Comm:Send("P", "0:0:0:-1:x", "NORMAL")
+            self:HideFromGuildMap()
         end
         return
     end
@@ -97,6 +172,7 @@ function Map:Publish(force)
     last.at = now
     self.announced = true
     TG.Comm:Send("P", ("%d:%.4f:%.4f:%d:%s"):format(snap.mapID, snap.x, snap.y, snap.hp, snap.flags), force and "ALERT" or "NORMAL")
+    self:PublishGuildMap(snap)
 end
 
 function Map:Changed()
@@ -130,9 +206,49 @@ function Map:OnPosition(sender, data)
     peer.hp = TG.Clamp(tonumber(hp) or -1, -1, 100)
     peer.flags = flags
     peer.ts = GetTime()
+    peer.native = peer.ts
+    peer.gm = nil
     peer.hasPos = x > 0 and y > 0 and not flags:find("[is]")
     self.peers[sender] = peer
     self:CheckHealth(sender, peer)
+    self:Changed()
+end
+
+function Map:OnGuildMapMessage(_, prefix, text, channel, sender)
+    if prefix ~= GM_PREFIX or channel ~= "GUILD" or not self.db.guildMap then return end
+    if not TG.usable(text) or not TG.usable(sender) or #text > 200 then return end
+    local key = TG.StripRealm(sender)
+    if not key or TG.IsMe(key) then return end
+    local entry = TG.Roster:Get(key)
+    if not entry then
+        if TG.Roster:IsReady() then return end
+    elseif entry.guid and entry.guid == TG.MyGUID() then
+        return
+    end
+    local now = GetTime()
+    if not TG.Comm:HasAddon(key) then gmSeen[key] = now end
+    local peer = self.peers[key]
+    if peer and peer.native and now - peer.native < NATIVE_HOLD then return end
+    local _, _, _, class, _, x, y, mapID, hp = strsplit(",", text)
+    mapID = tonumber(mapID)
+    x, y = TG.Clamp(x, 0, 1) or 0, TG.Clamp(y, 0, 1) or 0
+    if class == "STEALTH" or not mapID or mapID < 1 or mapID > 100000 or mapID ~= math.floor(mapID) or x <= 0 or y <= 0 then
+        if peer then
+            self.peers[key] = nil
+            self:Changed()
+        end
+        return
+    end
+    hp = tonumber(hp)
+    peer = peer or {}
+    peer.mapID, peer.x, peer.y = mapID, x, y
+    peer.hp = (hp and hp > 0 and hp < 100) and math.floor(hp) or -1
+    peer.flags = hp == 0 and "d" or ""
+    peer.ts = now
+    peer.hasPos = true
+    peer.gm = true
+    self.peers[key] = peer
+    self:CheckHealth(key, peer)
     self:Changed()
 end
 
@@ -211,6 +327,8 @@ end
 
 function Map:OnEnable()
     self:RegisterComm("P", "OnPosition")
+    C_ChatInfo.RegisterAddonMessagePrefix(GM_PREFIX)
+    self:RegisterEvent("CHAT_MSG_ADDON", "OnGuildMapMessage")
     if self.cdb.share and not self.cdb.shareNotice then
         self.cdb.shareNotice = true
         TG.After(15, function() if self.enabled then TG:Print(L["Your position is shared with guild members who run TheGuild. /tg share turns it off."]) end end)
@@ -226,18 +344,21 @@ function Map:OnEnable()
     self:On("MEMBER_OFFLINE", function(e)
         if self.peers[e.key] then self.peers[e.key] = nil self:Changed() end
     end)
-    self:On("GUILD_CHANGED", function() wipe(self.peers) self:Changed() end)
+    self:On("GUILD_CHANGED", function() wipe(self.peers) wipe(gmSeen) gmAnnounced = false self:Changed() end)
     self:RegisterEvent("PLAYER_ENTERING_WORLD", function() last = { at = 0 } end)
     self.WorldMap:Enable()
     self.MinimapPins:Enable()
     self.SharedPins:Enable()
     self.Deaths:Enable()
     self.announced = false
+    gmAnnounced = false
 end
 
 function Map:OnDisable()
     if self.announced then TG.Comm:Send("P", "0:0:0:-1:x", "NORMAL") end
     self.announced = false
+    self:HideFromGuildMap()
+    wipe(gmSeen)
     self.WorldMap:Disable()
     self.MinimapPins:Disable()
     self.Deaths:Disable()

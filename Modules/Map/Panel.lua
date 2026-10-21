@@ -62,7 +62,7 @@ local function build(panel)
         if peer.flags:find("i", 1, true) then zone = zone .. " (" .. L["In an instance"] .. ")" end
         if peer.flags:find("s", 1, true) then zone = L["Stealthed"] end
         button.cells.zone:SetText(zone)
-        button.cells.health:SetText(peer.hp >= 0 and (peer.hp .. "%") or "")
+        button.cells.health:SetText(peer.hp >= 0 and (peer.hp .. "%") or (peer.gm and GRAY_FONT_COLOR:WrapTextInColorCode("GuildMap") or ""))
         button.cells.age:SetText(TG.FormatAge(GetTime() - peer.ts))
         button.data = data
     end, {

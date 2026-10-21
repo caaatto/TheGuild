@@ -15,7 +15,7 @@ TheGuild wants to be the one guild addon a Forever guild installs. The measure i
 
 | Addon | Strength | TheGuild |
 | --- | --- | --- |
-| GuildMap | Live member pins, health alerts, layer filter | Map module, native data provider instead of overlay frames, pins translate to continent maps |
+| GuildMap | Live member pins, health alerts, layer filter | Map module, native data provider instead of overlay frames, pins translate to continent maps, both addons see each other over the GuildMap prefix |
 | GuildOS | Everything in one window, attendance, loot, professions, alliances | Module system, professions, roster roles, planned raid tools |
 | Guild Roster Manager | Join and promotion history, alt grouping, event log, ban list, decentral sync | Alt links and roles today, join history and audit log planned |
 | SystematicGuild | Call to arms, raid groups, bounties, no server | Call to Arms module, planned raid groups |

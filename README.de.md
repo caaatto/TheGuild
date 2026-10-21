@@ -30,7 +30,7 @@ Durchsuchbarer und sortierbarer Roster mit Rollen (Tank, Heiler, Schaden) sowie 
 
 ![Karte](Screenshots/map.jpg)
 
-Gildenmitglieder auf Weltkarte und Minimap mit Klassensymbol oder klassenfarbenem Punkt, Name, Rangabzeichen, Leben und Tooltip. Positionen werden alle paar Sekunden beim Bewegen gesendet, nie aus Instanzen, optional nicht im Schleichen. Strg + Rechtsklick auf der Weltkarte setzt eine Gildenmarkierung für alle, zeitlich begrenzt oder dauerhaft. Tode erscheinen als Schädel. Die Schalter sitzen in den Verfolgungsmenüs von Weltkarte und Minimap.
+Gildenmitglieder auf Weltkarte und Minimap mit Klassensymbol oder klassenfarbenem Punkt, Name, Rangabzeichen, Leben und Tooltip. Positionen werden alle paar Sekunden beim Bewegen gesendet, nie aus Instanzen, optional nicht im Schleichen. Strg + Rechtsklick auf der Weltkarte setzt eine Gildenmarkierung für alle, zeitlich begrenzt oder dauerhaft. Tode erscheinen als Schädel. Die Schalter sitzen in den Verfolgungsmenüs von Weltkarte und Minimap. Mitglieder mit GuildMap statt TheGuild erscheinen ebenfalls, und die eigene Position geht im GuildMap-Format raus, solange eines davon online ist, so sehen sich beide Addons gegenseitig.
 
 ### Raids
 

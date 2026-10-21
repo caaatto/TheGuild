@@ -93,14 +93,14 @@ local function utf8Cut(s, i, j)
     return j
 end
 
-local function dispatchRaw(text, chatType, target, prio)
+local function dispatchRaw(text, chatType, target, prio, prefix)
     if Comm.muted then return end
     if lockedDown() then
-        held[#held + 1] = { text = text, chatType = chatType, target = target, prio = prio }
+        held[#held + 1] = { text = text, chatType = chatType, target = target, prio = prio, prefix = prefix }
         Comm.stats.held = Comm.stats.held + 1
         return
     end
-    CTL:SendAddonMessage(prio or "NORMAL", TG.prefix, text, chatType, target)
+    CTL:SendAddonMessage(prio or "NORMAL", prefix or TG.prefix, text, chatType, target)
     Comm.stats.sent = Comm.stats.sent + 1
 end
 
@@ -142,6 +142,12 @@ function Comm:Send(tag, payload, prio, target)
         dispatchRaw(text, chatType, target, prio or "BULK")
     end
     Comm.stats.chunks = Comm.stats.chunks + #pieces
+    return true
+end
+
+function Comm:SendForeign(prefix, text, prio)
+    if not IsInGuild() or type(text) ~= "string" or #text > MAX_MESSAGE then return false end
+    dispatchRaw(text, "GUILD", nil, prio or "BULK", prefix)
     return true
 end
 
@@ -352,7 +358,7 @@ TG.Ticker(1, function()
         local queue = held
         held = {}
         for _, item in ipairs(queue) do
-            CTL:SendAddonMessage(item.prio or "NORMAL", TG.prefix, item.text, item.chatType, item.target)
+            CTL:SendAddonMessage(item.prio or "NORMAL", item.prefix or TG.prefix, item.text, item.chatType, item.target)
             Comm.stats.sent = Comm.stats.sent + 1
         end
     end

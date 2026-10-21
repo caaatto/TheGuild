@@ -30,7 +30,7 @@ Searchable and sortable roster with roles (tank, healer, damage) and main and al
 
 ![Map](Screenshots/map.jpg)
 
-Guild members on the world map and the minimap with class icon or class colored dot, name, rank badge, health and tooltip. Positions are sent every few seconds while moving, never from inside an instance, optionally hidden while stealthed. Ctrl + right click on the world map places a guild pin for everyone, temporary or permanent. Deaths show up as skulls. Toggles live in the world map and minimap tracking menus.
+Guild members on the world map and the minimap with class icon or class colored dot, name, rank badge, health and tooltip. Positions are sent every few seconds while moving, never from inside an instance, optionally hidden while stealthed. Ctrl + right click on the world map places a guild pin for everyone, temporary or permanent. Deaths show up as skulls. Toggles live in the world map and minimap tracking menus. Members who run GuildMap instead of TheGuild appear as well, and your position is sent in GuildMap format as long as one of them is online, so both addons see each other.
 
 ### Raids
 
