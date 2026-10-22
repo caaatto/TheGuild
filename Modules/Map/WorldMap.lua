@@ -131,6 +131,9 @@ end
 
 TheGuildMemberPinMixin = CreateFromMixins(MapCanvasPinMixin)
 
+function TheGuildMemberPinMixin:CheckMouseButtonPassthrough()
+end
+
 function TheGuildMemberPinMixin:OnLoad()
     self:SetScalingLimits(1, 1.0, 1.4)
     self:UseFrameLevelType("PIN_FRAME_LEVEL_GROUP_MEMBER")
@@ -179,6 +182,9 @@ function TheGuildMemberPinMixin:OnMouseClickAction(button)
 end
 
 TheGuildMarkerPinMixin = CreateFromMixins(MapCanvasPinMixin)
+
+function TheGuildMarkerPinMixin:CheckMouseButtonPassthrough()
+end
 
 function TheGuildMarkerPinMixin:OnLoad()
     self:SetScalingLimits(1, 1.0, 1.4)
