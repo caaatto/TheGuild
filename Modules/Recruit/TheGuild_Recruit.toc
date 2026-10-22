@@ -3,7 +3,7 @@
 ## Notes: Candidate list for officers with whisper, guild invite, status tracking and a recruitment message for channels.
 ## Notes-deDE: Kandidatenliste für Offiziere mit Flüstern, Gildeneinladung, Status und Werbetext für Kanäle.
 ## Author: Catto
-## Version: 0.2.27
+## Version: 0.2.28
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
