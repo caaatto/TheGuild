@@ -120,7 +120,8 @@ end
 function UI.Button(parent, text, width, onClick)
     local b = CreateFrame("Button", nil, parent, "UIPanelButtonTemplate")
     b:SetText(text)
-    b:SetWidth(width or math.max(80, b:GetTextWidth() + 30))
+    local needed = (tonumber(b:GetTextWidth()) or 0) + 24
+    b:SetWidth(math.max(width or 80, needed))
     b:SetHeight(22)
     if onClick then b:SetScript("OnClick", onClick) end
     return b
