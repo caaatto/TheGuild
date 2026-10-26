@@ -7,6 +7,7 @@ on:
       - 'README.md'
       - 'README.de.md'
       - 'ROADMAP.md'
+      - 'AI-DISCLAIMER.md'
       - 'Screenshots/**'
   workflow_dispatch:
     inputs:
@@ -101,7 +102,7 @@ jobs:
           out = pathlib.Path("build")
           shutil.rmtree(out, ignore_errors=True)
           out.mkdir()
-          ignore = {".git", ".github", ".gitattributes", ".gitignore", "Modules", "Screenshots", "build", "tools", ".pkgmeta", "README.md", "README.de.md", "ROADMAP.md"}
+          ignore = {".git", ".github", ".gitattributes", ".gitignore", "Modules", "Screenshots", "build", "tools", ".pkgmeta", "README.md", "README.de.md", "ROADMAP.md", "AI-DISCLAIMER.md"}
           core = out / "TheGuild"
           shutil.copytree(".", core, ignore=lambda d, names: [n for n in names if pathlib.Path(d) == pathlib.Path(".") and n in ignore])
           for folder in sorted(p for p in pathlib.Path("Modules").iterdir() if p.is_dir()):

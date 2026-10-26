@@ -141,6 +141,10 @@ Minor- und Major-Versionen werden vor dem Push von Hand in allen TOCs gesetzt, d
 
 TheGuild hat eine eigene Lizenz, siehe `LICENSE`. Du darfst es frei nutzen, den Quellcode lesen und forken, es für dich oder deine Gilde ändern und Beiträge einreichen. Das Addon oder eine geänderte Fassung woanders zu veröffentlichen ist nicht erlaubt, solange das Projekt gepflegt wird, also in den letzten zwölf Monaten einen Release hatte, oder innerhalb eines Monats, nachdem ein Spielupdate das Addon komplett funktionsunfähig gemacht hat. Danach dürfen geänderte Fassungen unter anderem Namen mit Verweis hierher veröffentlicht werden. Das Addon oder einen Fork zu verkaufen oder hinter eine Bezahlschranke zu stellen ist nie erlaubt. Die mitgelieferten Bibliotheken behalten ihre eigenen Lizenzen.
 
+## Hinweis
+
+Welche Assistenzwerkzeuge in der Entwicklung im Spiel waren, steht in `AI-DISCLAIMER.md`. Das Addon selbst läuft vollständig im Spielclient und schickt nichts hinaus.
+
 ## Bibliotheken
 
 LibStub, CallbackHandler-1.0, ChatThrottleLib, LibSerialize, LibDeflate, LibDataBroker-1.1, LibDBIcon-1.0, HereBeDragons-2.0. Jede bringt ihre eigene Lizenz mit.
