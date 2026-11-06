@@ -112,8 +112,8 @@ local function build(panel)
         list:SetData(data)
     end
 
-    TG:On("MAP_PEERS", function() if panel:IsShown() then panel:OnShow() end end, Map)
-    TG:On("MAP_SHARING", function() if panel:IsShown() then share:SetChecked(Map.cdb.share) end end, Map)
+    TG:On("MAP_PEERS", function() if panel:IsVisible() then panel:OnShow() end end, Map)
+    TG:On("MAP_SHARING", function() if panel:IsVisible() then share:SetChecked(Map.cdb.share) end end, Map)
 end
 
 TG.Window:RegisterTab("map", L["Map"], build, 20, "Interface\\Icons\\INV_Misc_Map_01", "Map")

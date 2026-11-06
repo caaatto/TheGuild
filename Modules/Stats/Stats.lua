@@ -311,8 +311,8 @@ local function build(panel)
         list:SetData(Stats:Collect())
     end
 
-    TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Stats)
-    TG:On("STORE_CHANGED", function() if panel:IsShown() then panel:OnShow() end end, Stats)
+    TG:On("ROSTER_UPDATED", function() if panel:IsVisible() then panel:OnShow() end end, Stats)
+    TG:On("STORE_CHANGED", function() if panel:IsVisible() then panel:OnShow() end end, Stats)
 end
 
 TG.Window:RegisterTab("stats", L["Statistics"], build, 15, "Interface\\Icons\\INV_Misc_Book_09", "Stats")

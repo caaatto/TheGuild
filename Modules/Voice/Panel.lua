@@ -17,7 +17,7 @@ local function build(panel)
 
     local joinButton = UI.Button(panel, L["Join voice"], 120, function()
         if Voice:IsJoined() then Voice:Leave() else Voice:Join() end
-        TG.After(0.5, function() if panel:IsShown() then panel:OnShow() end end)
+        TG.After(0.5, function() if panel:IsVisible() then panel:OnShow() end end)
     end)
     joinButton:SetPoint("TOPLEFT", header, "BOTTOMLEFT", 4, -8)
 
@@ -129,7 +129,7 @@ local function build(panel)
     local groupFilter = ""
     local search = UI.SearchBox(groupsFrame, 200, function(text)
         groupFilter = text:lower()
-        if panel:IsShown() then panel:OnShow() end
+        if panel:IsVisible() then panel:OnShow() end
     end)
     search:SetPoint("TOPLEFT", newGroup, "BOTTOMLEFT", 0, -6)
     search:SetPoint("LEFT", groupsFrame, "LEFT", 8, 0)
@@ -219,9 +219,9 @@ local function build(panel)
         leaveGroup:SetShown(Voice:MyGroup() ~= nil)
     end
 
-    TG:On("VOICE_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Voice)
-    TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "vgroup" or ns == "vmem") then panel:OnShow() end end, Voice)
-    TG:On("MAP_PEERS", function() if panel:IsShown() then members:Refresh() end end, Voice)
+    TG:On("VOICE_UPDATED", function() if panel:IsVisible() then panel:OnShow() end end, Voice)
+    TG:On("STORE_CHANGED", function(ns) if panel:IsVisible() and (ns == "vgroup" or ns == "vmem") then panel:OnShow() end end, Voice)
+    TG:On("MAP_PEERS", function() if panel:IsVisible() then members:Refresh() end end, Voice)
 end
 
 TG.Window:RegisterTab("voice", L["Voice"], build, 26, "Interface\\Icons\\INV_Misc_Horn_01", "Voice")

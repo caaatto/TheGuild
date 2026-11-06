@@ -76,7 +76,7 @@ Erfasst deine Rezepte beim Öffnen eines Berufsfensters, teilt sie mit der Gilde
 
 ### Ruf zu den Waffen und Nachrichten
 
-`/tg cta`, eine Tastenbelegung oder der Knopf in der Übersicht schickt deine Position an die Gilde. Empfänger bekommen eine Raidwarnung, einen Ton und ein Fenster mit Wegpunkt-Knopf. Das Nachrichtenmodul kann neue Mitglieder begrüßen und Logins grüßen (beides standardmäßig aus), gratuliert zu Meilensteinstufen und blendet den Chat stummgeschalteter Spieler aus.
+`/tg cta`, eine Tastenbelegung oder der Knopf in der Übersicht schickt deine Position an die Gilde. Empfänger bekommen eine Raidwarnung, einen Ton und ein Fenster mit Wegpunkt-Knopf. Das Nachrichtenmodul ist standardmäßig aus. Eingeschaltet kann es neue Mitglieder begrüßen, Logins grüßen und zu Meilensteinstufen gratulieren, jedes davon erst nach eigenem Einschalten, und es blendet den Chat stummgeschalteter Spieler aus.
 
 ## Blizzard-Integration
 

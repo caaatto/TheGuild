@@ -458,9 +458,9 @@ local function build(panel)
     end
 
     TG:On("STORE_CHANGED", function(ns)
-        if panel:IsShown() and (ns == "post" or ns == "poll" or ns == "vote" or ns == "event" or ns == "signup" or ns == "bounty" or ns == "claim") then panel:OnShow() end
+        if panel:IsVisible() and (ns == "post" or ns == "poll" or ns == "vote" or ns == "event" or ns == "signup" or ns == "bounty" or ns == "claim") then panel:OnShow() end
     end, Board)
-    TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Board)
+    TG:On("ROSTER_UPDATED", function() if panel:IsVisible() then panel:OnShow() end end, Board)
 end
 
 TG.Window:RegisterTab("board", L["Board"], build, 28, "Interface\\Icons\\INV_Misc_Note_02", "Board")

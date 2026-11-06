@@ -9,6 +9,15 @@ local Dashboard = TG:NewModule("Dashboard", {
     defaults = { logFilter = "all" },
 })
 
+local motdText
+
+function Dashboard:OnEnable()
+    self:RegisterEvent("GUILD_MOTD", function(_, text)
+        motdText = TG.usable(text) and text or nil
+        if self.panel and self.panel:IsVisible() then self.panel:OnShow() end
+    end)
+end
+
 local LOG_FILTERS = {
     { "all", L["Everything"], nil },
     { "presence", L["Logins"], { online = true, offline = true } },
@@ -40,6 +49,7 @@ local function filterName()
 end
 
 local function build(panel)
+    Dashboard.panel = panel
     local left = CreateFrame("Frame", nil, panel)
     left:SetPoint("TOPLEFT", panel, "TOPLEFT", 6, -6)
     left:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 6, 6)
@@ -212,8 +222,12 @@ local function build(panel)
         end
         upcoming:SetText(#lines > 0 and table.concat(lines, "\n") or GRAY_FONT_COLOR:WrapTextInColorCode(L["Nothing planned."]))
 
-        local text = TG.Demo.active and TG.Demo.motd or (C_GuildInfo and C_GuildInfo.GetMOTD and C_GuildInfo.GetMOTD())
-        if not TG.usable(text) and GetGuildRosterMOTD then text = GetGuildRosterMOTD() end
+        local text = TG.Demo.active and TG.Demo.motd or motdText
+        if not text and C_Club and C_Club.GetGuildClubId and C_Club.GetClubInfo then
+            local clubId = C_Club.GetGuildClubId()
+            local ok, info = pcall(C_Club.GetClubInfo, clubId)
+            text = ok and info and info.broadcast
+        end
         motd:SetText(TG.usable(text) and text ~= "" and text or GRAY_FONT_COLOR:WrapTextInColorCode("..."))
         shareButton:SetEnabled(map ~= nil and map.enabled)
         filter:SetDefaultText(filterName())
@@ -222,9 +236,8 @@ local function build(panel)
         list:SetData(items)
     end
 
-    TG:On("LOG_ADDED", function() if panel:IsShown() then panel:OnShow() end end, Dashboard)
-    TG:On("MAP_SHARING", function() if panel:IsShown() then panel:OnShow() end end, Dashboard)
-    TG:RegisterEvent("GUILD_MOTD", function() if panel:IsShown() then panel:OnShow() end end, Dashboard)
+    TG:On("LOG_ADDED", function() if panel:IsVisible() then panel:OnShow() end end, Dashboard)
+    TG:On("MAP_SHARING", function() if panel:IsVisible() then panel:OnShow() end end, Dashboard)
 end
 
 TG.Window:RegisterTab("overview", L["Overview"], build, 1, TG.icon, "Dashboard")

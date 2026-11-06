@@ -397,11 +397,11 @@ local function build(panel)
         list:SetData(rows)
     end
 
-    TG:On("PROFESSIONS_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Prof)
+    TG:On("PROFESSIONS_UPDATED", function() if panel:IsVisible() then panel:OnShow() end end, Prof)
     TG:RegisterEvent("ITEM_DATA_LOAD_RESULT", function()
-        if panel:IsShown() and not panel.refreshQueued then
+        if panel:IsVisible() and not panel.refreshQueued then
             panel.refreshQueued = true
-            TG.After(0.5, function() panel.refreshQueued = false if panel:IsShown() then panel:OnShow() end end)
+            TG.After(0.5, function() panel.refreshQueued = false if panel:IsVisible() then panel:OnShow() end end)
         end
     end, Prof)
 end

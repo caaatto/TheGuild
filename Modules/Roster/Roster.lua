@@ -271,9 +271,9 @@ local function build(panel)
         list:SetData(Roster:Rows())
     end
 
-    TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Roster)
-    TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "role" or ns == "alt") then panel:OnShow() end end, Roster)
-    TG:On("PEER_HELLO", function() if panel:IsShown() then list:Refresh() end end, Roster)
+    TG:On("ROSTER_UPDATED", function() if panel:IsVisible() then panel:OnShow() end end, Roster)
+    TG:On("STORE_CHANGED", function(ns) if panel:IsVisible() and (ns == "role" or ns == "alt") then panel:OnShow() end end, Roster)
+    TG:On("PEER_HELLO", function() if panel:IsVisible() then list:Refresh() end end, Roster)
 end
 
 function Roster:OnEnable()

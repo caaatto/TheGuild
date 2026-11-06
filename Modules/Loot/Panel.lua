@@ -109,9 +109,9 @@ local function build(panel)
         list:SetData(rows)
     end
 
-    TG:On("STORE_CHANGED", function(ns) if ns == "loot" and panel:IsShown() then panel:OnShow() end end, Loot)
-    TG:On("LOOT_SESSION", function() if panel:IsShown() then panel:OnShow() end end, Loot)
-    TG:On("LOOT_TRADES", function() if panel:IsShown() then panel:OnShow() end end, Loot)
+    TG:On("STORE_CHANGED", function(ns) if ns == "loot" and panel:IsVisible() then panel:OnShow() end end, Loot)
+    TG:On("LOOT_SESSION", function() if panel:IsVisible() then panel:OnShow() end end, Loot)
+    TG:On("LOOT_TRADES", function() if panel:IsVisible() then panel:OnShow() end end, Loot)
 end
 
 TG.Window:RegisterTab("loot", L["Loot"], build, 27, "Interface\\Icons\\INV_Misc_Bag_10", "Loot")

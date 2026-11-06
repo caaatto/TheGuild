@@ -9,6 +9,7 @@ local Social = TG:NewModule("Social", {
     title = L["Messages"],
     desc = L["Greet members who come online"],
     order = 40,
+    defaultEnabled = false,
     defaults = {
         greet = false, welcomeChat = false, levelup = false, cooldownHours = 12, polite = true, muteChat = true,
         greetings = { L["Hi %n!"], L["Hey %n, good to see you!"], L["Welcome back, %n!"] },

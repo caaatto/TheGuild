@@ -498,10 +498,10 @@ local function build(panel)
         end
     end
 
-    TG:On("STORE_CHANGED", function(ns) if panel:IsShown() and (ns == "team" or ns == "att" or ns == "role") then panel:OnShow() end end, Raids)
-    TG:On("ROSTER_UPDATED", function() if panel:IsShown() then panel:OnShow() end end, Raids)
-    TG:RegisterEvent("GROUP_ROSTER_UPDATE", function() if panel:IsShown() and Raids.view == "builder" then panel:OnShow() end end, Raids)
-    TG:RegisterEvent("CALENDAR_UPDATE_EVENT_LIST", function() if panel:IsShown() and Raids.view == "schedule" then panel:OnShow() end end, Raids)
+    TG:On("STORE_CHANGED", function(ns) if panel:IsVisible() and (ns == "team" or ns == "att" or ns == "role") then panel:OnShow() end end, Raids)
+    TG:On("ROSTER_UPDATED", function() if panel:IsVisible() then panel:OnShow() end end, Raids)
+    TG:RegisterEvent("GROUP_ROSTER_UPDATE", function() if panel:IsVisible() and Raids.view == "builder" then panel:OnShow() end end, Raids)
+    TG:RegisterEvent("CALENDAR_UPDATE_EVENT_LIST", function() if panel:IsVisible() and Raids.view == "schedule" then panel:OnShow() end end, Raids)
 end
 
 TG.Window:RegisterTab("raids", L["Raids"], build, 25, "Interface\\Icons\\INV_Misc_Head_Dragon_01", "Raids")
