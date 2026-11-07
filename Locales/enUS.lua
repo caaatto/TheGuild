@@ -640,6 +640,9 @@ L["Share your module settings with the guild as text."] = "Share your module set
 
 L["Help"] = "Help"
 L["Key bindings"] = "Key bindings"
+L["Not bound"] = "Not bound"
+L["Press a key"] = "Press a key"
+L["Click and press a key. Right click removes the binding."] = "Click and press a key. Right click removes the binding."
 L["Tips"] = "Tips"
 L["Right click a member anywhere in the window for whisper, invite, roles and alt links."] = "Right click a member anywhere in the window for whisper, invite, roles and alt links."
 L["Ctrl + right click on the world map places a shared guild pin."] = "Ctrl + right click on the world map places a shared guild pin."

@@ -15,6 +15,8 @@ local Prof = TG:NewModule("Professions", {
 })
 
 local scanPending = false
+local sharePending = {}
+local shareNotice = {}
 local index
 local indexDirty = true
 local lastRequest = 0
@@ -51,29 +53,30 @@ function Prof:Scan()
     local ok2, ids = pcall(C_TradeSkillUI.GetAllRecipeIDs)
     if not ok2 or type(ids) ~= "table" or #ids == 0 then return end
 
-    local recipes, count = {}, 0
+    local char, me = myChar()
+    local prof = char.p[info.professionID] or {}
+    local old = prof.r or {}
+    local recipes, count, changed = {}, 0, false
     for _, recipeID in ipairs(ids) do
         local okR, r = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
         if okR and type(r) == "table" and r.learned and not r.isDummyRecipe then
-            local value = r.name or tostring(recipeID)
-            local okO, out = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID)
-            if okO and type(out) == "table" and tonumber(out.itemID) and out.itemID > 0 then
-                value = out.itemID
+            local prev = old[recipeID]
+            local value = type(prev) == "number" and prev or r.name or tostring(recipeID)
+            if type(value) ~= "number" then
+                local okO, out = pcall(C_TradeSkillUI.GetRecipeOutputItemData, recipeID)
+                if okO and type(out) == "table" and tonumber(out.itemID) and out.itemID > 0 then
+                    value = out.itemID
+                end
             end
+            if prev == nil then changed = true end
             recipes[recipeID] = value
             count = count + 1
         end
     end
     if count == 0 then return end
+    if not changed and TG.Count(old) ~= count then changed = true end
+    if not changed and prof.s == info.skillLevel and prof.m == info.maxSkillLevel then return end
 
-    local char, me = myChar()
-    local prof = char.p[info.professionID] or {}
-    local changed = prof.s ~= info.skillLevel or TG.Count(prof.r or {}) ~= count
-    if not changed then
-        for id, v in pairs(recipes) do
-            if prof.r[id] ~= v then changed = true break end
-        end
-    end
     prof.n = info.professionName
     prof.s = info.skillLevel
     prof.m = info.maxSkillLevel
@@ -83,11 +86,26 @@ function Prof:Scan()
     indexDirty = true
     local g = guildProfs()
     if g then g[me] = char end
-    if changed then
-        TG:Print(L["Recorded %d recipes for %s."], count, prof.n or "?")
-        self:Share(info.professionID)
-        TG:Fire("PROFESSIONS_UPDATED")
-    end
+    if changed then shareNotice[info.professionID] = true end
+    self:ShareLater(info.professionID, changed and 5 or 60)
+    TG:Fire("PROFESSIONS_UPDATED")
+end
+
+function Prof:ShareLater(profID, delay)
+    local due = GetTime() + delay
+    if sharePending[profID] and due >= sharePending[profID] then return end
+    sharePending[profID] = due
+    TG.After(delay, function()
+        if sharePending[profID] ~= due then return end
+        sharePending[profID] = nil
+        if not self.enabled then return end
+        if shareNotice[profID] then
+            shareNotice[profID] = nil
+            local prof = myChar().p[profID]
+            if prof then TG:Print(L["Recorded %d recipes for %s."], TG.Count(prof.r), prof.n or "?") end
+        end
+        self:Share(profID)
+    end)
 end
 
 function Prof:Share(profID)

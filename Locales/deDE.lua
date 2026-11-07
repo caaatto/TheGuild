@@ -630,6 +630,9 @@ L["Share your module settings with the guild as text."] = "Teile deine Moduleins
 
 L["Help"] = "Hilfe"
 L["Key bindings"] = "Tastenbelegung"
+L["Not bound"] = "Nicht belegt"
+L["Press a key"] = "Taste drücken"
+L["Click and press a key. Right click removes the binding."] = "Klicken und eine Taste drücken. Rechtsklick entfernt die Belegung."
 L["Tips"] = "Tipps"
 L["Right click a member anywhere in the window for whisper, invite, roles and alt links."] = "Rechtsklick auf ein Mitglied irgendwo im Fenster für Flüstern, Einladen, Rollen und Twinks."
 L["Ctrl + right click on the world map places a shared guild pin."] = "Strg + Rechtsklick auf der Weltkarte setzt eine geteilte Gildenmarkierung."
