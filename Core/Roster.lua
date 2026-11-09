@@ -13,6 +13,9 @@ local lastRead = 0
 local demo = false
 local demoGuild
 local READ_GAP = 1.5
+local MASS_JOIN = 4
+local INCOMPLETE_LIMIT = 3
+local incomplete = 0
 local REQUEST_INTERVAL = 60
 
 local function newEntry(key)
@@ -29,6 +32,7 @@ end
 
 local function readRow(i)
     local name, rank, rankIndex, level, _, zone, note, officerNote, online, status, classFile, _, _, isMobile, _, _, guid = GetGuildRosterInfo(i)
+    if name == nil then return nil end
     if not TG.usable(name) or TG.IsSecret(rank, rankIndex, level, zone, note, officerNote, online, status, classFile, guid) then
         return nil, true
     end
@@ -83,7 +87,7 @@ function Roster:ClearDemo()
     demo = false
     demoGuild = nil
     members, list, byGUID = {}, {}, {}
-    ready = false
+    ready, incomplete = false, 0
     self:Read()
 end
 
@@ -116,6 +120,16 @@ function Roster:Read()
     reading = false
     lastRead = GetTime()
     if aborted or #freshList == 0 then return end
+    local complete = #freshList >= total
+    if complete then
+        incomplete = 0
+    elseif incomplete < INCOMPLETE_LIMIT then
+        incomplete = incomplete + 1
+        if ready then self:Request() return end
+    else
+        incomplete = 0
+        complete = true
+    end
 
     local now = TG.Now()
     local me = TG.MyGUID()
@@ -139,6 +153,14 @@ function Roster:Read()
         end
     end
 
+    local added = 0
+    if ready then
+        for key in pairs(fresh) do
+            if not members[key] and not renamed[key] then added = added + 1 end
+        end
+    end
+    local mass = added >= MASS_JOIN
+
     for key, e in pairs(fresh) do
         local old = members[key]
         if e.online then
@@ -150,7 +172,7 @@ function Roster:Read()
         if me and e.guid == me then TG.LearnMyName(e.key) end
         if ready then
             if not old then
-                if not renamed[key] then TG:Fire("MEMBER_JOINED", e) end
+                if not renamed[key] and not mass then TG:Fire("MEMBER_JOINED", e) end
             else
                 if e.online and not old.online then TG:Fire("MEMBER_ONLINE", e) end
                 if not e.online and old.online then TG:Fire("MEMBER_OFFLINE", e) end
@@ -172,9 +194,10 @@ function Roster:Read()
     end)
     members, list, byGUID = fresh, freshList, freshGUID
     local first = not ready
-    ready = true
-    if first then TG:Fire("ROSTER_READY") end
+    if complete then ready = true end
+    if first and ready then TG:Fire("ROSTER_READY") end
     TG:Fire("ROSTER_UPDATED")
+    if not ready then self:Request() end
 end
 
 local function scheduleRead()
@@ -297,7 +320,7 @@ TG:RegisterEvent("PLAYER_GUILD_UPDATE", function(_, unit)
     local key = TG:GuildKey()
     if key ~= Roster.currentGuild then
         Roster.currentGuild = key
-        members, list, byGUID, ready = {}, {}, {}, false
+        members, list, byGUID, ready, incomplete = {}, {}, {}, false, 0
         TG:Fire("GUILD_CHANGED", key)
         Roster:Request()
     end

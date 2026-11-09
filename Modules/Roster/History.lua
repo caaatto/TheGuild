@@ -125,14 +125,16 @@ function History:Enable(owner)
     TG:On("MEMBER_LEFT", function(e) History:RecordLeft(e) end, owner)
     TG:On("MEMBER_RENAMED", function(e, old) History:OnRenamed(e, old) end, owner)
     TG:On("MEMBER_TOOLTIP", function(tooltip, e) History:Tooltip(tooltip, e) end, owner)
-    TG:On("ROSTER_READY", function()
-        for _, e in ipairs(TG.Roster:Members()) do
-            if not History:Get(e.key) then History:RecordFirstSeen(e) end
+    local seen = 0
+    local function sweep()
+        local list = TG.Roster:Members()
+        if #list > seen then
+            for _, e in ipairs(list) do
+                if not History:Get(e.key) then History:RecordFirstSeen(e) end
+            end
         end
-    end, owner)
-    if TG.Roster:IsReady() then
-        for _, e in ipairs(TG.Roster:Members()) do
-            if not History:Get(e.key) then History:RecordFirstSeen(e) end
-        end
+        seen = #list
     end
+    TG:On("ROSTER_UPDATED", sweep, owner)
+    if TG.Roster:IsReady() then sweep() end
 end
