@@ -318,6 +318,10 @@ end)
 TG:RegisterEvent("PLAYER_GUILD_UPDATE", function(_, unit)
     if unit and unit ~= "player" then return end
     local key = TG:GuildKey()
+    if key == nil and IsInGuild() then
+        scheduleRead()
+        return
+    end
     if key ~= Roster.currentGuild then
         Roster.currentGuild = key
         members, list, byGUID, ready, incomplete = {}, {}, {}, false, 0
