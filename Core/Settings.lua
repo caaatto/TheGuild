@@ -270,7 +270,7 @@ function Options:Build()
     end
 
     header(right, L["Modules"])
-    button(right, L["Choose modules"], L["Select"], L["Pick the modules that load. Unticked modules are disabled in the AddOn list and the interface reloads."], function() TG.Setup:Open() end)
+    button(right, L["Choose modules"], L["Select"], L["Pick the modules you use. Unticked modules stop and their tabs disappear."], function() TG.Setup:Open() end)
     for _, mod in ipairs(TG.moduleOrder) do
         moduleToggle(right, mod)
     end

@@ -8,7 +8,7 @@ The guild addon for World of Warcraft: Forever. One installation, everything in 
 
 ## Installation
 
-Download the release and copy the folders `TheGuild` and `TheGuild_*` into `World of Warcraft\_classic_beta_\Interface\AddOns`. Every module appears under TheGuild in the AddOn list and can be disabled there like any other addon. The first start on a character opens a module picker: untick what you do not need, the addon disables those modules in the AddOn list and reloads. The picker returns when a new module is installed, `/tg modules` opens it any time.
+Download the release and copy the folders `TheGuild` and `TheGuild_*` into `World of Warcraft\_classic_beta_\Interface\AddOns`. Every module appears under TheGuild in the AddOn list and can be disabled there like any other addon. The first start on a character opens a module picker: untick what you do not need, those modules stop and their tabs disappear. The picker returns when a new module is installed, `/tg modules` opens it any time, the settings list every module.
 
 For a git checkout, run `tools\link-modules.cmd` once. It creates junctions named after the modules so the client finds them inside the repository.
 
@@ -100,7 +100,7 @@ The window is built from the client's own templates: a portrait frame with side 
 ```
 /tg              toggle the window
 /tg config       open the settings
-/tg modules      choose which modules load
+/tg modules      choose the modules you use
 /tg share        toggle position sharing
 /tg cta [text]   send a call to arms
 /tg loot <link>  start a loot session, /tg loot end, /tg loot sr

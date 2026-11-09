@@ -5,55 +5,12 @@ local UI = TG.UI
 local Setup = {}
 TG.Setup = Setup
 
-local PREFIX = TG.name .. "_"
 local ROW = 38
 local dialog
 
-local function api()
-    local A = C_AddOns
-    return A and A.GetNumAddOns and A.GetAddOnInfo and A.GetAddOnEnableState and A.EnableAddOn and A.DisableAddOn and A or nil
-end
-
-local function character()
-    local me = TG.plain(UnitName("player"), nil)
-    if me and TG.plain(C_AddOns.GetAddOnEnableState(TG.name, me), 0) == 0 then return nil end
-    return me
-end
-
-local function cleanTitle(title, name)
-    title = TG.plain(title, nil)
-    if not title then return name:sub(#PREFIX + 1) end
-    title = title:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-    if title:sub(1, #TG.title) == TG.title then title = title:sub(#TG.title + 1) end
-    title = TG.Trim((title:gsub("^[_%s]+", "")))
-    return title ~= "" and title or name:sub(#PREFIX + 1)
-end
-
-function Setup:Installed()
-    local out = {}
-    local A = api()
-    if not A then return out end
-    local me = character()
-    for i = 1, A.GetNumAddOns() do
-        local name, title, notes = A.GetAddOnInfo(i)
-        name = TG.plain(name, nil)
-        if name and name:sub(1, #PREFIX) == PREFIX then
-            local state = TG.plain(A.GetAddOnEnableState(name, me), 0)
-            out[#out + 1] = {
-                name = name,
-                title = cleanTitle(title, name),
-                notes = TG.plain(notes, ""),
-                enabled = state ~= 0,
-            }
-        end
-    end
-    table.sort(out, function(a, b) return a.title < b.title end)
-    return out
-end
-
 function Setup:Pending()
     local known = TG.cdb.setup.known
-    for _, mod in ipairs(self:Installed()) do
+    for _, mod in ipairs(TG.moduleOrder) do
         if not known[mod.name] then return true end
     end
     return false
@@ -61,7 +18,7 @@ end
 
 function Setup:Remember()
     local known = TG.cdb.setup.known
-    for _, mod in ipairs(self:Installed()) do known[mod.name] = true end
+    for _, mod in ipairs(TG.moduleOrder) do known[mod.name] = true end
 end
 
 local function row(f, i)
@@ -93,7 +50,7 @@ local function build()
     f:SetTitle(L["Choose modules"])
     ButtonFrameTemplate_HideButtonBar(f)
     f.Inset:SetPoint("BOTTOMRIGHT", -6, 4)
-    f.intro = UI.Label(f.Inset, L["Every module is its own addon. Untick what you do not need, those are disabled in the AddOn list and the interface reloads."], "GameFontHighlight")
+    f.intro = UI.Label(f.Inset, L["Untick what you do not need. Those modules stop and their tabs disappear, the settings bring them back any time."], "GameFontHighlight")
     f.intro:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 10, -10)
     f.intro:SetPoint("RIGHT", f.Inset, "RIGHT", -10, 0)
     f.intro:SetWordWrap(true)
@@ -108,29 +65,11 @@ local function build()
     f.child:SetSize(440, ROW)
     scroll:SetScrollChild(f.child)
     f.rows = {}
-    f.apply = CreateFrame("Button", "TheGuildSetupApply", f.Inset, "UIPanelButtonTemplate, SecureActionButtonTemplate")
-    f.apply:SetText(L["Apply and reload"])
-    f.apply:SetSize(math.max(150, (tonumber(f.apply:GetTextWidth()) or 0) + 24), 22)
+    f.apply = UI.Button(f.Inset, ACCEPT, 110, function() Setup:Apply() end)
     f.apply:SetPoint("BOTTOMRIGHT", f.Inset, "BOTTOMRIGHT", -8, 6)
-    f.apply:RegisterForClicks("AnyUp")
-    f.apply:SetAttribute("useOnKeyDown", false)
-    f.apply:SetAttribute("type", "macro")
-    f.apply:SetAttribute("macrotext", "")
-    f.apply:SetScript("PreClick", function(self)
-        if InCombatLockdown() then
-            TG:Print(L["Not during combat."])
-            return
-        end
-        local changed = Setup:Apply()
-        self:SetAttribute("macrotext", changed and "/reload" or "")
-        if not changed then TG:Print(L["No module changed."]) end
-    end)
-    f.apply:SetScript("PostClick", function(self)
-        if not InCombatLockdown() then self:SetAttribute("macrotext", "") end
-    end)
     f.keep = UI.Button(f.Inset, L["Keep everything"], 120, function() f:Hide() end)
     f.keep:SetPoint("RIGHT", f.apply, "LEFT", -6, 0)
-    f.hint = UI.Label(f.Inset, L["Later: /tg modules or the AddOn list of the game."], "GameFontDisableSmall")
+    f.hint = UI.Label(f.Inset, L["Later: /tg modules or the settings."], "GameFontDisableSmall")
     f.hint:SetPoint("BOTTOMLEFT", f.Inset, "BOTTOMLEFT", 10, 10)
     f.hint:SetPoint("RIGHT", f.keep, "LEFT", -8, 0)
     f.hint:SetWordWrap(true)
@@ -140,48 +79,48 @@ local function build()
 end
 
 function Setup:Open()
-    if not api() then
-        TG:Print(L["The AddOn list is not available on this client. Use the AddOn menu of the game."])
-        return
-    end
     dialog = dialog or build()
-    local mods = self:Installed()
-    for i, mod in ipairs(mods) do
-        local r = row(dialog, i)
-        r.mod = mod
-        r.check.Text:SetText(mod.title)
-        r.check:SetChecked(mod.enabled)
-        r.notes:SetText(mod.notes)
-        r.check:Show()
-        r.notes:Show()
+    local n = 0
+    for _, mod in ipairs(TG.moduleOrder) do
+        if mod.name ~= "Dashboard" then
+            n = n + 1
+            local r = row(dialog, n)
+            r.mod = mod
+            r.check.Text:SetText(mod.title)
+            r.check:SetChecked(mod.enabled)
+            r.notes:SetText(mod.desc or "")
+            r.check:Show()
+            r.notes:Show()
+        end
     end
-    for i = #mods + 1, #dialog.rows do
+    for i = n + 1, #dialog.rows do
         dialog.rows[i].mod = nil
         dialog.rows[i].check:Hide()
         dialog.rows[i].notes:Hide()
     end
-    dialog.child:SetHeight(math.max(ROW, #mods * ROW))
-    dialog.apply:SetEnabled(#mods > 0)
+    dialog.child:SetHeight(math.max(ROW, n * ROW))
     dialog:Show()
 end
 
 function Setup:Apply()
-    local A = api()
-    if not dialog or not A then return false end
-    local me = character()
-    local changed = false
+    if not dialog then return end
+    local changed = 0
     for _, r in ipairs(dialog.rows) do
         local mod = r.mod
         if mod then
             local want = r.check:GetChecked() and true or false
             if want ~= mod.enabled then
-                if want then A.EnableAddOn(mod.name, me) else A.DisableAddOn(mod.name, me) end
-                changed = true
+                if want then TG:EnableModule(mod, true) else TG:DisableModule(mod, true) end
+                changed = changed + 1
             end
         end
     end
     dialog:Hide()
-    return changed
+    if changed == 0 then
+        TG:Print(L["No module changed."])
+    else
+        TG:Print(L["%d modules changed. The settings list every module."], changed)
+    end
 end
 
 TG:On("READY", function()
