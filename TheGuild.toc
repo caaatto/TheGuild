@@ -42,6 +42,7 @@ Core\UI.lua
 Core\Window.lua
 Core\Tutorial.lua
 Core\Settings.lua
+Core\Setup.lua
 Core\Minimap.lua
 Core\Blizzard.lua
 Core\Slash.lua

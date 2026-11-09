@@ -8,6 +8,8 @@ local SYSTEM = "TheGuild"
 local defined = {}
 local active
 local tour
+local ready = false
+local tourWanted = false
 
 local POINTS = {
     bottom = "BottomEdgeCenter",
@@ -119,7 +121,7 @@ end
 
 function Tutorial:Start(id, force, next, inTour)
     local steps = defined[id]
-    if not steps or not self:Enabled() then return false end
+    if not steps or not ready or not self:Enabled() then return false end
     if tour and not inTour then return false end
     if not force and seen()[id] then return false end
     if active then
@@ -197,8 +199,20 @@ end
 
 function Tutorial:MaybeTour()
     if not self:Enabled() or tour or self:Seen("tour") then return false end
+    if not ready then
+        tourWanted = true
+        return false
+    end
     return self:Tour()
 end
+
+TG:On("READY", function()
+    ready = true
+    if tourWanted then
+        tourWanted = false
+        Tutorial:MaybeTour()
+    end
+end)
 
 TG:On("WINDOW_TAB", function(id) Tutorial:ShowForTab(id) end)
 TG:On("MODULE_DISABLED", function() Tutorial:Stop() end)

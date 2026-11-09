@@ -34,6 +34,10 @@ local function updateTabVisuals(index)
 end
 
 local function tabVisible(tab)
+    if tab.module then
+        local mod = TG:GetModule(tab.module)
+        if mod and not mod.enabled then return false end
+    end
     return tab.visible == nil or tab.visible() == true
 end
 
@@ -255,22 +259,7 @@ function Window:SelectTab(index)
     frame.tabTitle:SetText(tab.title)
     for _, t in ipairs(tabs) do
         if t.panel then t.panel:Hide() end
-        if t.disabledPanel then t.disabledPanel:Hide() end
     end
-    local mod = tab.module and TG:GetModule(tab.module)
-    if mod and not mod.enabled then
-        if not tab.disabledPanel then
-            local panel = CreateFrame("Frame", nil, frame.Inset)
-            panel:SetPoint("TOPLEFT", frame.Inset, "TOPLEFT", 3, -3)
-            panel:SetPoint("BOTTOMRIGHT", frame.Inset, "BOTTOMRIGHT", -3, 3)
-            UI.Empty(panel, L["This module is disabled. Turn it on in the settings."])
-            tab.disabledPanel = panel
-        end
-        tab.disabledPanel:Show()
-        TG:Fire("WINDOW_TAB", tab.id)
-        return
-    end
-    if tab.disabledPanel then tab.disabledPanel:Hide() end
     if not tab.panel then
         local panel = CreateFrame("Frame", nil, frame.Inset)
         panel:SetPoint("TOPLEFT", frame.Inset, "TOPLEFT", 3, -3)
@@ -341,9 +330,10 @@ TG:On("MODULE_DISABLED", function(name)
             tab.panel = nil
         end
     end
-    if frame and frame:IsShown() then Window:SelectTab(TG.db.global.window.tab or 1) end
+    Window:ApplyTabVisibility()
 end)
 TG:On("MODULE_ENABLED", function()
+    Window:ApplyTabVisibility()
     if frame and frame:IsShown() then Window:SelectTab(TG.db.global.window.tab or 1) end
 end)
 TG:On("PEER_HELLO", function() if Window:IsShown() then Window:UpdateSubtitle() end end)

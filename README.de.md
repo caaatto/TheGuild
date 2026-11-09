@@ -8,7 +8,7 @@ Das Gildenaddon für World of Warcraft: Forever. Eine Installation, alles im Bli
 
 ## Installation
 
-Release herunterladen und die Ordner `TheGuild` und `TheGuild_*` nach `World of Warcraft\_classic_beta_\Interface\AddOns` kopieren. Jedes Modul erscheint in der Addonliste unter TheGuild und kann dort wie jedes andere Addon abgeschaltet werden.
+Release herunterladen und die Ordner `TheGuild` und `TheGuild_*` nach `World of Warcraft\_classic_beta_\Interface\AddOns` kopieren. Jedes Modul erscheint in der Addonliste unter TheGuild und kann dort wie jedes andere Addon abgeschaltet werden. Beim ersten Start auf einem Charakter öffnet sich eine Modulauswahl: Haken raus bei allem, was nicht gebraucht wird, das Addon schaltet diese Module in der Addonliste ab und lädt neu. Die Auswahl kommt wieder, sobald ein neues Modul installiert ist, `/tg modules` öffnet sie jederzeit.
 
 Bei einem Git-Checkout einmal `tools\link-modules.cmd` ausführen. Es legt Junctions mit den Modulnamen an, damit der Client die Module im Repository findet.
 
@@ -100,6 +100,7 @@ Das Fenster besteht aus den Vorlagen des Clients: Porträtrahmen mit Seitentabs 
 ```
 /tg              Fenster ein- oder ausblenden
 /tg config       Einstellungen öffnen
+/tg modules      Module auswählen, die geladen werden
 /tg share        Positionsfreigabe umschalten
 /tg cta [Text]   Ruf zu den Waffen senden
 /tg loot <Link>  Lootsitzung starten, /tg loot end, /tg loot sr

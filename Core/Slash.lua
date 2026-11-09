@@ -73,6 +73,7 @@ SlashCmdList.THEGUILD = function(msg)
 end
 
 TG:RegisterSlash("config", function() TG:OpenSettings() end, L["open the settings"])
+TG:RegisterSlash("modules", function() TG.Setup:Open() end, L["choose which modules load"])
 TG:RegisterSlash("comms", function(rest)
     local cmd = tostring(rest or ""):match("^%S*"):lower()
     if cmd == "debug" then

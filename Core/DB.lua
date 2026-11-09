@@ -17,6 +17,7 @@ local charDefaults = {
     version = DB_VERSION,
     modules = {},
     lastGuild = nil,
+    setup = { known = {} },
 }
 
 function TG:InitDB()
