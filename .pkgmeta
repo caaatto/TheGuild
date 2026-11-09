@@ -12,6 +12,7 @@ move-folders:
   TheGuild/Modules/Stats: TheGuild_Stats
   TheGuild/Modules/Recruit: TheGuild_Recruit
   TheGuild/Modules/Voice: TheGuild_Voice
+  TheGuild/Modules/Milestones: TheGuild_Milestones
 
 ignore:
   - tools

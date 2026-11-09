@@ -1,0 +1,12 @@
+## Interface: 16001
+## Title: TheGuild |cff4dc3ffMilestones|r
+## Notes: Toasts in the client's own style when guild members reach milestone levels, find epic items or join the guild.
+## Notes-deDE: Einblendungen im Stil des Clients, wenn Gildenmitglieder Meilensteinstufen erreichen, epische Gegenstände finden oder der Gilde beitreten.
+## Author: Catto
+## Version: 0.2.32
+## Dependencies: TheGuild
+## Group: TheGuild
+## Category: Guild
+## IconTexture: Interface\Icons\Achievement_Level_60
+
+Milestones.lua

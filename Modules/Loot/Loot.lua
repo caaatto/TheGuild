@@ -334,8 +334,7 @@ function Loot:OnInitialize()
             if self.session then self.Frames:ShowOwner() self.Frames:ShowResponse() else TG:Print(L["Usage: /tg loot <item link>, /tg loot end, /tg loot sr"]) end
             return
         end
-        local links = {}
-        for link in rest:gmatch("|c%x+|Hitem:.-|h%[.-%]|h|r") do links[#links + 1] = link end
+        local links = TG.ItemLinks(rest)
         if #links > 0 then self:Start(links) end
     end, L["start a loot session with item links"])
 end

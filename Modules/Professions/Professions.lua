@@ -261,36 +261,50 @@ local function onItemTooltip(tooltip, data)
     GameTooltip_AddColoredLine(tooltip, L["Crafters"] .. ": " .. crafterText(list, 5), LIGHTBLUE_FONT_COLOR, true)
 end
 
-local profFilter = nil
 local searchText = ""
+local expanded = {}
 
-local function professionList()
-    local out, seen = {}, {}
-    for _, char in pairs(guildProfs() or {}) do
-        for profID, prof in pairs(char.p or {}) do
-            if not seen[profID] then
-                seen[profID] = true
-                out[#out + 1] = { id = profID, name = prof.n or tostring(profID) }
-            end
-        end
-    end
-    table.sort(out, function(a, b) return a.name < b.name end)
-    return out
+function Prof:SetSearch(text)
+    searchText = TG.Trim(text or "")
+end
+
+function Prof:Toggle(profID)
+    expanded[profID] = not expanded[profID] or nil
+end
+
+local function byName(a, b)
+    return (a.name or "") < (b.name or "")
 end
 
 function Prof:Rows()
     local idx = self:Index()
-    local groups = {}
+    local profs = {}
     local text = searchText:lower()
     local function consider(key, name, list)
-        if profFilter then
-            local keep = {}
-            for _, e in ipairs(list) do if e.profID == profFilter then keep[#keep + 1] = e end end
-            list = keep
-        end
-        if #list == 0 then return end
         if text ~= "" and not (name or ""):lower():find(text, 1, true) then return end
-        groups[#groups + 1] = { key = key, name = name, list = list, profName = list[1].profName }
+        local split = {}
+        for _, e in ipairs(list) do
+            local sub = split[e.profID]
+            if not sub then
+                sub = {}
+                split[e.profID] = sub
+            end
+            sub[#sub + 1] = e
+        end
+        for profID, sub in pairs(split) do
+            local p = profs[profID]
+            if not p then
+                p = { kind = "prof", id = profID, name = sub[1].profName or tostring(profID), recipes = {}, crafters = {}, list = {} }
+                profs[profID] = p
+            end
+            p.recipes[#p.recipes + 1] = { kind = "recipe", key = key, name = name, list = sub }
+            for _, e in ipairs(sub) do
+                if not p.crafters[e.char] then
+                    p.crafters[e.char] = true
+                    p.list[#p.list + 1] = e
+                end
+            end
+        end
     end
     for itemID, list in pairs(idx.byItem) do
         local name = itemName(itemID)
@@ -299,29 +313,29 @@ function Prof:Rows()
     for _, bucket in pairs(idx.byName) do
         consider(bucket.name, bucket.name, bucket.list)
     end
-    table.sort(groups, function(a, b)
-        if (a.profName or "") ~= (b.profName or "") then return (a.profName or "") < (b.profName or "") end
-        return (a.name or "") < (b.name or "")
-    end)
-    return groups
+    local order = {}
+    for _, p in pairs(profs) do order[#order + 1] = p end
+    table.sort(order, byName)
+    local rows = {}
+    for _, p in ipairs(order) do
+        p.open = text ~= "" or expanded[p.id] == true
+        p.count = #p.recipes
+        rows[#rows + 1] = p
+        if p.open then
+            table.sort(p.recipes, byName)
+            for _, r in ipairs(p.recipes) do rows[#rows + 1] = r end
+        end
+    end
+    return rows
 end
 
 local function build(panel)
     local search = UI.SearchBox(panel, 220, function(text)
-        searchText = text
+        Prof:SetSearch(text)
         panel:OnShow()
     end)
     search:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
     panel.search = search
-
-    local dropdown = UI.Dropdown(panel, 160, function(dd, root)
-        root:CreateRadio(L["All professions"], function() return profFilter == nil end, function() profFilter = nil panel:OnShow() end)
-        for _, p in ipairs(professionList()) do
-            root:CreateRadio(p.name, function() return profFilter == p.id end, function() profFilter = p.id panel:OnShow() end)
-        end
-    end)
-    dropdown:SetPoint("LEFT", search, "RIGHT", 12, 0)
-    dropdown:SetDefaultText(L["All professions"])
 
     local sync = UI.Button(panel, L["Request sync"], 120, function()
         Prof:Request()
@@ -337,55 +351,76 @@ local function build(panel)
     listFrame:SetPoint("TOPLEFT", panel, "TOPLEFT", 4, -54)
     listFrame:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -4, 4)
 
-    local list = UI.List(listFrame, 24, function(button, group)
-        button.group = group
-        if type(group.key) == "number" then
-            local icon = C_Item.GetItemIconByID and C_Item.GetItemIconByID(group.key)
-            button.icon:SetTexture(icon or "Interface\Icons\INV_Scroll_03")
-            local _, link = C_Item.GetItemInfo(group.key)
-            button.name:SetText(link or group.name)
+    local list = UI.List(listFrame, 24, function(button, row)
+        button.row = row
+        if row.kind == "prof" then
+            button.toggle:SetTexture(row.open and "Interface\\Buttons\\UI-MinusButton-Up" or "Interface\\Buttons\\UI-PlusButton-Up")
+            button.toggle:Show()
+            button.icon:Hide()
+            button.name:SetText(TG.gold .. row.name .. "|r")
+            button.prof:SetText(L["%d recipes"]:format(row.count))
+            button.crafters:SetText(crafterText(row.list, 6))
+            return
+        end
+        button.toggle:Hide()
+        button.icon:Show()
+        if type(row.key) == "number" then
+            local icon = C_Item.GetItemIconByID and C_Item.GetItemIconByID(row.key)
+            button.icon:SetTexture(icon or "Interface\\Icons\\INV_Scroll_03")
+            local _, link = C_Item.GetItemInfo(row.key)
+            button.name:SetText(link or row.name)
         else
             button.icon:SetTexture(136244)
-            button.name:SetText(group.name)
+            button.name:SetText(row.name)
         end
-        button.prof:SetText(group.profName or "")
-        button.crafters:SetText(crafterText(group.list, 6))
+        button.prof:SetText("")
+        button.crafters:SetText(crafterText(row.list, 6))
     end, {
         inset = true,
         buildRow = function(button)
+            button.toggle = button:CreateTexture(nil, "ARTWORK")
+            button.toggle:SetSize(16, 16)
+            button.toggle:SetPoint("LEFT", button, "LEFT", 6, 0)
             button.icon = button:CreateTexture(nil, "ARTWORK")
             button.icon:SetSize(18, 18)
-            button.icon:SetPoint("LEFT", button, "LEFT", 6, 0)
+            button.icon:SetPoint("LEFT", button, "LEFT", 26, 0)
             button.name = UI.Cell(button, 260)
-            button.name:SetPoint("LEFT", button.icon, "RIGHT", 6, 0)
+            button.name:SetPoint("LEFT", button, "LEFT", 50, 0)
             button.prof = UI.Cell(button, 110, "LEFT", "GameFontDisableSmall")
             button.prof:SetPoint("LEFT", button.name, "RIGHT", 4, 0)
             button.crafters = UI.Cell(button, 340)
             button.crafters:SetPoint("LEFT", button.prof, "RIGHT", 4, 0)
             button:SetScript("OnEnter", function(self)
-                if not self.group then return end
+                local row = self.row
+                if not row or row.kind ~= "recipe" then return end
                 GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                if type(self.group.key) == "number" then
-                    GameTooltip:SetItemByID(self.group.key)
+                if type(row.key) == "number" then
+                    GameTooltip:SetItemByID(row.key)
                 else
-                    GameTooltip_SetTitle(GameTooltip, self.group.name)
+                    GameTooltip_SetTitle(GameTooltip, row.name)
                 end
                 GameTooltip_AddBlankLineToTooltip(GameTooltip)
-                GameTooltip_AddColoredLine(GameTooltip, L["Crafters"] .. ": " .. crafterText(self.group.list, 12), LIGHTBLUE_FONT_COLOR, true)
+                GameTooltip_AddColoredLine(GameTooltip, L["Crafters"] .. ": " .. crafterText(row.list, 12), LIGHTBLUE_FONT_COLOR, true)
                 GameTooltip:Show()
             end)
             button:SetScript("OnLeave", function() GameTooltip:Hide() end)
             button:SetScript("OnClick", function(self, mouse)
-                if not self.group then return end
-                if mouse == "LeftButton" and IsModifiedClick("CHATLINK") and type(self.group.key) == "number" then
-                    local _, link = C_Item.GetItemInfo(self.group.key)
+                local row = self.row
+                if not row then return end
+                if row.kind == "prof" then
+                    Prof:Toggle(row.id)
+                    panel:OnShow()
+                    return
+                end
+                if mouse == "LeftButton" and IsModifiedClick("CHATLINK") and type(row.key) == "number" then
+                    local _, link = C_Item.GetItemInfo(row.key)
                     TG.InsertLink(link)
                     return
                 end
                 MenuUtil.CreateContextMenu(self, function(_, root)
                     root:SetTag("MENU_THEGUILD_CRAFTERS")
-                    root:CreateTitle(self.group.name)
-                    for _, e in ipairs(self.group.list) do
+                    root:CreateTitle(row.name)
+                    for _, e in ipairs(row.list) do
                         local entry = TG.Roster:Get(e.char)
                         local online = entry and entry.online
                         local label = TG.ClassText(e.classFile, e.char) .. (online and "" or GRAY_FONT_COLOR:WrapTextInColorCode("  (" .. L["Offline"] .. ")"))
@@ -398,9 +433,8 @@ local function build(panel)
 
     TG.Tutorial:Define("professions", {
         { target = search, text = L["Search recipes across the guild. Crafters also appear in item tooltips."], point = "bottom" },
-        { target = dropdown, text = L["Narrow the list to one profession."], point = "bottom" },
         { target = sync, text = L["Your own recipes are recorded when a profession window opens and shared automatically."], point = "bottom" },
-        { target = listFrame, text = L["Recipes grouped by profession with everybody who can craft them."], point = "top" },
+        { target = listFrame, text = L["Professions fold out to their recipes with everybody who can craft them. A search opens all of them."], point = "top" },
     })
 
     function panel:OnShow()

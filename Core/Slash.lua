@@ -192,3 +192,49 @@ TG:RegisterEvent("PLAYER_LOGIN", function()
     TG:Fire("READY")
     TG.After(90, function() TG:ForgetStaleGuilds() end)
 end)
+
+local function simulatedEntry(name, level)
+    local entry = name ~= "" and TG.Roster:Find(name) or nil
+    if not entry then
+        for _, e in ipairs(TG.Roster:Members()) do
+            if e.online and not TG.IsMe(e.key) then
+                entry = e
+                break
+            end
+        end
+    end
+    if not entry then
+        local me = TG.MyName() or "?"
+        entry = TG.Roster:Get(me) or { key = me, classFile = TG.plain(select(2, UnitClass("player")), nil), level = 60, online = true }
+    end
+    local copy = TG.CopyTable(entry)
+    if level then copy.level = level end
+    return copy
+end
+
+TG:RegisterSlash("debug", function(rest)
+    rest = tostring(rest or "")
+    local kind = rest:match("^%S*"):lower()
+    if kind == "" then
+        TG.db.global.debug = not TG.db.global.debug
+        TG:Print("debug output %s", TG.db.global.debug and "on" or "off")
+        return
+    end
+    local args = TG.Trim(rest:sub(#kind + 1))
+    local link = TG.ItemLink(args)
+    if link then
+        local s, e = args:find(link, 1, true)
+        args = TG.Trim(args:sub(1, s - 1) .. args:sub(e + 1))
+    end
+    local level = tonumber(args:match("(%d+)$"))
+    if level then args = TG.Trim((args:gsub("%d+$", ""))) end
+    if kind == "level" then
+        TG:Fire("SIMULATE", "level", simulatedEntry(args, level or 60), level or 60)
+    elseif kind == "join" then
+        TG:Fire("SIMULATE", "join", simulatedEntry(args))
+    elseif kind == "find" then
+        TG:Fire("SIMULATE", "find", simulatedEntry(args), link)
+    else
+        TG:Print(L["Unknown command. Type /tg help."])
+    end
+end, L["toggle debug output, or simulate: level [name] [level], find [name] [link], join [name]"])

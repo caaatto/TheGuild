@@ -9,10 +9,6 @@ local BIND_ON_PICKUP = 1
 local BIND_ON_EQUIP = 2
 local RETRIES = 3
 
-local QUALITY_BY_COLOR = {
-    ["9d9d9d"] = 0, ["ffffff"] = 1, ["1eff00"] = 2, ["0070dd"] = 3, ["a335ee"] = 4, ["ff8000"] = 5,
-}
-
 local patterns = {}
 
 local function toPattern(global)
@@ -28,11 +24,7 @@ for _, name in ipairs({ "LOOT_ITEM_SELF", "LOOT_ITEM_SELF_MULTIPLE", "LOOT_ITEM_
 end
 
 local function qualityOf(link)
-    local id = tonumber(link:match("item:(%d+)"))
-    local quality = id and C_Item.GetItemQualityByID and C_Item.GetItemQualityByID(id)
-    if TG.usable(quality) and quality then return quality end
-    local color = link:match("|cff(%x%x%x%x%x%x)")
-    return color and QUALITY_BY_COLOR[color:lower()] or 0
+    return TG.LinkQuality(link, 0)
 end
 
 function Finds.BindText(bind)
@@ -81,7 +73,7 @@ end
 
 function Finds:OnChatLoot(_, msg)
     if not TG.usable(msg) or type(msg) ~= "string" then return end
-    local link = msg:match("|c%x+|Hitem:.-|h%[.-%]|h|r")
+    local link = TG.ItemLink(msg)
     if not link then return end
     local mine = false
     for _, p in ipairs(patterns) do
@@ -97,7 +89,7 @@ local FIND_COOLDOWN = 10
 
 function Finds:OnFind(sender, data)
     if type(data) ~= "table" or type(data.i) ~= "string" then return end
-    local link = data.i:match("|c%x+|Hitem:[%d:%-]*|h%[.-%]|h|r")
+    local link = TG.ItemLink(data.i)
     if not link then return end
     if lastFind[sender] and GetTime() - lastFind[sender] < FIND_COOLDOWN then return end
     lastFind[sender] = GetTime()

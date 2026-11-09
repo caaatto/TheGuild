@@ -83,8 +83,7 @@ local function buildOwner()
         StaticPopup_ShowCustomGenericInputBox({
             text = L["Paste an item link"], acceptText = ACCEPT, cancelText = CANCEL, maxLetters = 300,
             callback = function(text)
-                local links = {}
-                for link in text:gmatch("|c%x+|Hitem:.-|h%[.-%]|h|r") do links[#links + 1] = link end
+                local links = TG.ItemLinks(text)
                 if #links > 0 then Loot:Start(links) end
             end,
         })

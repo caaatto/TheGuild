@@ -386,3 +386,43 @@ function TG.Lines(text)
     end
     return out
 end
+
+local LINK_PATTERNS = { "|c%x+|Hitem:[^|]-|h%[.-%]|h|r", "|cn[%w_]+:|Hitem:[^|]-|h%[.-%]|h|r" }
+local QUALITY_BY_COLOR = { ["9d9d9d"] = 0, ["ffffff"] = 1, ["1eff00"] = 2, ["0070dd"] = 3, ["a335ee"] = 4, ["ff8000"] = 5, ["e6cc80"] = 6 }
+
+function TG.ItemLink(text)
+    if type(text) ~= "string" then return nil end
+    for _, pattern in ipairs(LINK_PATTERNS) do
+        local link = text:match(pattern)
+        if link then return link end
+    end
+    return nil
+end
+
+function TG.ItemLinks(text)
+    local out = {}
+    if type(text) ~= "string" then return out end
+    for _, pattern in ipairs(LINK_PATTERNS) do
+        local from = 1
+        while true do
+            local s, e = text:find(pattern, from)
+            if not s then break end
+            out[#out + 1] = { pos = s, link = text:sub(s, e) }
+            from = e + 1
+        end
+    end
+    table.sort(out, function(a, b) return a.pos < b.pos end)
+    for i, item in ipairs(out) do out[i] = item.link end
+    return out
+end
+
+function TG.LinkQuality(link, fallback)
+    if type(link) ~= "string" then return fallback end
+    local id = tonumber(link:match("item:(%d+)"))
+    local quality = id and C_Item.GetItemQualityByID and C_Item.GetItemQualityByID(id)
+    if TG.usable(quality) and quality then return quality end
+    local named = tonumber(link:match("|cnIQ(%d+):"))
+    if named then return named end
+    local color = link:match("|cff(%x%x%x%x%x%x)")
+    return color and QUALITY_BY_COLOR[color:lower()] or fallback
+end

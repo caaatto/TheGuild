@@ -60,6 +60,7 @@ Core, comm, store, settings, window, map, members, call to arms, messages, profe
 - Done: events with sign up and bounties with claims and awards in the Board module.
 - Done: guild statistics with deaths, levels, loot and raids, opt out per character for rankings. Play time milestones wait for an API that does not print to chat.
 - Done: recruitment helper with candidate list, unit menu entry, guild invite button, welcome whisper and channel message.
+- Done: milestone toasts for levels, epic finds and new members in the client's achievement and loot toast style (Milestones module).
 - Allied guilds: shared crafter directory and pins between two guilds over whisper relays.
 
 ### 1.0 Launch quality

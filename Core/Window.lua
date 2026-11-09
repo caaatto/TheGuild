@@ -11,6 +11,11 @@ local tabButtons = {}
 local sideTabs = false
 
 local WIDTH, HEIGHT = 920, 610
+local SIDE_TAB_TOP = 28
+local SIDE_TAB_GAP = 2
+local SIDE_TAB_OVERLAP = 10
+local SIDE_TAB_FALLBACK_WIDTH = 40
+local SIDE_TAB_FALLBACK_HEIGHT = 44
 
 local function savePosition()
     local point, _, _, x, y = frame:GetPoint(1)
@@ -32,23 +37,47 @@ local function tabVisible(tab)
     return tab.visible == nil or tab.visible() == true
 end
 
+local function layoutSideTabs(shown)
+    local height = shown[1]:GetHeight()
+    if not height or height < 10 then height = SIDE_TAB_FALLBACK_HEIGHT end
+    local width = shown[1]:GetWidth()
+    if not width or width < 10 then width = SIDE_TAB_FALLBACK_WIDTH end
+    local step = height + SIDE_TAB_GAP
+    local perColumn = math.max(1, math.floor((frame:GetHeight() - SIDE_TAB_TOP - 8) / step))
+    local first = #shown > perColumn and math.ceil(#shown / 2) or #shown
+    local level = frame:GetFrameLevel()
+    for i, button in ipairs(shown) do
+        button:ClearAllPoints()
+        if i <= first then
+            button:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, -SIDE_TAB_TOP - (i - 1) * step)
+            button:SetFrameLevel(level + 2)
+        else
+            button:SetPoint("TOPLEFT", frame, "TOPRIGHT", width - SIDE_TAB_OVERLAP, -SIDE_TAB_TOP - step / 2 - (i - first - 1) * step)
+            button:SetFrameLevel(level + 1)
+        end
+    end
+end
+
 local function layoutTabs()
-    local previous
+    local shown = {}
     for i, tab in ipairs(tabs) do
         local button = tabButtons[i]
         if button then
-            local shown = tabVisible(tab)
-            button:SetShown(shown)
-            if shown then
-                button:ClearAllPoints()
-                if sideTabs then
-                    if previous then button:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, -2) else button:SetPoint("TOPLEFT", frame, "TOPRIGHT", 0, -28) end
-                else
-                    if previous then button:SetPoint("LEFT", previous, "RIGHT", 3, 0) else button:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 11, 2) end
-                end
-                previous = button
-            end
+            local visible = tabVisible(tab)
+            button:SetShown(visible)
+            if visible then shown[#shown + 1] = button end
         end
+    end
+    if #shown == 0 then return end
+    if sideTabs then
+        layoutSideTabs(shown)
+        return
+    end
+    local previous
+    for _, button in ipairs(shown) do
+        button:ClearAllPoints()
+        if previous then button:SetPoint("LEFT", previous, "RIGHT", 3, 0) else button:SetPoint("TOPLEFT", frame, "BOTTOMLEFT", 11, 2) end
+        previous = button
     end
 end
 

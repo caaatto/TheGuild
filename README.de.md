@@ -72,11 +72,15 @@ Der Tab ist nur für Offiziere und den Gildenmeister sichtbar. Offiziere führen
 
 ![Berufe](Screenshots/professions.jpg)
 
-Erfasst deine Rezepte beim Öffnen eines Berufsfensters, teilt sie mit der Gilde und zeigt Handwerker in Item-Tooltips und in einem durchsuchbaren Rezeptverzeichnis.
+Erfasst deine Rezepte beim Öffnen eines Berufsfensters, teilt sie mit der Gilde und zeigt Handwerker in Item-Tooltips und in einem nach Berufen geklappten Rezeptverzeichnis. Eine Suche öffnet alle Berufe.
 
 ### Ruf zu den Waffen und Nachrichten
 
 `/tg cta`, eine Tastenbelegung oder der Knopf in der Übersicht schickt deine Position an die Gilde. Empfänger bekommen eine Raidwarnung, einen Ton und ein Fenster mit Wegpunkt-Knopf. Das Nachrichtenmodul ist standardmäßig aus. Eingeschaltet kann es neue Mitglieder begrüßen, Logins grüßen und zu Meilensteinstufen gratulieren, jedes davon erst nach eigenem Einschalten, und es blendet den Chat stummgeschalteter Spieler aus.
+
+### Meilensteine
+
+Einblendungen im Stil des Clients, wenn Gildenmitglieder Meilensteinstufen erreichen, epische Gegenstände finden oder der Gilde beitreten. Stufen nutzen die Gildenerfolgs-Einblendung mit deinem Wappenrock, Funde die Beute-Einblendung mit dem Gegenstand. Stufen kommen aus dem Gildenroster, also zählt jedes Mitglied, Funde kommen über das Loot-Modul des Finders. Welche Stufen, welche Qualität, neue Mitglieder und der Ton sind Einstellungen. `/tg debug level`, `/tg debug find` und `/tg debug join` zeigen Beispiel-Einblendungen.
 
 ## Blizzard-Integration
 
@@ -101,6 +105,7 @@ Das Fenster besteht aus den Vorlagen des Clients: Porträtrahmen mit Seitentabs 
 /tg loot <Link>  Lootsitzung starten, /tg loot end, /tg loot sr
 /tg voice        Voice-Tab, /tg voice join, /tg voice mute, /tg voice group <Name>, /tg voice hud
 /tg mute <Name>  Spieler stumm schalten oder freigeben
+/tg debug        Debug-Ausgabe umschalten, level|find|join simulieren Ereignisse
 /tg export       Einstellungen als Text, /tg import fügt sie ein
 /tg demo         alles mit erfundenen Daten für eine Vorführung füllen
 /tg memory       Speicher des Addons und Größe der geteilten Daten

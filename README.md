@@ -72,11 +72,15 @@ The tab is visible to officers and the guild master only. Officers keep a shared
 
 ![Professions](Screenshots/professions.jpg)
 
-Records your recipes when a profession window opens, shares them with the guild and shows crafters in item tooltips and in a searchable recipe directory.
+Records your recipes when a profession window opens, shares them with the guild and shows crafters in item tooltips and in a recipe directory folded by profession. A search opens every profession.
 
 ### Call to Arms and Messages
 
 `/tg cta`, a key binding or the overview button sends your location to the guild. Receivers get a raid warning, a sound and a popup with a waypoint button. The Messages module is off by default. Once enabled it can welcome new members, greet logins and congratulate milestone levels, each of those off until you turn it on, and it hides chat from muted players.
+
+### Milestones
+
+Toasts in the client's own look when guild members reach milestone levels, find epic items or join the guild. Level milestones use the guild achievement toast with your tabard, finds use the loot toast with the item. Levels come from the guild roster, so every member counts, finds arrive through the Loot module of the finder. Which levels, which item quality, new members and the sound are settings. `/tg debug level`, `/tg debug find` and `/tg debug join` show sample toasts.
 
 ## Blizzard integration
 
@@ -101,6 +105,7 @@ The window is built from the client's own templates: a portrait frame with side 
 /tg loot <link>  start a loot session, /tg loot end, /tg loot sr
 /tg voice        voice tab, /tg voice join, /tg voice mute, /tg voice group <name>, /tg voice hud
 /tg mute <name>  mute or unmute a player
+/tg debug        toggle debug output, level|find|join simulate events
 /tg export       settings as text, /tg import pastes them
 /tg demo         fill everything with made up data for a presentation
 /tg memory       memory of the addon and size of the shared data
