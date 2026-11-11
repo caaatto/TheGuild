@@ -23,7 +23,7 @@ local Milestones = TG:NewModule("Milestones", {
     settings = {
         { key = "levels", type = "select", name = L["Level milestones"], default = "high",
           options = { { "off", L["Off"] }, { "cap", L["Only level 60"] }, { "high", L["30, 40, 50 and 60"] }, { "all", L["Every ten levels"] } } },
-        { key = "finds", type = "select", name = L["Item finds"], tooltip = L["Finds arrive through the Loot module of the finder."], default = 4,
+        { key = "finds", type = "select", name = L["Item finds"], tooltip = L["Finds come from every member with the addon. Sharing and the quality are core settings."], default = 4,
           options = { { 0, L["Off"] }, { 4, ITEM_QUALITY4_DESC or "Epic" }, { 3, ITEM_QUALITY3_DESC or "Rare" } } },
         { key = "joins", type = "boolean", name = L["New members"], default = true },
         { key = "sound", type = "boolean", name = L["Play a sound"], default = true },

@@ -42,7 +42,7 @@ Named raid teams of 10, 20 or 40 kept in the guild store, one click invites for 
 
 ![Loot](Screenshots/loot.jpg)
 
-Loot sessions for the group leader or an assistant. Items come from the loot window or `/tg loot <link>`, everyone answers with Need, Greed, Offspec or Pass, officers vote, the owner awards. Awards are announced in group chat and kept in a shared history. Items your class cannot use are passed automatically. Soft reserves from softres.it can be pasted, reserved players are marked and the list travels with the session. The trade helper remembers awarded items in your bags, offers a button above the trade window that places them for the right player and clears the entry once the item changed hands. Rare or better finds are reported to the guild with their bind type.
+Loot sessions for the group leader or an assistant. Items come from the loot window or `/tg loot <link>`, everyone answers with Need, Greed, Offspec or Pass, officers vote, the owner awards. Awards are announced in group chat and kept in a shared history. Items your class cannot use are passed automatically. Soft reserves from softres.it can be pasted, reserved players are marked and the list travels with the session. The trade helper remembers awarded items in your bags, offers a button above the trade window that places them for the right player and clears the entry once the item changed hands.
 
 ### Board
 
@@ -80,7 +80,7 @@ Records your recipes when a profession window opens, shares them with the guild 
 
 ### Milestones
 
-Toasts in the client's own look when guild members reach milestone levels, find epic items or join the guild. Level milestones use the guild achievement toast with your tabard, finds use the loot toast with the item. Levels come from the guild roster, so every member counts, finds arrive through the Loot module of the finder. Which levels, which item quality, new members and the sound are settings. `/tg debug level`, `/tg debug find` and `/tg debug join` show sample toasts.
+Toasts in the client's own look when guild members reach milestone levels, find epic items or join the guild. Level milestones use the guild achievement toast with your tabard, finds use the loot toast with the item. Levels come from the guild roster, so every member counts, finds are shared by every member with the addon, whether to share and from which quality are core settings. Which levels, which item quality, new members and the sound are settings. `/tg debug level`, `/tg debug find` and `/tg debug join` show sample toasts.
 
 ## Blizzard integration
 

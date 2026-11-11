@@ -248,6 +248,21 @@ function Options:Build()
         function() return TG.db.global.debug end,
         function(value) TG.db.global.debug = value end, false)
 
+    header(left, L["Guild finds"])
+    checkbox(left, "TG_FIND_SHARE", L["Tell the guild when I find a rare or better item"], L["Every member with the addon sees the find, the Milestones module shows a toast for it."],
+        function() return TG.db.global.finds.share end,
+        function(value) TG.db.global.finds.share = value end, true)
+    checkbox(left, "TG_FIND_CHAT", L["Show finds of guild members in chat"], nil,
+        function() return TG.db.global.finds.chat end,
+        function(value) TG.db.global.finds.chat = value end, true)
+    dropdown(left, "TG_FIND_QUALITY", { name = L["Minimum quality for finds"], default = 3,
+        options = { { 3, ITEM_QUALITY3_DESC or "Rare" }, { 4, ITEM_QUALITY4_DESC or "Epic" } } },
+        function() return TG.db.global.finds.quality end,
+        function(value) TG.db.global.finds.quality = value end)
+    checkbox(left, "TG_FIND_BOP", L["Only report bind on pickup items"], nil,
+        function() return TG.db.global.finds.bopOnly end,
+        function(value) TG.db.global.finds.bopOnly = value end, false)
+
     header(left, L["Tutorials"])
     checkbox(left, "TG_TUTORIALS", L["Show tutorials for features you open for the first time"], nil,
         function() return TG.db.global.tutorialsOff ~= true end,

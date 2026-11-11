@@ -13,6 +13,5 @@ Loot.lua
 Usable.lua
 Reserves.lua
 Trade.lua
-Finds.lua
 Frames.lua
 Panel.lua

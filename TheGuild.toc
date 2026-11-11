@@ -38,6 +38,7 @@ Core\Roster.lua
 Core\Comm.lua
 Core\Store.lua
 Core\Log.lua
+Core\Finds.lua
 Core\UI.lua
 Core\Window.lua
 Core\Tutorial.lua

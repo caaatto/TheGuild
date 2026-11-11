@@ -92,8 +92,19 @@ local function buildSideTabs()
         button.tooltipText = tab.title
         if button.SetFillToInterior then button:SetFillToInterior(true, 50) end
         if button.Icon then
-            button.Icon:SetTexture(tab.icon or TG.icon)
-            button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            local icon = tab.icon
+            if type(icon) == "table" then
+                if icon.atlas and UI.HasAtlas(icon.atlas) then
+                    button.Icon:SetAtlas(icon.atlas)
+                    icon = false
+                else
+                    icon = icon.file
+                end
+            end
+            if icon ~= false then
+                button.Icon:SetTexture(icon or TG.icon)
+                button.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            end
         end
         button:SetScript("OnClick", function(self)
             Window:SelectTab(self:GetID())

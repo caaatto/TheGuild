@@ -42,7 +42,7 @@ Benannte Raidteams mit 10, 20 oder 40 Plätzen im Gildenspeicher, Einladungen al
 
 ![Loot](Screenshots/loot.jpg)
 
-Lootsitzungen für Gruppenleiter oder Assistenten. Gegenstände kommen aus dem Lootfenster oder per `/tg loot <Link>`, alle antworten mit Bedarf, Gier, Zweitspezialisierung oder Passen, Offiziere stimmen ab, der Leiter vergibt. Vergaben werden im Gruppenchat gemeldet und in einer gemeinsamen Historie gespeichert. Gegenstände, die deine Klasse nicht nutzen kann, werden automatisch gepasst. Soft Reserves von softres.it lassen sich einfügen, reservierte Spieler werden markiert und die Liste reist mit der Sitzung. Der Handelshelfer merkt sich vergebene Gegenstände in deinen Taschen, bietet über dem Handelsfenster einen Knopf, der sie für den richtigen Spieler einlegt, und löscht den Eintrag, sobald der Gegenstand den Besitzer gewechselt hat. Seltene oder bessere Funde werden der Gilde mit Bindungsart gemeldet.
+Lootsitzungen für Gruppenleiter oder Assistenten. Gegenstände kommen aus dem Lootfenster oder per `/tg loot <Link>`, alle antworten mit Bedarf, Gier, Zweitspezialisierung oder Passen, Offiziere stimmen ab, der Leiter vergibt. Vergaben werden im Gruppenchat gemeldet und in einer gemeinsamen Historie gespeichert. Gegenstände, die deine Klasse nicht nutzen kann, werden automatisch gepasst. Soft Reserves von softres.it lassen sich einfügen, reservierte Spieler werden markiert und die Liste reist mit der Sitzung. Der Handelshelfer merkt sich vergebene Gegenstände in deinen Taschen, bietet über dem Handelsfenster einen Knopf, der sie für den richtigen Spieler einlegt, und löscht den Eintrag, sobald der Gegenstand den Besitzer gewechselt hat.
 
 ### Board
 
@@ -80,7 +80,7 @@ Erfasst deine Rezepte beim Öffnen eines Berufsfensters, teilt sie mit der Gilde
 
 ### Meilensteine
 
-Einblendungen im Stil des Clients, wenn Gildenmitglieder Meilensteinstufen erreichen, epische Gegenstände finden oder der Gilde beitreten. Stufen nutzen die Gildenerfolgs-Einblendung mit deinem Wappenrock, Funde die Beute-Einblendung mit dem Gegenstand. Stufen kommen aus dem Gildenroster, also zählt jedes Mitglied, Funde kommen über das Loot-Modul des Finders. Welche Stufen, welche Qualität, neue Mitglieder und der Ton sind Einstellungen. `/tg debug level`, `/tg debug find` und `/tg debug join` zeigen Beispiel-Einblendungen.
+Einblendungen im Stil des Clients, wenn Gildenmitglieder Meilensteinstufen erreichen, epische Gegenstände finden oder der Gilde beitreten. Stufen nutzen die Gildenerfolgs-Einblendung mit deinem Wappenrock, Funde die Beute-Einblendung mit dem Gegenstand. Stufen kommen aus dem Gildenroster, also zählt jedes Mitglied, Funde meldet jedes Mitglied mit dem Addon, ob und ab welcher Qualität sind Kerneinstellungen. Welche Stufen, welche Qualität, neue Mitglieder und der Ton sind Einstellungen. `/tg debug level`, `/tg debug find` und `/tg debug join` zeigen Beispiel-Einblendungen.
 
 ## Blizzard-Integration
 

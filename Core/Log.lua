@@ -63,7 +63,7 @@ function Log:Text(item)
     if kind == "renamed" then return L["%s was renamed to %s"]:format(item.from or "?", colored) end
     if kind == "found" then
         local text = L["%s found %s"]:format(colored, item.link or "?")
-        local bind = TG:GetModule("Loot") and TG:GetModule("Loot").Finds and TG:GetModule("Loot").Finds.BindText(item.bind)
+        local bind = TG.Finds and TG.Finds.BindText(item.bind)
         if bind then text = text .. " (" .. bind .. ")" end
         return text
     end
