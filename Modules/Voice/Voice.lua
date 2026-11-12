@@ -12,6 +12,7 @@ local Voice = TG:NewModule("Voice", {
     title = L["Voice"],
     desc = L["Proximity voice and voice groups on the Blizzard guild voice channel."],
     order = 26,
+    requires = { "Map" },
     defaults = { mode = "proximity", nearRange = 30, farRange = 90, maxVolume = 80, announce = true, partyVoice = false, hud = true, hudLock = false, hudList = true, hideToasts = true },
     charDefaults = { autoJoin = false, mutedByUs = {} },
     settings = {
@@ -441,37 +442,10 @@ function Voice:KeepGuildChannelActive(channelID)
     if C_VoiceChat.ActivateChannel then C_VoiceChat.ActivateChannel(channel.channelID) end
 end
 
-local function worldPosition(mapID, x, y)
-    if not mapID or not x or not y or x <= 0 or y <= 0 then return nil end
-    if not (C_Map and C_Map.GetWorldPosFromMapPos and CreateVector2D) then return nil end
-    local instance, pos = C_Map.GetWorldPosFromMapPos(mapID, CreateVector2D(x, y))
-    if not TG.usable(instance) or not pos then return nil end
-    local wx, wy = pos:GetXY()
-    if not TG.usable(wx) or not TG.usable(wy) then return nil end
-    return instance, wx, wy
-end
-
-function Voice:MyPosition()
-    local mapID = C_Map.GetBestMapForUnit("player")
-    if not TG.usable(mapID) or not mapID then return nil end
-    local pos = C_Map.GetPlayerMapPosition(mapID, "player")
-    if not pos then return nil end
-    local x, y = pos:GetXY()
-    if not TG.usable(x) or not TG.usable(y) then return nil end
-    return worldPosition(mapID, x, y)
-end
-
 function Voice:Distance(key)
     local map = TG:GetModule("Map")
     if not map or not map.enabled then return nil end
-    local peer = map:Peer(key)
-    if not peer or not peer.hasPos then return nil end
-    local instance, px, py = worldPosition(peer.mapID, peer.x, peer.y)
-    if not instance then return nil end
-    local myInstance, mx, my = self:MyPosition()
-    if not myInstance or myInstance ~= instance then return nil end
-    local dx, dy = px - mx, py - my
-    return math.sqrt(dx * dx + dy * dy)
+    return map:Distance(key)
 end
 
 function Voice:TargetVolume(key)

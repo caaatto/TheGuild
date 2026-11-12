@@ -4,8 +4,7 @@
 ## Notes-deDE: Proximity-Voice und Voice-Gruppen über den Blizzard-Gildensprachkanal.
 ## Author: Catto
 ## Version: 0.2.37
-## Dependencies: TheGuild
-## OptionalDeps: TheGuild_Map
+## Dependencies: TheGuild, TheGuild_Map
 ## Group: TheGuild
 ## Category: Guild
 ## IconTexture: Interface\Icons\INV_Misc_Horn_01

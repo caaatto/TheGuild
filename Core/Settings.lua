@@ -223,10 +223,11 @@ local function addSpec(col, mod, spec)
 end
 
 local function moduleToggle(col, mod)
-    checkbox(col, "TG_MODULE_" .. mod.name, mod.title, mod.desc,
+    checkbox(col, "TG_MODULE_" .. mod.name, mod.title, TG:ModuleNotes(mod),
         function() return mod.enabled end,
         function(value)
             if value then TG:EnableModule(mod, true) else TG:DisableModule(mod, true) end
+            Options:Refresh()
         end,
         mod.defaultEnabled)
 end
@@ -249,13 +250,14 @@ function Options:Build()
         function(value) TG.db.global.debug = value end, false)
 
     header(left, L["Guild finds"])
-    checkbox(left, "TG_FIND_SHARE", L["Tell the guild when I find a rare or better item"], L["Every member with the addon sees the find, the Milestones module shows a toast for it."],
+    checkbox(left, "TG_FIND_SHARE", L["Share my finds with the guild"], L["Every member with the addon sees the find, the Milestones module shows a toast for it, the chat line adds the details."],
         function() return TG.db.global.finds.share end,
         function(value) TG.db.global.finds.share = value end, true)
-    checkbox(left, "TG_FIND_CHAT", L["Show finds of guild members in chat"], nil,
-        function() return TG.db.global.finds.chat end,
-        function(value) TG.db.global.finds.chat = value end, true)
-    dropdown(left, "TG_FIND_QUALITY", { name = L["Minimum quality for finds"], default = 3,
+    dropdown(left, "TG_FIND_CHAT", { name = L["Show finds of guild members in chat"], default = 4,
+        options = { { 0, L["Off"] }, { 3, ITEM_QUALITY3_DESC or "Rare" }, { 4, ITEM_QUALITY4_DESC or "Epic" } } },
+        function() return TG.db.global.finds.chat == true and 4 or tonumber(TG.db.global.finds.chat) or 0 end,
+        function(value) TG.db.global.finds.chat = value end)
+    dropdown(left, "TG_FIND_QUALITY", { name = L["Minimum quality for finds"], default = 4,
         options = { { 3, ITEM_QUALITY3_DESC or "Rare" }, { 4, ITEM_QUALITY4_DESC or "Epic" } } },
         function() return TG.db.global.finds.quality end,
         function(value) TG.db.global.finds.quality = value end)

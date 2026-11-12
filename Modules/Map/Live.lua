@@ -8,6 +8,7 @@ local units = {}
 local LIVE_TICK = 0.05
 local RAID_EVERY = 4
 local beat = 0
+local metAt = 0
 
 local function rebuild()
     for key in pairs(units) do
@@ -48,7 +49,10 @@ local function tick()
     if TG.Count(units) > 5 and beat % RAID_EVERY ~= 0 then return end
     local changed = false
     local now = GetTime()
+    local sight = now - metAt > 5
+    if sight then metAt = now end
     for key, unit in pairs(units) do
+        if sight and TG.plain(UnitIsVisible(unit), false) then Map:Met(key) end
         local mapID = C_Map.GetBestMapForUnit(unit)
         if TG.usable(mapID) and mapID then
             local pos = C_Map.GetPlayerMapPosition(mapID, unit)

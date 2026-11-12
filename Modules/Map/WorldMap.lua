@@ -56,6 +56,10 @@ function WM.Tooltip(tooltip, key, peer)
     if peer.flags:find("s", 1, true) then GameTooltip_AddNormalLine(tooltip, L["Stealthed"]) end
     if peer.gm then GameTooltip_AddDisabledLine(tooltip, L["via GuildMap"]) end
     GameTooltip_AddDisabledLine(tooltip, L["Updated %s ago"]:format(TG.FormatAge(GetTime() - peer.ts)))
+    if not TG.IsMe(key) then
+        local met = Map:LastMet(key)
+        GameTooltip_AddDisabledLine(tooltip, met and L["Crossed paths %s ago"]:format(TG.FormatAge(TG.Now() - met)) or L["Never crossed paths"])
+    end
 end
 
 function WM:Project(peer, mapID)

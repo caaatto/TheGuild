@@ -63,7 +63,8 @@ local function build(panel)
         if peer.flags:find("s", 1, true) then zone = L["Stealthed"] end
         button.cells.zone:SetText(zone)
         button.cells.health:SetText(peer.hp >= 0 and (peer.hp .. "%") or (peer.gm and GRAY_FONT_COLOR:WrapTextInColorCode("GuildMap") or ""))
-        button.cells.age:SetText(TG.FormatAge(GetTime() - peer.ts))
+        local met = not data.me and Map:LastMet(data.key)
+        button.cells.age:SetText(data.me and "" or (met and TG.FormatAge(TG.Now() - met) or GRAY_FONT_COLOR:WrapTextInColorCode(L["never"])))
         button.data = data
     end, {
         inset = true,
@@ -98,7 +99,7 @@ local function build(panel)
     TG.Tutorial:Define("map", {
         { target = share, text = L["Your position goes to guild members only while this is on and you move, never from inside an instance."], point = "bottom" },
         { target = openMap, text = L["Members appear on the world map and the minimap. Ctrl + right click on the world map places a guild pin for everyone."], point = "bottom" },
-        { target = listFrame, text = L["Everybody who shares a position right now. Click a row to show that member on the map."], point = "top" },
+        { target = listFrame, text = L["Everybody who shares a position right now. Last seen is when you last crossed paths. Click a row to show that member on the map."], point = "top" },
     })
 
     function panel:OnShow()

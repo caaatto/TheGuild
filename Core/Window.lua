@@ -182,26 +182,35 @@ local function build()
         frame:EnableKeyboard(true)
         frame:SetPropagateKeyboardInput(true)
     end
+    local function release()
+        if not InCombatLockdown() then frame:SetPropagateKeyboardInput(true) end
+    end
+    local function swallow()
+        if InCombatLockdown() then return end
+        frame:SetPropagateKeyboardInput(false)
+        TG.After(0, release)
+    end
     frame:EnableKeyboard(false)
     allowKeys()
+    frame:HookScript("OnShow", function() if InCombatLockdown() then frame:EnableKeyboard(false) else allowKeys() end end)
     frame:SetScript("OnKeyDown", function(self, key)
-        local handled = false
+        if InCombatLockdown() then return end
         if key == "TAB" and IsControlKeyDown() then
             Window:StepTab(IsShiftKeyDown() and -1 or 1)
-            handled = true
-        elseif key == "F" and IsControlKeyDown() then
-            handled = Window:FocusSearch()
+            swallow()
+        elseif key == "F" and IsControlKeyDown() and Window:FocusSearch() then
+            swallow()
         end
-        if not InCombatLockdown() then self:SetPropagateKeyboardInput(not handled) end
     end)
+    frame:SetScript("OnKeyUp", release)
     if type(C_GamePad) == "table" and C_GamePad.IsEnabled and C_GamePad.IsEnabled() then
         frame:EnableGamePadButton(true)
         frame:SetScript("OnGamePadButtonDown", function(self, button)
-            local handled = false
-            if button == "PADRSHOULDER" then Window:StepTab(1) handled = true
-            elseif button == "PADLSHOULDER" then Window:StepTab(-1) handled = true end
-            if not InCombatLockdown() then self:SetPropagateKeyboardInput(not handled) end
+            if InCombatLockdown() then return end
+            if button == "PADRSHOULDER" then Window:StepTab(1) swallow()
+            elseif button == "PADLSHOULDER" then Window:StepTab(-1) swallow() end
         end)
+        frame:SetScript("OnGamePadButtonUp", release)
     end
     TG:RegisterEvent("PLAYER_REGEN_DISABLED", function() frame:EnableKeyboard(false) end)
     TG:RegisterEvent("PLAYER_REGEN_ENABLED", allowKeys)

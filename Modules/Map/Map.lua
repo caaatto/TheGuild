@@ -9,6 +9,8 @@ local HEALTH_WARN_GAP = 60
 local GM_PREFIX = "GuildMapEx1"
 local GM_TTL = 180
 local NATIVE_HOLD = 60
+local MET_RANGE = 100
+local MET_GAP = 60
 
 local function refreshAll(mod)
     TG:Fire("MAP_PEERS")
@@ -81,6 +83,66 @@ function Map:Snapshot()
         end
     end
     return { mapID = mapID, x = x, y = y, hp = health(), flags = flags }
+end
+
+local function worldPosition(mapID, x, y)
+    if not mapID or not x or not y or x <= 0 or y <= 0 then return nil end
+    if not (C_Map.GetWorldPosFromMapPos and CreateVector2D) then return nil end
+    local instance, pos = C_Map.GetWorldPosFromMapPos(mapID, CreateVector2D(x, y))
+    if not TG.usable(instance) or not pos then return nil end
+    local wx, wy = pos:GetXY()
+    if not TG.usable(wx) or not TG.usable(wy) then return nil end
+    return instance, wx, wy
+end
+
+function Map:MyPosition()
+    local mapID = C_Map.GetBestMapForUnit("player")
+    if not TG.usable(mapID) or not mapID then return nil end
+    local pos = C_Map.GetPlayerMapPosition(mapID, "player")
+    if not pos then return nil end
+    local x, y = pos:GetXY()
+    if not TG.usable(x) or not TG.usable(y) then return nil end
+    return worldPosition(mapID, x, y)
+end
+
+function Map:Distance(key)
+    local peer = self.peers[TG.StripRealm(key) or key]
+    if not peer or not peer.hasPos then return nil end
+    local instance, px, py = worldPosition(peer.mapID, peer.x, peer.y)
+    if not instance then return nil end
+    local myInstance, mx, my = self:MyPosition()
+    if not myInstance or myInstance ~= instance then return nil end
+    local dx, dy = px - mx, py - my
+    return math.sqrt(dx * dx + dy * dy)
+end
+
+function Map:Met(key)
+    if not TG.Roster:Get(key) then return end
+    local g = TG:GuildDB()
+    if not g then return end
+    local now = TG.Now()
+    g.met = g.met or {}
+    if (g.met[key] or 0) + MET_GAP > now then return end
+    g.met[key] = now
+    self:Changed()
+end
+
+function Map:LastMet(key)
+    local g = TG:GuildDB()
+    local met = g and g.met
+    return met and met[TG.StripRealm(key) or key] or nil
+end
+
+local function checkMet(key, peer)
+    if not peer.hasPos or peer.mapID ~= C_Map.GetBestMapForUnit("player") then return end
+    local distance = Map:Distance(key)
+    if distance and distance <= MET_RANGE then Map:Met(key) end
+end
+
+local function unitMet(unit)
+    if not TG.plain(UnitIsPlayer(unit), false) or not TG.plain(UnitIsInMyGuild(unit), false) then return end
+    local key = TG.UnitKey(unit)
+    if key and not TG.IsMe(key) then Map:Met(key) end
 end
 
 local function gmUsers()
@@ -223,6 +285,7 @@ function Map:OnPosition(sender, data)
     peer.gm = nil
     peer.hasPos = x > 0 and y > 0 and not flags:find("[is]")
     self.peers[sender] = peer
+    checkMet(sender, peer)
     self:CheckHealth(sender, peer)
     self:Changed()
 end
@@ -261,6 +324,7 @@ function Map:OnGuildMapMessage(_, prefix, text, channel, sender)
     peer.hasPos = true
     peer.gm = true
     self.peers[key] = peer
+    checkMet(key, peer)
     self:CheckHealth(key, peer)
     self:Changed()
 end
@@ -397,6 +461,9 @@ function Map:OnEnable()
     end)
     self:On("GUILD_CHANGED", function() wipe(self.peers) wipe(gmSeen) gmAnnounced = false self:Changed() end)
     self:RegisterEvent("PLAYER_ENTERING_WORLD", function() last = { at = 0 } end)
+    self:RegisterEvent("NAME_PLATE_UNIT_ADDED", function(_, unit) unitMet(unit) end)
+    self:RegisterEvent("UPDATE_MOUSEOVER_UNIT", function() unitMet("mouseover") end)
+    self:RegisterEvent("PLAYER_TARGET_CHANGED", function() unitMet("target") end)
     self.WorldMap:Enable()
     self.MinimapPins:Enable()
     self.SharedPins:Enable()

@@ -8,7 +8,7 @@ local defaults = {
         debug = false,
         minimap = { hide = false },
         window = { point = "CENTER", x = 0, y = 0, tab = 1 },
-        finds = { share = true, chat = true, quality = 3, bopOnly = false },
+        finds = { share = true, chat = 4, quality = 4, bopOnly = false },
     },
     modules = {},
     guilds = {},

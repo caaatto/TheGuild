@@ -39,12 +39,28 @@ local function syncHead(h)
     h.check:SetChecked(all)
 end
 
+local function cascade(f, r, checked)
+    local mod = r.mod
+    if not mod then return end
+    for _, o in ipairs(f.rows) do
+        local other = o.mod
+        if other and o ~= r then
+            local follow = checked and TG.Requires(mod, other.name) or (not checked and TG.Requires(other, mod.name))
+            if follow and (o.check:GetChecked() and true or false) ~= checked then
+                o.check:SetChecked(checked)
+                if o.head then syncHead(o.head) end
+            end
+        end
+    end
+end
+
 local function head(f, i)
     local h = f.heads[i]
     if h then return h end
     h = { rows = {} }
     h.check = UI.Checkbox(f.child, "", function(checked)
         for _, r in ipairs(h.rows) do r.check:SetChecked(checked) end
+        for _, r in ipairs(h.rows) do cascade(f, r, checked) end
     end)
     h.check.Text:SetFontObject("GameFontNormalLarge")
     h.notes = UI.Label(f.child, "", "GameFontDisableSmall")
@@ -64,7 +80,10 @@ local function row(f, i)
     local r = f.rows[i]
     if r then return r end
     r = {}
-    r.check = UI.Checkbox(f.child, "", function() if r.head then syncHead(r.head) end end)
+    r.check = UI.Checkbox(f.child, "", function(checked)
+        cascade(f, r, checked)
+        if r.head then syncHead(r.head) end
+    end)
     r.check.Text:SetFontObject("GameFontNormal")
     r.notes = UI.Label(f.child, "", "GameFontDisableSmall")
     r.notes:SetPoint("TOPLEFT", r.check, "BOTTOMLEFT", 28, 4)
@@ -166,7 +185,7 @@ function Setup:Open()
                 r.check:SetPoint("TOPLEFT", dialog.child, "TOPLEFT", 24, -y)
                 r.check.Text:SetText(mod.title)
                 r.check:SetChecked(mod.enabled)
-                r.notes:SetText(mod.desc or "")
+                r.notes:SetText(TG:ModuleNotes(mod))
                 r.check:Show()
                 r.notes:Show()
                 y = y + ROW

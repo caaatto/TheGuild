@@ -59,6 +59,7 @@ function TG:NewModule(name, def)
         defaults = def.defaults,
         charDefaults = def.charDefaults,
         settings = def.settings,
+        requires = def.requires,
         tickers = {},
         enabled = false,
     }, Module)
@@ -83,6 +84,26 @@ function TG:IsModuleEnabled(name)
     return mod and mod.enabled or false
 end
 
+function TG.Requires(mod, name)
+    local req = mod.requires
+    if not req then return false end
+    for _, n in ipairs(req) do
+        if n == name then return true end
+    end
+    return false
+end
+
+function TG:ModuleNotes(mod)
+    local notes = mod.desc or ""
+    if not mod.requires then return notes end
+    local names = {}
+    for _, name in ipairs(mod.requires) do
+        local other = TG.modules[name]
+        names[#names + 1] = other and other.title or name
+    end
+    return notes .. " " .. L["Needs the %s module."]:format(table.concat(names, ", "))
+end
+
 local function wantsEnabled(mod)
     local state = TG.db.modules[mod.name]
     if state and state.enabledOverride ~= nil then return state.enabledOverride end
@@ -92,6 +113,12 @@ end
 function TG:EnableModule(mod, persist)
     if type(mod) == "string" then mod = TG.modules[mod] end
     if not mod or mod.enabled then return end
+    if mod.requires then
+        for _, name in ipairs(mod.requires) do
+            TG:EnableModule(name, persist)
+            if not TG:IsModuleEnabled(name) then return end
+        end
+    end
     mod.enabled = true
     if persist then mod.db.enabledOverride = true end
     if mod.OnEnable then TG.SafeCall(mod.OnEnable, mod) end
@@ -106,6 +133,9 @@ function TG:DisableModule(mod, persist)
     if mod.OnDisable then TG.SafeCall(mod.OnDisable, mod) end
     mod:Cleanup()
     TG:Fire("MODULE_DISABLED", mod.name)
+    for _, other in ipairs(TG.moduleOrder) do
+        if other.enabled and TG.Requires(other, mod.name) then TG:DisableModule(other, persist) end
+    end
 end
 
 function TG:InitModules()

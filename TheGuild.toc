@@ -52,4 +52,15 @@ Core\Profile.lua
 Core\Demo.lua
 
 Modules\Dashboard\Dashboard.lua
+Modules\GehHeim\Seal.lua
+Modules\GehHeim\Locale.lua
+Modules\GehHeim\Catalog.lua
+Modules\GehHeim\Codec.lua
+Modules\GehHeim\Link.lua
+Modules\GehHeim\GehHeim.lua
+Modules\GehHeim\CatalogText.lua
+Modules\GehHeim\Facts.lua
+Modules\GehHeim\Rules.lua
+Modules\GehHeim\Alert.lua
+Modules\GehHeim\Panel.lua
 
