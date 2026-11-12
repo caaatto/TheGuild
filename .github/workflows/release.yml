@@ -67,8 +67,21 @@ jobs:
           parts = m.group(2).split(".")
           while len(parts) < 3:
               parts.append("0")
-          parts[2] = str(int(parts[2]) + 1)
-          new = ".".join(parts[:3])
+          import subprocess
+          def git(*args):
+              return subprocess.run(["git", *args], capture_output=True, text=True).stdout.strip()
+          def modules(ref):
+              return set(git("ls-tree", "-d", "--name-only", ref, "Modules/").splitlines())
+          current = ".".join(parts[:3])
+          if "v" + current not in git("tag", "--list", "v*").split():
+              new = current
+          else:
+              if modules("HEAD") - modules("v" + current):
+                  parts[1] = str(int(parts[1]) + 1)
+                  parts[2] = "0"
+              else:
+                  parts[2] = str(int(parts[2]) + 1)
+              new = ".".join(parts[:3])
           for toc in tocs:
               text = toc.read_bytes().decode("utf-8")
               text, hits = pattern.subn(lambda mm: mm.group(1) + new, text, count=1)
@@ -88,7 +101,7 @@ jobs:
           git config user.name "Catto"
           git config user.email "info@catto.at"
           git add TheGuild.toc Modules/*/TheGuild_*.toc
-          git commit -m "release v${VERSION}"
+          git commit --allow-empty -m "release v${VERSION}"
           echo "hash=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Package
