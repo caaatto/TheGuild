@@ -31,7 +31,12 @@ local function separate()
     local state = C_AddOns and C_AddOns.GetAddOnEnableState
     if not exists or not state then return false end
     local ok, on = pcall(function() return exists("TheGuild_GehHeim") and (state("TheGuild_GehHeim") or 0) > 0 end)
-    return ok and on or false
+    if not ok or not on then return false end
+    if ns.sealed then
+        pcall(C_AddOns.DisableAddOn, "TheGuild_GehHeim")
+        if C_AddOns.SaveAddOns then pcall(C_AddOns.SaveAddOns) end
+    end
+    return true
 end
 
 ns.off = not ns.sealed or separate()

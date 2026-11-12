@@ -7,6 +7,7 @@ local members = {}
 local list = {}
 local byGUID = {}
 local ready = false
+local LEVEL_MEMORY = 900
 local reading = false
 local pending = false
 local lastRead = 0
@@ -196,6 +197,18 @@ function Roster:Read()
     local first = not ready
     if complete then ready = true end
     if first and ready then TG:Fire("ROSTER_READY") end
+    if complete and guildDB then
+        local saved = guildDB.levels
+        if first and saved and now - (guildDB.levelsAt or 0) <= LEVEL_MEMORY then
+            for key, e in pairs(fresh) do
+                local before = saved[key]
+                if before and before > 0 and e.level > before then TG:Fire("MEMBER_LEVEL", e, before) end
+            end
+        end
+        local levels = {}
+        for key, e in pairs(fresh) do levels[key] = e.level end
+        guildDB.levels, guildDB.levelsAt = levels, now
+    end
     TG:Fire("ROSTER_UPDATED")
     if not ready then self:Request() end
 end
