@@ -171,10 +171,30 @@ end
 local CLASSIFICATION = { elite = 1, rare = 2, rareelite = 3, worldboss = 4 }
 
 function ns.Classification(unit)
+    local cls = str(call(UnitClassification, unit), "")
+    if cls == "rare" or cls == "rareelite" then return CLASSIFICATION[cls] end
     if yes(call(UnitIsBossMob, unit)) then return 4 end
     local lvl = call(UnitLevel, unit)
     if usable(lvl) and lvl == -1 then return 4 end
-    return CLASSIFICATION[str(call(UnitClassification, unit), "")] or 0
+    return CLASSIFICATION[cls] or 0
+end
+
+function ns.GroupClasses()
+    local prefix, count = "party", 4
+    if yes(call(IsInRaid)) then prefix, count = "raid", 40 end
+    local seen, mask = {}, 0
+    for i = 0, count do
+        local unit = i == 0 and "player" or prefix .. i
+        if i == 0 or yes(call(UnitExists, unit)) then
+            local _, _, id = call(UnitClass, unit)
+            id = num(id, nil)
+            if id and id >= 1 and id <= 30 and not seen[id] then
+                seen[id] = true
+                mask = mask + 2 ^ id
+            end
+        end
+    end
+    return mask
 end
 
 function ns.NpcIdFromGUID(guid)
@@ -433,7 +453,7 @@ ns.Collector("Announce", {
 })
 
 local function levelExtras()
-    return ns.Weather(), ns.BestMap() or 0, u8(ns.ArmorPieces()), ns.GroupSize()
+    return ns.Weather(), ns.BestMap() or 0, u8(ns.ArmorPieces()), ns.GroupSize(), 1
 end
 
 local function logLevelsUpTo(level, live)
@@ -447,8 +467,7 @@ local function logLevelsUpTo(level, live)
     if level <= st.logged then return end
     for l = st.logged + 1, level do
         if live then
-            local weather, map, armor, group = levelExtras()
-            ns.Append({ T.level, l, weather, map, armor, group })
+            ns.Append({ T.level, l, levelExtras() })
             ns.Notice(L["Level %d"]:format(l), "level_" .. l)
             if ns.ANNOUNCE_LEVELS[l] then ns.Announce("level:" .. l, L["Level %d reached!"]:format(l)) end
         else
@@ -868,7 +887,7 @@ local function durationOf(encounterId, t)
     return 0
 end
 
-local function logEncounter(encounterId, src, difficulty, size, name)
+local function logEncounter(encounterId, src, difficulty, name)
     local t = now()
     local last = recent[encounterId]
     if last and t - last < ns.ENCOUNTER_DEDUPE then return end
@@ -879,10 +898,8 @@ local function logEncounter(encounterId, src, difficulty, size, name)
     local st = ns.State("kills")
     local key = encounterId .. ":" .. diff
     st[key] = st[key] or t
-    local groupSize = num(size, nil)
-    groupSize = u8(groupSize and max(1, groupSize) or ns.GroupSize())
-    ns.Append({ T.encounter_kill, encounterId, 0, diff, instanceId, groupSize, src,
-        durationOf(encounterId, t), ns.GuildMembersInGroup(), ns.Weather(), ns.TabardItem() })
+    ns.Append({ T.encounter_kill, encounterId, 0, diff, instanceId, ns.GroupSize(), src,
+        durationOf(encounterId, t), ns.GuildMembersInGroup(), ns.Weather(), ns.TabardItem(), ns.GroupClasses() })
     started[encounterId] = nil
     ns.lastBossKill = { id = encounterId, at = t }
     local label = str(name, nil)
@@ -931,13 +948,13 @@ ns.Collector("Encounters", {
     events = {
         BOSS_KILL = function(_, encounterId, name)
             local id = num(encounterId, nil)
-            if id and id > 0 then logEncounter(id, 4, nil, nil, name) end
+            if id and id > 0 then logEncounter(id, 4, nil, name) end
         end,
         ENCOUNTER_START = function(_, encounterId)
             local id = num(encounterId, nil)
             if id and id > 0 then started[id] = now() end
         end,
-        ENCOUNTER_END = function(_, encounterId, name, difficulty, size, success)
+        ENCOUNTER_END = function(_, encounterId, name, difficulty, _, success)
             if not usable(encounterId) or not usable(success) then return end
             local id = num(encounterId, nil)
             if not id or id == 0 then return end
@@ -946,14 +963,13 @@ ns.Collector("Encounters", {
                 if not (recentWipe[id] and t - recentWipe[id] < ns.ENCOUNTER_DEDUPE) then
                     recentWipe[id] = t
                     local _, instDifficulty, instanceId = ns.InstanceInfo()
-                    local groupSize = num(size, nil)
                     ns.Append({ T.encounter_wipe, id, num(difficulty, nil) or instDifficulty, instanceId,
-                        u8(groupSize and max(1, groupSize) or ns.GroupSize()), durationOf(id, t) })
+                        ns.GroupSize(), durationOf(id, t) })
                     started[id] = nil
                 end
                 return
             end
-            logEncounter(id, 1, difficulty, size, name)
+            logEncounter(id, 1, difficulty, name)
         end,
         LOOT_OPENED = lootFallback,
     },
@@ -1066,13 +1082,18 @@ local function contains(list, id)
 end
 ns.IsCandidate = contains
 
-local function once(id, value)
+local function once(id, value, aux, keyAux)
     value = num(value, 0)
     if value == 0 then return end
     local st = ns.State("moments12")
     local key = id .. ":" .. value
+    if keyAux then key = key .. ":" .. num(aux, 0) end
     if st[key] then return end
-    ns.Append({ T.moment, id, value })
+    if aux then
+        ns.Append({ T.moment, id, value, num(aux, 0) })
+    else
+        ns.Append({ T.moment, id, value })
+    end
     st[key] = true
 end
 ns.RecordMoment = once
@@ -1143,24 +1164,60 @@ end
 
 local recipes = {}
 
+local function openProfession(kind)
+    local name
+    if kind == "Craft" then
+        name = str(call(GetCraftDisplaySkillLine), nil)
+    else
+        name = str(call(GetTradeSkillLine), nil)
+    end
+    if not name then
+        local base = api("C_TradeSkillUI.GetBaseProfessionInfo")
+        local info = base and call(base)
+        if type(info) == "table" and usable(info) then return num(info.professionID, 0) end
+        return 0
+    end
+    return ns.SKILL_BY_NAME[name:lower()] or 0
+end
+
 local function scanRecipes()
     local all = api("C_TradeSkillUI.GetAllRecipeIDs")
     local ids = all and call(all)
     if type(ids) == "table" and usable(ids) then
+        local skill = openProfession("TradeSkill")
         for _, raw in ipairs(ids) do
             local id = num(raw, nil)
-            if id then recipes[id] = true end
+            if id then recipes[id] = skill end
         end
     end
     for _, kind in ipairs({ "TradeSkill", "Craft" }) do
         local n = num(call(_G["GetNum" .. kind .. "s"]), 0)
         local getLink = _G["Get" .. kind .. "RecipeLink"]
+        local skill = n > 0 and openProfession(kind) or 0
         for i = 1, min(n, 5000) do
             local link = str(call(getLink, i), "")
             local id = tonumber(link:match("enchant:(%d+)") or link:match("spell:(%d+)"))
-            if id then recipes[id] = true end
+            if id then recipes[id] = skill end
         end
     end
+end
+
+local campfireByName = {}
+
+local function isCampfire(id)
+    if contains(ns.ID_CANDIDATES.campfire, id) then return true end
+    local known = campfireByName[id]
+    if known ~= nil then return known end
+    local getName = api("C_Spell.GetSpellName")
+    local name = (getName and str(call(getName, id), nil) or str(call(GetSpellInfo, id), "")):lower()
+    known = false
+    if name ~= "" then
+        for _, word in ipairs(ns.ID_CANDIDATES.campfireNames) do
+            if name:find(word, 1, true) then known = true end
+        end
+        campfireByName[id] = known
+    end
+    return known
 end
 
 local pendingItem, lastCast
@@ -1185,9 +1242,10 @@ local function onCast(_, unit, castGuid, spellId)
     lastCast = key
     table.insert(ns.RecentSpells, 1, id)
     if #ns.RecentSpells > 5 then table.remove(ns.RecentSpells) end
-    if contains(ns.ID_CANDIDATES.campfire, id) then once(ns.MOMENT.campfire, ns.BestMap()) end
-    if recipes[id] then
-        once(ns.MOMENT.craft, id)
+    if isCampfire(id) then once(ns.MOMENT.campfire, ns.BestMap()) end
+    local skill = recipes[id]
+    if skill then
+        once(ns.MOMENT.craft, id, skill)
         bump(ns.STAT_CRAFTS)
     end
     if pendingItem and pendingItem.spell == id and now() - pendingItem.at <= 30 then
@@ -1200,9 +1258,15 @@ local function onCast(_, unit, castGuid, spellId)
 end
 
 local function salute(emote)
-    if str(emote, ""):upper() ~= "SALUTE" or not ns.Mod.rec or ns.Mod.passive then return end
+    local token = str(emote, ""):upper()
+    local code = ns.EMOTES[token]
+    if not code or not ns.Mod.rec or ns.Mod.passive then return end
     local player = call(UnitIsPlayer, "target")
-    if usable(player) and not player then once(ns.MOMENT.salute, ns.NpcIdFromGUID(str(call(UnitGUID, "target"), nil))) end
+    if usable(player) and not player then
+        local npc = ns.NpcIdFromGUID(str(call(UnitGUID, "target"), nil))
+        if token == "SALUTE" then once(ns.MOMENT.salute, npc) end
+        once(ns.MOMENT.emote, npc, code, true)
+    end
 end
 
 local lastMap, tramOrigin
@@ -1266,7 +1330,7 @@ local run
 local function checkRun()
     local kind, _, id = ns.InstanceInfo()
     if run and (kind ~= "party" or id ~= run.id) then
-        if run.n >= 3 then once(ns.MOMENT.guild_dungeon, run.id * 10 + 1 + (run.clean and 2 or 0) + (run.guild and 4 or 0)) end
+        if run.n >= 3 then once(ns.MOMENT.guild_dungeon, run.id * 10 + 1 + (run.clean and 2 or 0) + (run.guild and 4 or 0), run.n) end
         run = nil
     end
     if kind ~= "party" or id == 0 then return end

@@ -5,7 +5,7 @@ local L = ns.L
 local Codec, Link = ns.Codec, ns.Link
 local max = math.max
 
-ns.ADDON_VERSION = { 1, 2, 1 }
+ns.ADDON_VERSION = { 1, 3, 0 }
 ns.LEGACY = "GehHeim"
 ns.HOME_GUILD = "Geh Heim"
 
@@ -33,6 +33,30 @@ ns.FIGHT_LONG_S = 120
 ns.FIGHT_RECORD_MIN = 500
 ns.STAT_DISTANCE, ns.STAT_FISH, ns.STAT_HEARTH, ns.STAT_TOYS, ns.STAT_PETS = 1, 2, 3, 4, 5
 ns.STAT_CRAFTS, ns.STAT_CONSUMABLES, ns.STAT_GUILD_REZ = 6, 7, 8
+ns.STAT_JUMPS, ns.STAT_KILLS, ns.STAT_HONOR_KILLS, ns.STAT_BG_WINS, ns.STAT_KILLS_TYPE_BASE = 20, 21, 22, 23, 30
+ns.BIG_RUNGS = { 10, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000 }
+ns.CREATURE_TYPES = {
+    ["wildtier"] = 1, ["beast"] = 1, ["drachkin"] = 2, ["dragonkin"] = 2, ["dämon"] = 3, ["demon"] = 3,
+    ["elementar"] = 4, ["elemental"] = 4, ["riese"] = 5, ["giant"] = 5, ["untoter"] = 6, ["undead"] = 6,
+    ["humanoid"] = 7, ["kleintier"] = 8, ["critter"] = 8, ["mechanisch"] = 9, ["mechanical"] = 9,
+}
+ns.KILL_WATCH = { [620] = true, [265797] = true, [448] = true }
+ns.KILL_COMBAT_WINDOW_S = 10
+ns.EMOTES = { SALUTE = 1, SPIT = 2, WAVE = 3, HUG = 4, DANCE = 5, BOW = 6, CHICKEN = 7, KISS = 8,
+    CHEER = 9, ROAR = 10, RUDE = 11, THANK = 12, FLEX = 13, LAUGH = 14, CRY = 15, POINT = 16 }
+ns.BG_FACTION = { Horde = 0, Alliance = 1 }
+ns.RUN_GRACE_SECONDS = 600
+ns.RUN_MAX_SECONDS = 21600
+ns.LONG_LINK_CHARS = 3000
+ns.SKILL_BY_NAME = {
+    ["alchemy"] = 171, ["alchemie"] = 171, ["blacksmithing"] = 164, ["schmiedekunst"] = 164,
+    ["enchanting"] = 333, ["verzauberkunst"] = 333, ["engineering"] = 202, ["ingenieurskunst"] = 202,
+    ["herbalism"] = 182, ["kräuterkunde"] = 182, ["leatherworking"] = 165, ["lederverarbeitung"] = 165,
+    ["mining"] = 186, ["bergbau"] = 186, ["smelting"] = 186, ["verhüttung"] = 186,
+    ["skinning"] = 393, ["kürschnerei"] = 393, ["tailoring"] = 197, ["schneiderei"] = 197,
+    ["cooking"] = 185, ["kochkunst"] = 185, ["kochen"] = 185, ["first aid"] = 129, ["erste hilfe"] = 129,
+    ["fishing"] = 356, ["angeln"] = 356, ["riding"] = 762, ["reiten"] = 762,
+}
 ns.DISTANCE_STEP_M = 5000
 ns.FISH_RUNGS = { 10, 25, 50, 100, 250, 500, 1000, 2500 }
 ns.STATISTIC_FISH = 1456
@@ -42,11 +66,13 @@ ns.COUNTER_RUNGS = ns.FISH_RUNGS
 ns.HEARTH_RUNGS = { 1, 10, 25, 50, 100, 250, 500 }
 ns.COLLECTION_RUNGS = { 1, 5, 10, 25, 50, 100, 250 }
 ns.MOMENT_BOSS_SCREENSHOT, ns.MOMENT_HEARTH_AFTER_DEATH = 1, 2
-ns.MOMENT = { salute = 3, rest = 4, tram = 5, campfire = 6, catch = 7, craft = 8, use = 9, buff = 10, guild_rez = 11, guild_dungeon = 12, bind = 13, photo = 14 }
+ns.MOMENT = { salute = 3, rest = 4, tram = 5, campfire = 6, catch = 7, craft = 8, use = 9, buff = 10, guild_rez = 11, guild_dungeon = 12, bind = 13, photo = 14,
+    emote = 15, kill_watch = 16, loot_rare = 17, taxi = 18, gossip = 19 }
 ns.MOMENT_WINDOW_S = 300
 ns.ID_CANDIDATES = {
     leaders = { 4949, 3057, 10181, 10540 },
-    rest = { 7353 }, campfire = { 818 },
+    rest = { 7353, 1232234, 1283391, 1229739, 1229741 }, campfire = { 818, 1290, 1229737, 1283400, 1291341, 1307237, 1307252 },
+    campfireNames = { "lagerfeuer", "campfire" },
     tram = { 499 }, tramInstance = { 369 }, tramZone = { "tiefenbahn", "deeprun tram" },
     fish = { 6522 }, food = { 6657 }, recipe = { 8238 },
     transform = { 8219, 8220, 8221, 8222 },
@@ -75,7 +101,7 @@ local GH = TG:NewModule("GehHeim", {
     title = L["Achievements"],
     desc = L["Records milestones and guild achievements. Members of Geh Heim also get the report link for the guild website."],
     order = 60,
-    defaults = { notify = "both", sound = "achievement", style = "guild", announce = false, notices = true },
+    defaults = { notify = "both", sound = "achievement", style = "guild", announce = false, notices = true, runChat = false },
     charDefaults = {},
     settings = {
         { key = "notify", type = "select", name = L["Achievement notification"], tooltip = L["How a newly earned guild achievement is announced to you."],
@@ -86,6 +112,7 @@ local GH = TG:NewModule("GehHeim", {
           options = { { "guild", L["Guild achievement"] }, { "achievement", L["Achievement"] } }, default = "guild" },
         { key = "notices", type = "boolean", name = L["Small notices for recorded milestones"], tooltip = L["A short line at the top of the screen when a level, gold, skill or reputation milestone or a boss kill is recorded."], default = true },
         { key = "announce", type = "boolean", name = L["Announce level 40, 50, 60 and mastered professions in guild chat"], tooltip = L["One guild chat line per milestone, never for what a character already had. No effect on the report link."], default = false },
+        { key = "runChat", type = "boolean", name = L["Show recorded dungeon runs in my chat"], tooltip = L["One line in your own chat window when a dungeon or raid run with the guild is recorded. Nobody else sees it."], default = false },
     },
 })
 ns.Mod = GH
@@ -234,14 +261,15 @@ local function legacyTick(token)
     TG.After(10, function() legacyTick(token) end)
 end
 
-function ns.Append(evt)
+function ns.Append(evt, at)
     local rec = GH.rec
     if not rec or GH.passive then return nil end
+    local ts = type(at) == "number" and at or now()
     if rec.pending_queue then
-        rec.pending_queue[#rec.pending_queue + 1] = { now(), evt }
+        rec.pending_queue[#rec.pending_queue + 1] = { ts, evt }
         return 0
     end
-    return push(rec, now(), evt)
+    return push(rec, ts, evt)
 end
 
 function ns.BeginQueue()

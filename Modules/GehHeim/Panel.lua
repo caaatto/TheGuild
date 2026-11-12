@@ -15,15 +15,24 @@ local MOMENT_LABEL = {
     [3] = L["Saluted an NPC"], [4] = L["Rested at a campfire"], [5] = L["Rode the Deeprun Tram"], [6] = L["Lit a campfire"],
     [7] = L["First catch"], [8] = L["First craft"], [9] = L["First use"], [10] = L["Helpful buff received"],
     [11] = L["Resurrected by a guild member"], [12] = L["Guild dungeon run"], [13] = L["Hearthstone bound"], [14] = L["Guild photo"],
+    [15] = L["Emote at an NPC"], [16] = L["Watched enemy defeated"], [17] = L["Rare loot"], [18] = L["Flight point known"], [19] = L["Talked to an NPC"],
 }
 local MOMENT_MAP = { [4] = true, [6] = true, [11] = true, [13] = true, [14] = true }
-local MOMENT_ITEM = { [7] = true, [9] = true }
+local MOMENT_ITEM = { [7] = true, [9] = true, [17] = true }
 local MOMENT_SPELL = { [8] = true, [10] = true }
+local MOMENT_NPC = { [3] = true, [16] = true, [19] = true }
+local EMOTE_TOKEN = {}
+for token, code in pairs(ns.EMOTES) do EMOTE_TOKEN[code] = token:lower() end
+STAT[20], STAT[21], STAT[22], STAT[23] = L["Jumps"], L["Enemies defeated"], L["Honorable kills"], L["Battlegrounds won"]
+for i, name in ipairs({ L["Beasts"], L["Dragonkin"], L["Demons"], L["Elementals"], L["Giants"], L["Undead"], L["Humanoids"], L["Critters"], L["Mechanicals"] }) do
+    STAT[30 + i] = L["Defeated: %s"]:format(name)
+end
 
 local CATEGORY_OF = {
     [T.level] = "char", [T.money_peak] = "char", [T.pvp_rank] = "char", [T.mount_learned] = "char", [T.snapshot] = "char",
     [T.skill] = "skill", [T.fishing_loot] = "skill",
     [T.encounter_kill] = "combat", [T.encounter_wipe] = "combat", [T.fight] = "combat", [T.rare_kill] = "combat", [T.death] = "combat",
+    [T.dungeon_run] = "combat", [T.run_member] = "combat",
     [T.zone_visit] = "world", [T.area_discovered] = "world", [T.quest_turned_in] = "world",
     [T.reputation_standing] = "rep",
     [T.stat] = "misc", [T.moment] = "misc",
@@ -148,6 +157,10 @@ function ns.Describe(e)
         return ("%s: %d"):format(label, f.value or 0)
     elseif t == T.rare_kill then
         return L["Rare defeated: NPC %d"]:format(f.npc_id or 0)
+    elseif t == T.dungeon_run then
+        return L["Dungeon run: instance %d, %d bosses, %s to the last boss"]:format(e[4] or 0, e[11] or 0, duration(e[8]))
+    elseif t == T.run_member then
+        return L["Run member: %s"]:format(tostring(e[11] or ""))
     elseif t == T.moment then
         if f.moment_id == ns.MOMENT_BOSS_SCREENSHOT then return L["Moment: screenshot after the boss kill"] end
         if f.moment_id == ns.MOMENT_HEARTH_AFTER_DEATH then return L["Moment: hearthstone %d s after a death or wipe"]:format(f.value or 0) end
@@ -161,8 +174,10 @@ function ns.Describe(e)
             detail = itemName(value)
         elseif MOMENT_SPELL[id] then
             detail = spellName(value)
-        elseif id == ns.MOMENT.salute then
+        elseif MOMENT_NPC[id] then
             detail = "NPC " .. tostring(value)
+        elseif id == ns.MOMENT.emote then
+            detail = ("/%s, NPC %d"):format(EMOTE_TOKEN[f.aux or 0] or "?", value)
         elseif id == ns.MOMENT.tram then
             detail = value == 1 and L["Ironforge to Stormwind"] or L["Stormwind to Ironforge"]
         elseif id == ns.MOMENT.guild_dungeon then
@@ -499,8 +514,10 @@ local function initRow(b, st)
 end
 
 
+local GROUP_BY_PREFIX = { recipe = "skill", craft = "skill", fish = "skill", dng = "combat", raid = "combat", mount = "char", tf = "world", buff = "world", camp = "world", salute = "world" }
+
 local function groupOf(entry)
-    local g = GROUP_OF[entry.event]
+    local g = GROUP_BY_PREFIX[tostring(entry.code):match("^[a-z]+")] or GROUP_OF[entry.event]
     if g then return g end
     local p = entry.params or {}
     if entry.event == "stat" then
@@ -590,7 +607,11 @@ local function showPart(i)
     i = math.max(1, min(i, #links))
     current.index = i
     current.url = links[i].url
-    f.hint:SetText(L["The link is selected. Press Ctrl + C, paste it in the browser and click Übertragen on the website."])
+    local long = #links > 1 or (links[1].payloadChars or 0) > ns.LONG_LINK_CHARS
+    local hint = L["The link is selected. Press Ctrl + C, paste it in the browser and click Übertragen on the website."]
+    if long then hint = hint .. "\n" .. RED_FONT_COLOR:WrapTextInColorCode(L["This link is long. After transferring it, enter the reply code from the website in the Report tab, otherwise every next link gets longer."]) end
+    f.hint:SetText(hint)
+    f.box:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 8, long and -70 or -44)
     f.reveal:SetEnabled(true)
     f.edit:SetText(current.url)
     f.edit:SetCursorPosition(0)
@@ -649,6 +670,7 @@ local function buildLinkDialog()
     local box = UI.Card(f.Inset)
     box:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 8, -44)
     box:SetPoint("BOTTOMRIGHT", f.Inset, "BOTTOMRIGHT", -8, 40)
+    f.box = box
     local scroll = CreateFrame("ScrollFrame", nil, box, "ScrollFrameTemplate")
     scroll:SetPoint("TOPLEFT", box, "TOPLEFT", 8, -8)
     scroll:SetPoint("BOTTOMRIGHT", box, "BOTTOMRIGHT", -26, 8)
@@ -724,6 +746,7 @@ local function showEmpty(text)
     local f = linkDialog
     current.links, current.index, current.url = {}, 1, ""
     f.hint:SetText(text)
+    f.box:SetPoint("TOPLEFT", f.Inset, "TOPLEFT", 8, -44)
     f.edit:SetText("")
     f.edit:ClearFocus()
     f:SetRevealed(true)
@@ -1095,7 +1118,7 @@ local function build(panel)
             L["Website code applied: %s"]:format(s.confirmed and L["yes"] or L["no"]),
         }
         if s.last and s.last.created then lines[#lines + 1] = L["Last link: %s"]:format(formatTime(s.last.created)) end
-        if open > 200 then lines[#lines + 1] = YELLOW_FONT_COLOR:WrapTextInColorCode(L["More than 200 open events. Apply the code from the website so links stay short."]) end
+        if open > 200 then lines[#lines + 1] = RED_FONT_COLOR:WrapTextInColorCode(L["More than 200 open events. Apply the code from the website so links stay short."]) end
         if rec.imported_at then lines[#lines + 1] = GRAY_FONT_COLOR:WrapTextInColorCode(L["Taken over from GehHeim on %s with %d events"]:format(formatTime(rec.imported_at), rec.imported_seq or 0)) end
         if GH.passive then lines[#lines + 1] = RED_FONT_COLOR:WrapTextInColorCode(L["The old GehHeim addon is still loaded. Recording is off."]) end
         rep.lines:SetText(table.concat(lines, "\n"))

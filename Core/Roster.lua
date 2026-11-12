@@ -17,7 +17,9 @@ local READ_GAP = 1.5
 local MASS_JOIN = 4
 local INCOMPLETE_LIMIT = 3
 local incomplete = 0
-local REQUEST_INTERVAL = 60
+local REQUEST_INTERVAL = 15
+local LEVEL_CAP = 60
+local hints = {}
 
 local function newEntry(key)
     return { key = key }
@@ -164,6 +166,10 @@ function Roster:Read()
 
     for key, e in pairs(fresh) do
         local old = members[key]
+        local hint = hints[key]
+        if hint then
+            if e.level >= hint then hints[key] = nil else e.level = hint end
+        end
         if e.online then
             e.lastSeen = now
         else
@@ -228,6 +234,20 @@ function Roster:Request()
     if IsInGuild() and C_GuildInfo and C_GuildInfo.GuildRoster then
         C_GuildInfo.GuildRoster()
     end
+end
+
+function Roster:LevelHint(key, level)
+    local e = ready and not demo and self:Get(key)
+    level = tonumber(level)
+    if not e or not level or level % 1 ~= 0 or level > LEVEL_CAP then return end
+    local old = e.level or 0
+    if old <= 0 or level <= old then return end
+    hints[e.key] = level
+    e.level = level
+    local guildDB = TG:GuildDB()
+    if guildDB and guildDB.levels then guildDB.levels[e.key] = level end
+    TG:Fire("MEMBER_LEVEL", e, old)
+    TG:Fire("ROSTER_UPDATED")
 end
 
 function Roster:IsReady() return ready end
@@ -338,6 +358,7 @@ TG:RegisterEvent("PLAYER_GUILD_UPDATE", function(_, unit)
     if key ~= Roster.currentGuild then
         Roster.currentGuild = key
         members, list, byGUID, ready, incomplete = {}, {}, {}, false, 0
+        hints = {}
         TG:Fire("GUILD_CHANGED", key)
         Roster:Request()
     end
@@ -348,6 +369,20 @@ TG:RegisterEvent("PLAYER_ENTERING_WORLD", function()
     Roster.currentGuild = TG:GuildKey()
     Roster:Request()
     scheduleRead()
+end)
+
+TG:RegisterEvent("PLAYER_LEVEL_UP", function(_, level)
+    level = tonumber(TG.plain(level, nil))
+    if not level or not IsInGuild() then return end
+    TG.Comm:Send("LU", tostring(level), "ALERT")
+    Roster:LevelHint(TG.MyName(), level)
+end)
+
+TG:RegisterEvent("PLAYER_LOGIN", function()
+    TG.Comm:Register("LU", function(sender, level)
+        Roster:LevelHint(sender, level)
+        Roster:Request()
+    end, Roster)
 end)
 
 TG.Ticker(REQUEST_INTERVAL, function() Roster:Request() end)

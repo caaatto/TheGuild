@@ -60,6 +60,7 @@ Modules\GehHeim\Link.lua
 Modules\GehHeim\GehHeim.lua
 Modules\GehHeim\CatalogText.lua
 Modules\GehHeim\Facts.lua
+Modules\GehHeim\Extras.lua
 Modules\GehHeim\Rules.lua
 Modules\GehHeim\Alert.lua
 Modules\GehHeim\Panel.lua

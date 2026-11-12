@@ -16,12 +16,12 @@ Rules.snapshotTs = {}
 Rules.ready = false
 
 Rules.FIELDS = {
-    [1] = { "level", "weather", "ui_map_id", "armor_pieces", "group_size" },
+    [1] = { "level", "weather", "ui_map_id", "armor_pieces", "group_size", "live" },
     [2] = { "skill_id", "rank", "max_rank", "name" },
     [3] = { "copper" },
     [4] = { "ui_map_id" },
     [5] = { "area_id" },
-    [6] = { "encounter_id", "npc_id", "difficulty_id", "instance_id", "group_size", "src", "duration_s", "guild_members", "weather", "tabard_item" },
+    [6] = { "encounter_id", "npc_id", "difficulty_id", "instance_id", "group_size", "src", "duration_s", "guild_members", "weather", "tabard_item", "group_classes" },
     [7] = { "quest_id" },
     [8] = { "faction_id", "standing" },
     [9] = { "ui_map_id", "level", "killer_kind", "killer_id", "env_type", "one_shot", "weather", "instance_id" },
@@ -32,7 +32,7 @@ Rules.FIELDS = {
     [15] = { "item_id", "quality", "item_class" },
     [16] = { "stat_id", "value" },
     [17] = { "npc_id", "classification", "how" },
-    [18] = { "moment_id", "value" },
+    [18] = { "moment_id", "value", "aux" },
 }
 
 local ALIAS_EVENTS = { "zone_visit", "area_discovered", "encounter_kill" }
@@ -199,10 +199,19 @@ local function apply(rule, event, data, ts)
     else
         key = factKey(event, ts, data)
     end
+    local group = p.per and tostring(data[p.per] == nil and "" or data[p.per])
+    if group then key = group .. "|" .. key end
     s.set = s.set or {}
     if not s.set[key] then
         s.set[key] = true
-        s.count = s.count + 1
+        if group then
+            s.per = s.per or {}
+            local n = (s.per[group] or 0) + 1
+            s.per[group] = n
+            if n > s.count then s.count = n end
+        else
+            s.count = s.count + 1
+        end
     end
     return s.count >= rule.required
 end

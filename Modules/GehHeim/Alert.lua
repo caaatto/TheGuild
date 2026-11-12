@@ -39,12 +39,22 @@ local ICONS = {
     rep_capitals_horde = "INV_BannerPVP_01", rep_cartel = "INV_Misc_Coin_02", rep_exalted_10 = "Achievement_Reputation_06", rep_exalted_20 = "Achievement_Reputation_08",
     toys_10 = "INV_Misc_Toy_10", walk_45k = "Ability_Rogue_Sprint", walk_100k = "Ability_Rogue_Sprint", walk_500k = "Ability_Druid_Dash",
     wipe_1 = "Ability_Creature_Cursed_02", wipe_10 = "Spell_Shadow_Raisedead", wipe_25 = "Spell_Shadow_Raisedead",
+    boss_guild_5_x5 = "INV_Misc_GroupNeedMore", boss_guild_5_x10 = "INV_Misc_GroupNeedMore", boss_guild_5_x25 = "INV_Misc_GroupNeedMore",
+    boss_guild_5_x50 = "INV_Misc_GroupLooking", boss_guild_5_x100 = "INV_Misc_GroupLooking", boss_guild_5_x500 = "INV_Misc_GroupLooking",
+    buff_world_1 = "INV_Misc_Head_Dragon_01", buff_world_all = "INV_Misc_Head_Dragon_01", camp_fire = "Spell_Fire_Fire",
+    dng_all = "INV_Misc_Key_14", dng_clean_1 = "Spell_Holy_Renew", dng_clean_5 = "Spell_Holy_Renew", dng_clean_10 = "Spell_Holy_Renew",
+    mount_riding_150 = "Ability_Mount_WhiteTiger", raid_onyxia = "INV_Misc_Head_Dragon_01", salute_horde = "INV_BannerPVP_01",
+    recipe_any_25 = "INV_Scroll_03", recipe_any_100 = "INV_Scroll_03", recipe_any_250 = "INV_Scroll_03",
+    tf_all = "INV_Misc_Orb_02", tf_ninja = "INV_Misc_MonsterHead_01", tf_pirate = "INV_Misc_MonsterHead_01", tf_ogre = "INV_Misc_Head_Orc_01",
+    tf_orb = "INV_Misc_Orb_02", tf_shrink = "INV_Potion_83", tf_skeleton = "INV_Potion_83",
+    sec_mounts_5 = "Ability_Mount_Dreadsteed",
 }
 
 local PREFIX_ICONS = {
     level = "Achievement_Level_%s", skill = nil, rep = "Achievement_Reputation_01", death = "INV_Misc_Bone_HumanSkull_01",
     fish = "Trade_Fishing", gold = "INV_Misc_Coin_01", hearth = "INV_Misc_Rune_01", quests = "INV_Misc_Note_01",
     rare = "Ability_Hunter_MarkedForDeath", walk = "Ability_Rogue_Sprint", wipe = "Spell_Shadow_Raisedead", boss = "INV_Misc_Head_Dragon_01",
+    dng = "INV_Misc_Key_03", craft = "Trade_BlackSmithing", mount = "Ability_Mount_RidingHorse", tf = "INV_Misc_MonsterHead_01",
 }
 
 local iconCache = {}
@@ -63,7 +73,7 @@ function ns.Icon(entry)
     local name = entry and entry.icon or ICONS[code]
     if not name then
         local prefix, rest = code:match("^([a-z]+)_(.*)$")
-        if prefix == "skill" then
+        if prefix == "skill" or prefix == "recipe" then
             local id = tonumber(rest and rest:match("^(%d+)"))
             name = SKILL_ICONS[id]
         elseif prefix == "level" then
@@ -262,7 +272,7 @@ local function criteriaSystem()
     if criteria or criteriaTried then return criteria end
     criteriaTried = true
     if type(AlertFrame) ~= "table" or type(AlertFrame.AddQueuedAlertFrameSubSystem) ~= "function" or type(ACHIEVEMENT_PROGRESSED) ~= "string" then return nil end
-    local ok, probe = pcall(CreateFrame, "Frame", nil, UIParent, "CriteriaAlertFrameTemplate")
+    local ok, probe = pcall(CreateFrame, "Button", nil, UIParent, "CriteriaAlertFrameTemplate")
     if not ok or type(probe) ~= "table" then return nil end
     probe:Hide()
     local fits = type(probe.Icon) == "table" and type(probe.Icon.Texture) == "table" and type(probe.Name) == "table" and type(probe.Unlocked) == "table"
