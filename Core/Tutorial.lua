@@ -143,11 +143,12 @@ end
 local function markAll()
     local s = seen()
     for id in pairs(defined) do s[id] = true end
-    s.tour = true
+    for _, tab in ipairs(TG.Window:Tabs()) do s[tab.id] = true end
+    s.hud, s.window, s.tour = true, true, true
 end
 
 function Tutorial:Abort()
-    if tour then markAll() end
+    if tour then markAll() elseif active then seen()[active.id] = true end
     self:Stop()
 end
 
@@ -167,7 +168,7 @@ StaticPopupDialogs[OFFER] = {
 }
 
 function Tutorial:Offer()
-    if not ready or not self:Enabled() or tour or self:Seen("tour") then return false end
+    if not ready or not self:Enabled() or tour or self:Seen("tour") or TG.Setup:IsOpen() then return false end
     StaticPopup_Show(OFFER)
     return true
 end

@@ -131,7 +131,10 @@ local function build()
     f.hint:SetPoint("BOTTOMLEFT", f.Inset, "BOTTOMLEFT", 10, 10)
     f.hint:SetPoint("RIGHT", f.keep, "LEFT", -8, 0)
     f.hint:SetWordWrap(true)
-    f:SetScript("OnHide", function() Setup:Remember() end)
+    f:SetScript("OnHide", function()
+        Setup:Remember()
+        if TG.Window:IsShown() then TG.Tutorial:ShowForTab(TG.Window:CurrentTab()) end
+    end)
     tinsert(UISpecialFrames, "TheGuildSetupDialog")
     return f
 end
@@ -155,6 +158,10 @@ local function grouped()
         if not placed[mod.name] and mod.name ~= "Dashboard" then more[#more + 1] = mod end
     end
     return out
+end
+
+function Setup:IsOpen()
+    return dialog ~= nil and dialog:IsShown()
 end
 
 function Setup:Open()
