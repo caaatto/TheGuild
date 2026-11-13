@@ -265,17 +265,16 @@ function Options:Build()
         function() return TG.db.global.finds.bopOnly end,
         function(value) TG.db.global.finds.bopOnly = value end, false)
 
-    header(left, L["Tutorials"])
-    checkbox(left, "TG_TUTORIALS", L["Show tutorials for features you open for the first time"], nil,
-        function() return TG.db.global.tutorialsOff ~= true end,
-        function(value)
-            TG.db.global.tutorialsOff = (not value) or nil
-            if not value then TG.Tutorial:Stop() end
-        end, true)
-    button(left, L["Show tutorials again"], L["Reset"], L["Resets every tutorial. They appear again the next time you open the window and its tabs."], function()
-        TG.Tutorial:Reset()
-        if TG.Window:IsShown() then TG.Tutorial:Tour() end
-    end)
+    if TG.Tutorial:Available() then
+        header(left, L["Tutorials"])
+        checkbox(left, "TG_TUTORIALS", L["Show tutorials for features you open for the first time"], nil,
+            function() return TG.db.global.tutorialsOn == true end,
+            function(value) TG.Tutorial:Choose(value) end, false)
+        button(left, L["Show tutorials again"], L["Reset"], L["Resets every tutorial. They appear again the next time you open the window and its tabs."], function()
+            TG.Tutorial:Reset()
+            if TG.Window:IsShown() then TG.Tutorial:Tour() end
+        end)
+    end
 
     header(left, L["Profile"])
     button(left, L["Export profile"], L["Export"], L["Share your module settings with the guild as text."], function() TG.Profile:OpenExport() end)

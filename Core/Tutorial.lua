@@ -1,7 +1,7 @@
 local _, TG = ...
 local L = TG.L
 
-local Tutorial = {}
+local Tutorial = { shelved = true }
 TG.Tutorial = Tutorial
 
 local SYSTEM = "TheGuild"
@@ -28,11 +28,11 @@ local function seen()
 end
 
 function Tutorial:Available()
-    return type(HelpTip) == "table" and HelpTip.Show ~= nil and HelpTip.Point ~= nil
+    return not self.shelved and type(HelpTip) == "table" and HelpTip.Show ~= nil and HelpTip.Point ~= nil
 end
 
 function Tutorial:Enabled()
-    return self:Available() and TG.db.global.tutorialsOff ~= true
+    return TG.db.global.tutorialsOn == true and self:Available()
 end
 
 function Tutorial:Define(id, steps)
@@ -153,22 +153,29 @@ function Tutorial:Abort()
 end
 
 StaticPopupDialogs[OFFER] = {
-    text = L["TheGuild has a tour that explains every feature in a few words. You can close it at any time with the X and start it again under Options, TheGuild, Tutorials.\n\nStart the tour now?"],
-    button1 = L["Start tour"],
+    text = L["TheGuild can explain its features with short hints, starting with a tour through the window. You can switch them on or off at any time under Options, TheGuild, Tutorials.\n\nDo you want the tutorials?"],
+    button1 = L["Yes, show them"],
     button2 = L["No thanks"],
     OnAccept = function()
+        Tutorial:Choose(true)
         TG.After(0, function() Tutorial:Tour() end)
     end,
     OnCancel = function()
-        markAll()
+        Tutorial:Choose(false)
     end,
     timeout = 0,
     whileDead = 1,
     hideOnEscape = 1,
 }
 
+function Tutorial:Choose(on)
+    TG.db.global.tutorialsAsked = true
+    TG.db.global.tutorialsOn = on or nil
+    if not on then self:Stop() end
+end
+
 function Tutorial:Offer()
-    if not ready or not self:Enabled() or tour or self:Seen("tour") or TG.Setup:IsOpen() then return false end
+    if not ready or TG.db.global.tutorialsAsked or not self:Available() or TG.Setup:IsOpen() then return false end
     StaticPopup_Show(OFFER)
     return true
 end
@@ -217,20 +224,25 @@ end
 
 function Tutorial:Reset()
     wipe(seen())
-    TG.db.global.tutorialsOff = nil
+    self:Choose(true)
     self:Stop()
 end
 
 function Tutorial:ShowForTab(id)
-    if not self:Enabled() or tour then return end
-    if not self:Seen("tour") then
+    if tour then return end
+    if not TG.db.global.tutorialsAsked then
         self:Offer()
     else
         self:Start(id)
     end
 end
 
-TG:On("READY", function() ready = true end)
+TG:On("READY", function()
+    local g = TG.db.global
+    if not g.tutorialsAsked and (g.tutorialsOff or seen().tour) then g.tutorialsAsked = true end
+    g.tutorialsOff = nil
+    ready = true
+end)
 
 TG:On("WINDOW_TAB", function(id) Tutorial:ShowForTab(id) end)
 TG:On("MODULE_DISABLED", function() Tutorial:Stop() end)

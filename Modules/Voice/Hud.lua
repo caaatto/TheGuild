@@ -204,7 +204,7 @@ function Voice:RefreshHud()
     hud.deaf:SetShown(joined and self:IsDeafened())
     hud.count:SetText(self:IsJoined() and tostring(self:AudibleCount()) or "")
     self:RefreshHudList(joined)
-    if joined and TG.Tutorial:Seen("tour") then TG.Tutorial:Start("hud") end
+    if joined then TG.Tutorial:Start("hud") end
     hud:Show()
 end
 
