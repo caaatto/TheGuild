@@ -5,7 +5,7 @@ local L = ns.L
 local Codec, Link = ns.Codec, ns.Link
 local max = math.max
 
-ns.ADDON_VERSION = { 1, 3, 0 }
+ns.ADDON_VERSION = { 1, 3, 1 }
 ns.LEGACY = "GehHeim"
 ns.HOME_GUILD = "Geh Heim"
 

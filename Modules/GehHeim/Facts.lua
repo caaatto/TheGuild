@@ -1362,6 +1362,7 @@ ns.Collector("Discoveries", {
         if type(hooksecurefunc) == "function" then
             if type(DoEmote) == "function" then call(hooksecurefunc, "DoEmote", salute) end
             if type(Emote) == "function" then call(hooksecurefunc, "Emote", salute) end
+            if type(C_ChatInfo) == "table" and type(C_ChatInfo.PerformEmote) == "function" then call(hooksecurefunc, C_ChatInfo, "PerformEmote", salute) end
             if api("C_Container.UseContainerItem") then
                 call(hooksecurefunc, C_Container, "UseContainerItem", usedBag)
             elseif type(UseContainerItem) == "function" then
