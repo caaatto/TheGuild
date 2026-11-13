@@ -3,7 +3,7 @@
 ## Notes: Toasts in the client's own style when guild members reach milestone levels, find epic items or join the guild.
 ## Notes-deDE: Einblendungen im Stil des Clients, wenn Gildenmitglieder Meilensteinstufen erreichen, epische Gegenstände finden oder der Gilde beitreten.
 ## Author: Catto
-## Version: 0.3.4
+## Version: 0.3.5
 ## Dependencies: TheGuild
 ## Group: TheGuild
 ## Category: Guild
