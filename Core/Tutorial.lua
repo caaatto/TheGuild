@@ -9,7 +9,7 @@ local defined = {}
 local active
 local tour
 local ready = false
-local tourWanted = false
+local OFFER = "THEGUILD_TOUR"
 
 local POINTS = {
     bottom = "BottomEdgeCenter",
@@ -140,6 +140,38 @@ function Tutorial:Stop()
     if self:Available() and HelpTip.HideAllSystem then HelpTip:HideAllSystem(SYSTEM) end
 end
 
+local function markAll()
+    local s = seen()
+    for id in pairs(defined) do s[id] = true end
+    s.tour = true
+end
+
+function Tutorial:Abort()
+    if tour then markAll() end
+    self:Stop()
+end
+
+StaticPopupDialogs[OFFER] = {
+    text = L["TheGuild has a tour that explains every feature in a few words. You can close it at any time with the X and start it again under Options, TheGuild, Tutorials.\n\nStart the tour now?"],
+    button1 = L["Start tour"],
+    button2 = L["No thanks"],
+    OnAccept = function()
+        TG.After(0, function() Tutorial:Tour() end)
+    end,
+    OnCancel = function()
+        markAll()
+    end,
+    timeout = 0,
+    whileDead = 1,
+    hideOnEscape = 1,
+}
+
+function Tutorial:Offer()
+    if not ready or not self:Enabled() or tour or self:Seen("tour") then return false end
+    StaticPopup_Show(OFFER)
+    return true
+end
+
 function Tutorial:Touring()
     return tour ~= nil
 end
@@ -149,7 +181,6 @@ local function tourNext()
     tour.index = tour.index + 1
     local id = tour.order[tour.index]
     if not id then
-        seen().tour = true
         tour = nil
         TG.Window:SelectTab(1)
         return
@@ -174,6 +205,7 @@ function Tutorial:Tour()
         if TG.Window:IsTabVisible(tab) then order[#order + 1] = tab.id end
     end
     tour = { order = order, index = 0 }
+    seen().tour = true
     tourNext()
     return true
 end
@@ -191,28 +223,13 @@ end
 function Tutorial:ShowForTab(id)
     if not self:Enabled() or tour then return end
     if not self:Seen("tour") then
-        self:Tour()
+        self:Offer()
     else
         self:Start(id)
     end
 end
 
-function Tutorial:MaybeTour()
-    if not self:Enabled() or tour or self:Seen("tour") then return false end
-    if not ready then
-        tourWanted = true
-        return false
-    end
-    return self:Tour()
-end
-
-TG:On("READY", function()
-    ready = true
-    if tourWanted then
-        tourWanted = false
-        Tutorial:MaybeTour()
-    end
-end)
+TG:On("READY", function() ready = true end)
 
 TG:On("WINDOW_TAB", function(id) Tutorial:ShowForTab(id) end)
 TG:On("MODULE_DISABLED", function() Tutorial:Stop() end)

@@ -172,7 +172,7 @@ local function build()
     end)
     frame:SetScript("OnHide", function()
         PlaySound(SOUNDKIT.IG_CHARACTER_INFO_CLOSE)
-        TG.Tutorial:Stop()
+        TG.Tutorial:Abort()
     end)
 
     tinsert(UISpecialFrames, "TheGuildFrame")
