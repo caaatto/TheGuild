@@ -355,7 +355,7 @@ local function onAddonMessage(_, prefix, text, channel, sender)
         end
         peers[key] = { version = version, guid = guid, seen = GetTime(), proto = proto }
         if pub and #pub == 64 and TG.Keys then TG.Keys:Learn(key, pub, "direct") end
-        if version and TG.VersionNewer(version, TG.version) and warnedVersion ~= version then
+        if version and TG.VersionNewer(version, warnedVersion or TG.version) then
             warnedVersion = version
             TG:Print(L["A newer version (%s) is available."], version)
         end
