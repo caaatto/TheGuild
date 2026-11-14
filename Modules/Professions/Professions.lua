@@ -17,6 +17,7 @@ local Prof = TG:NewModule("Professions", {
 local scanPending = false
 local sharePending = {}
 local shareNotice = {}
+local shareGroups = {}
 local index
 local indexDirty = true
 local lastRequest = 0
@@ -57,9 +58,20 @@ function Prof:Scan()
     local prof = char.p[info.professionID] or {}
     local old = prof.r or {}
     local recipes, count, changed = {}, 0, false
+    local groups, groupCount = {}, 0
     for _, recipeID in ipairs(ids) do
         local okR, r = pcall(C_TradeSkillUI.GetRecipeInfo, recipeID)
         if okR and type(r) == "table" and r.learned and not r.isDummyRecipe then
+            local cat = tonumber(r.categoryID)
+            if cat and cat > 0 then
+                local group = groups[cat]
+                if not group then
+                    group = {}
+                    groups[cat] = group
+                    groupCount = groupCount + 1
+                end
+                group[#group + 1] = recipeID
+            end
             local prev = old[recipeID]
             local value = type(prev) == "number" and prev or r.name or tostring(recipeID)
             if type(value) ~= "number" then
@@ -75,8 +87,22 @@ function Prof:Scan()
     end
     if count == 0 then return end
     if not changed and TG.Count(old) ~= count then changed = true end
-    if not changed and prof.s == info.skillLevel and prof.m == info.maxSkillLevel then return end
+    local newGroups = groupCount > 0 and prof.g == nil
+    if not changed and not newGroups and prof.s == info.skillLevel and prof.m == info.maxSkillLevel then return end
 
+    if groupCount > 0 then
+        local names, order = {}, {}
+        for cat in pairs(groups) do
+            local okC, c = pcall(C_TradeSkillUI.GetCategoryInfo, cat)
+            if okC and type(c) == "table" and type(c.name) == "string" and c.name ~= "" then
+                names[cat] = c.name
+                order[cat] = tonumber(c.uiOrder) or 0
+            end
+        end
+        prof.g, prof.gn, prof.go = groups, names, order
+    else
+        prof.g, prof.gn, prof.go = nil, nil, nil
+    end
     prof.n = info.professionName
     prof.s = info.skillLevel
     prof.m = info.maxSkillLevel
@@ -87,6 +113,7 @@ function Prof:Scan()
     local g = guildProfs()
     if g then g[me] = char end
     if changed then shareNotice[info.professionID] = true end
+    if changed or newGroups then shareGroups[info.professionID] = true end
     self:ShareLater(info.professionID, changed and 5 or 60)
     TG:Fire("PROFESSIONS_UPDATED")
 end
@@ -104,19 +131,27 @@ function Prof:ShareLater(profID, delay)
             local prof = myChar().p[profID]
             if prof then TG:Print(L["Recorded %d recipes for %s."], TG.Count(prof.r), prof.n or "?") end
         end
-        self:Share(profID)
+        local groups = shareGroups[profID]
+        shareGroups[profID] = nil
+        self:Share(profID, groups)
     end)
 end
 
-function Prof:Share(profID)
+local function snapshot(name, char, profID, prof, groups)
+    local data = { c = name, k = char.c, id = profID, n = prof.n, s = prof.s, m = prof.m, r = prof.r, t = prof.t }
+    if groups then data.g, data.gn, data.go = prof.g, prof.gn, prof.go end
+    return data
+end
+
+function Prof:Share(profID, groups)
     if not self.db.share or not TG.InGuild() then return end
     local char, me = myChar()
     local prof = char.p[profID]
     if not prof then return end
-    TG.Comm:Send("PS", { c = me, k = char.c, id = profID, n = prof.n, s = prof.s, m = prof.m, r = prof.r, t = prof.t }, "BULK")
+    TG.Comm:Send("PS", snapshot(me, char, profID, prof, groups), "BULK")
 end
 
-function Prof:ShareAll()
+function Prof:ShareAll(need)
     if not self.db.share then return end
     if GetTime() - lastShare < 300 then return end
     lastShare = GetTime()
@@ -124,10 +159,52 @@ function Prof:ShareAll()
     for name, char in pairs(self.db.chars) do
         for profID, prof in pairs(char.p or {}) do
             if (prof.t or 0) > cutoff then
-                TG.Comm:Send("PS", { c = name, k = char.c, id = profID, n = prof.n, s = prof.s, m = prof.m, r = prof.r, t = prof.t }, "BULK")
+                TG.Comm:Send("PS", snapshot(name, char, profID, prof, need and need[profID]), "BULK")
             end
         end
     end
+end
+
+local function keepGroups(prof, recipes)
+    if not prof.g then return nil end
+    local groups, any = {}, false
+    for cat, list in pairs(prof.g) do
+        local out = {}
+        for _, id in ipairs(list) do
+            if recipes[id] ~= nil then out[#out + 1] = id end
+        end
+        if #out > 0 then
+            groups[cat] = out
+            any = true
+        end
+    end
+    if not any then return nil end
+    return groups, prof.gn, prof.go
+end
+
+local function cleanGroups(data, recipes, prof)
+    if type(data.g) ~= "table" then return keepGroups(prof, recipes) end
+    local groups, names, order, cats = {}, {}, {}, 0
+    for cat, list in pairs(data.g) do
+        cat = tonumber(cat)
+        if cat and cat > 0 and type(list) == "table" then
+            local out = {}
+            for _, id in ipairs(list) do
+                id = tonumber(id)
+                if id and recipes[id] ~= nil then out[#out + 1] = id end
+            end
+            if #out > 0 then
+                cats = cats + 1
+                if cats > 60 then break end
+                groups[cat] = out
+                local name = type(data.gn) == "table" and (data.gn[cat] or data.gn[tostring(cat)])
+                if type(name) == "string" and name ~= "" then names[cat] = TG.CleanText(name, 40) end
+                order[cat] = type(data.go) == "table" and tonumber(data.go[cat] or data.go[tostring(cat)]) or 0
+            end
+        end
+    end
+    if cats == 0 then return nil end
+    return groups, names, order
 end
 
 function Prof:OnSnapshot(sender, data)
@@ -152,6 +229,7 @@ function Prof:OnSnapshot(sender, data)
         end
     end
     prof.n, prof.s, prof.m, prof.r, prof.t = TG.CleanText(data.n, 40), tonumber(data.s), tonumber(data.m), recipes, tonumber(data.t) or TG.Now()
+    prof.g, prof.gn, prof.go = cleanGroups(data, recipes, prof)
     char.p[data.id] = prof
     g[name] = char
     indexDirty = true
@@ -175,25 +253,64 @@ function Prof:Forget()
     return removed
 end
 
-function Prof:OnRequest(sender)
+function Prof:OnRequest(sender, data)
     if TG.IsMe(sender) then return end
     if requestedBy[sender] and GetTime() - requestedBy[sender] < 600 then return end
     requestedBy[sender] = GetTime()
-    TG.After(math.random(2, 10), function() if self.enabled then self:ShareAll() end end)
+    local need
+    if type(data) == "table" and type(data.n) == "table" then
+        need = {}
+        for i = 1, math.min(#data.n, 20) do
+            local id = tonumber(data.n[i])
+            if id then need[id] = true end
+        end
+    end
+    TG.After(math.random(2, 10), function() if self.enabled then self:ShareAll(need) end end)
+end
+
+function Prof:Uncategorized()
+    local idx = self:Index()
+    local seen, out = {}, {}
+    for _, e in ipairs(idx.entries) do
+        if not seen[e.profID] then
+            local meta = idx.cats[e.profID]
+            if not (meta and meta.of[e.recipeID]) then
+                seen[e.profID] = true
+                out[#out + 1] = e.profID
+            end
+        end
+    end
+    return out
 end
 
 function Prof:Request()
     if GetTime() - lastRequest < 60 then return end
     lastRequest = GetTime()
-    TG.Comm:Send("PQ", "1", "BULK")
+    local need = self:Uncategorized()
+    TG.Comm:Send("PQ", #need > 0 and { n = need } or "1", "BULK")
 end
 
 function Prof:Index()
     if not indexDirty and index then return index end
-    index = { byItem = {}, byName = {}, entries = {} }
+    index = { byItem = {}, byName = {}, entries = {}, cats = {} }
     local g = guildProfs() or {}
+    local mine = Prof.db.chars
     for name, char in pairs(g) do
         for profID, prof in pairs(char.p or {}) do
+            if prof.g then
+                local meta = index.cats[profID]
+                if not meta then
+                    meta = { of = {}, name = {}, order = {} }
+                    index.cats[profID] = meta
+                end
+                local own = mine[name] ~= nil
+                for cat, list in pairs(prof.g) do
+                    for _, recipeID in ipairs(list) do meta.of[recipeID] = cat end
+                    local label = prof.gn and prof.gn[cat]
+                    if label and (own or not meta.name[cat]) then meta.name[cat] = label end
+                    if prof.go and prof.go[cat] and (own or not meta.order[cat]) then meta.order[cat] = prof.go[cat] end
+                end
+            end
             for recipeID, value in pairs(prof.r or {}) do
                 local entry = { char = name, classFile = char.c, profID = profID, profName = prof.n, recipeID = recipeID, value = value }
                 local bucket
@@ -222,8 +339,8 @@ local requestedItems = {}
 
 local function itemName(value)
     if type(value) ~= "number" then return value end
-    local name = C_Item.GetItemInfo(value)
-    if name then return name end
+    local name, _, _, level, minLevel = C_Item.GetItemInfo(value)
+    if name then return name, tonumber(level) or 0, tonumber(minLevel) or 0 end
     if not requestedItems[value] and C_Item.RequestLoadItemDataByID then
         requestedItems[value] = true
         C_Item.RequestLoadItemDataByID(value)
@@ -263,6 +380,8 @@ end
 
 local searchText = ""
 local expanded = {}
+local expandedCat = {}
+local catNames = {}
 
 function Prof:SetSearch(text)
     searchText = TG.Trim(text or "")
@@ -272,15 +391,84 @@ function Prof:Toggle(profID)
     expanded[profID] = not expanded[profID] or nil
 end
 
+function Prof:ToggleCategory(profID, cat)
+    local key = profID .. ":" .. cat
+    expandedCat[key] = not expandedCat[key] or nil
+end
+
 local function byName(a, b)
     return (a.name or "") < (b.name or "")
+end
+
+local function byLevel(a, b)
+    if a.level ~= b.level then return a.level > b.level end
+    if a.minLevel ~= b.minLevel then return a.minLevel > b.minLevel end
+    return (a.name or "") < (b.name or "")
+end
+
+local function byOrder(a, b)
+    if a.order ~= b.order then return a.order < b.order end
+    return a.name < b.name
+end
+
+local function categoryName(meta, cat)
+    local name = catNames[cat]
+    if name == nil then
+        name = false
+        if C_TradeSkillUI and C_TradeSkillUI.GetCategoryInfo then
+            local ok, c = pcall(C_TradeSkillUI.GetCategoryInfo, cat)
+            if ok and type(c) == "table" and type(c.name) == "string" and c.name ~= "" then name = c.name end
+        end
+        catNames[cat] = name
+    end
+    return name or meta.name[cat]
+end
+
+local function categorize(p, meta, searching, rows)
+    local groups, list, rest = {}, {}, nil
+    for _, r in ipairs(p.recipes) do
+        local cat
+        for _, e in ipairs(r.list) do
+            cat = meta.of[e.recipeID]
+            if cat then break end
+        end
+        local name = cat and categoryName(meta, cat)
+        if name then
+            local group = groups[cat]
+            if not group then
+                group = { kind = "cat", prof = p.id, id = cat, name = name, order = meta.order[cat] or 0, recipes = {} }
+                groups[cat] = group
+                list[#list + 1] = group
+            end
+            group.recipes[#group.recipes + 1] = r
+        else
+            rest = rest or { kind = "cat", prof = p.id, id = 0, name = L["Uncategorized"], order = math.huge, recipes = {} }
+            rest.recipes[#rest.recipes + 1] = r
+        end
+    end
+    if #list == 0 then return false end
+    table.sort(list, byOrder)
+    if rest then list[#list + 1] = rest end
+    for _, group in ipairs(list) do
+        group.count = #group.recipes
+        group.open = searching or expandedCat[p.id .. ":" .. group.id] == true
+        rows[#rows + 1] = group
+        if group.open then
+            table.sort(group.recipes, byLevel)
+            for _, r in ipairs(group.recipes) do
+                r.indent = true
+                rows[#rows + 1] = r
+            end
+        end
+    end
+    return true
 end
 
 function Prof:Rows()
     local idx = self:Index()
     local profs = {}
     local text = searchText:lower()
-    local function consider(key, name, list)
+    local function consider(key, name, list, level, minLevel)
         if text ~= "" and not (name or ""):lower():find(text, 1, true) then return end
         local split = {}
         for _, e in ipairs(list) do
@@ -297,7 +485,7 @@ function Prof:Rows()
                 p = { kind = "prof", id = profID, name = sub[1].profName or tostring(profID), recipes = {}, crafters = {}, list = {} }
                 profs[profID] = p
             end
-            p.recipes[#p.recipes + 1] = { kind = "recipe", key = key, name = name, list = sub }
+            p.recipes[#p.recipes + 1] = { kind = "recipe", key = key, name = name, list = sub, level = level or 0, minLevel = minLevel or 0 }
             for _, e in ipairs(sub) do
                 if not p.crafters[e.char] then
                     p.crafters[e.char] = true
@@ -307,8 +495,8 @@ function Prof:Rows()
         end
     end
     for itemID, list in pairs(idx.byItem) do
-        local name = itemName(itemID)
-        if text == "" or name then consider(itemID, name or ("#" .. itemID), list) end
+        local name, level, minLevel = itemName(itemID)
+        if text == "" or name then consider(itemID, name or ("#" .. itemID), list, level, minLevel) end
     end
     for _, bucket in pairs(idx.byName) do
         consider(bucket.name, bucket.name, bucket.list)
@@ -322,8 +510,11 @@ function Prof:Rows()
         p.count = #p.recipes
         rows[#rows + 1] = p
         if p.open then
-            table.sort(p.recipes, byName)
-            for _, r in ipairs(p.recipes) do rows[#rows + 1] = r end
+            local meta = idx.cats[p.id]
+            if not (meta and categorize(p, meta, text ~= "", rows)) then
+                table.sort(p.recipes, byLevel)
+                for _, r in ipairs(p.recipes) do rows[#rows + 1] = r end
+            end
         end
     end
     return rows
@@ -353,13 +544,22 @@ local function build(panel)
 
     local list = UI.List(listFrame, 24, function(button, row)
         button.row = row
-        if row.kind == "prof" then
+        local sub = row.kind == "cat"
+        local deep = row.indent == true
+        if button.sub ~= sub or button.deep ~= deep then
+            button.sub, button.deep = sub, deep
+            button.toggle:SetPoint("LEFT", button, "LEFT", sub and 26 or 6, 0)
+            button.icon:SetPoint("LEFT", button, "LEFT", deep and 46 or 26, 0)
+            button.name:SetPoint("LEFT", button, "LEFT", (sub or deep) and 70 or 50, 0)
+            button.name:SetWidth((sub or deep) and 240 or 260)
+        end
+        if row.kind == "prof" or sub then
             button.toggle:SetTexture(row.open and "Interface\\Buttons\\UI-MinusButton-Up" or "Interface\\Buttons\\UI-PlusButton-Up")
             button.toggle:Show()
             button.icon:Hide()
-            button.name:SetText(TG.gold .. row.name .. "|r")
+            button.name:SetText(sub and row.name or TG.gold .. row.name .. "|r")
             button.prof:SetText(L["%d recipes"]:format(row.count))
-            button.crafters:SetText(crafterText(row.list, 6))
+            button.crafters:SetText(sub and "" or crafterText(row.list, 6))
             return
         end
         button.toggle:Hide()
@@ -409,6 +609,11 @@ local function build(panel)
                 if not row then return end
                 if row.kind == "prof" then
                     Prof:Toggle(row.id)
+                    panel:OnShow()
+                    return
+                end
+                if row.kind == "cat" then
+                    Prof:ToggleCategory(row.prof, row.id)
                     panel:OnShow()
                     return
                 end

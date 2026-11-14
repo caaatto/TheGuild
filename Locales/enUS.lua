@@ -398,6 +398,7 @@ L["%d recipes from %d crafters"] = "%d recipes from %d crafters"
 L["Request sync"] = "Request sync"
 L["Recipes requested from the guild."] = "Recipes requested from the guild."
 L["Recorded %d recipes for %s."] = "Recorded %d recipes for %s."
+L["Uncategorized"] = "Uncategorized"
 L["Skill"] = "Skill"
 L["Type a recipe or item name to search."] = "Type a recipe or item name to search."
 
