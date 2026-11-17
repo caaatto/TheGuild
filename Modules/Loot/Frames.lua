@@ -121,10 +121,11 @@ local function buildOwner()
         inset = true,
         buildRow = function(button)
             button.cells = UI.Cells(button, f.columns)
-            button.vote = UI.Button(button, L["Vote"], 70, function() Loot:Vote(selected, button.row.name) end)
-            button.vote:SetPoint("RIGHT", button, "RIGHT", -84, 0)
             button.award = UI.Button(button, L["Award"], 74, function() Loot:Award(selected, button.row.name, button.row.r) end)
             button.award:SetPoint("RIGHT", button, "RIGHT", -6, 0)
+            button.vote = UI.Button(button, L["Unvote"], 70, function() Loot:Vote(selected, button.row.name) end)
+            button.vote:SetText(L["Vote"])
+            button.vote:SetPoint("RIGHT", button.award, "LEFT", -4, 0)
         end,
     })
     f.empty = UI.Label(listFrame, L["Waiting for responses."], "GameFontDisableSmall", "CENTER")
@@ -191,25 +192,35 @@ local function buildResponse()
 end
 
 local ROW_HEIGHT = 40
+local TEXT_WIDTH = 200
+local BUTTON_GAP = 4
 
 local function responseRow(parent, index)
     local row = CreateFrame("Frame", nil, parent)
-    row:SetSize(390, ROW_HEIGHT)
     row.item = itemButton(row, 32)
     row.item:SetPoint("LEFT", row, "LEFT", 6, 0)
-    row.name = UI.Cell(row, 180, "LEFT", "GameFontNormal")
+    row.name = UI.Cell(row, TEXT_WIDTH, "LEFT", "GameFontNormal")
     row.name:SetPoint("TOPLEFT", row.item, "TOPRIGHT", 6, -2)
-    row.status = UI.Cell(row, 180, "LEFT", "GameFontDisableSmall")
+    row.status = UI.Cell(row, TEXT_WIDTH, "LEFT", "GameFontDisableSmall")
     row.status:SetPoint("BOTTOMLEFT", row.item, "BOTTOMRIGHT", 6, 2)
     row.buttons = {}
-    local x = -6
+    local used = 0
+    local previous
     for i = #Loot.RESPONSES, 1, -1 do
         local r = Loot.RESPONSES[i]
         local b = UI.Button(row, r.text, 62, function() Loot:Respond(row.index, r.id) Frames:RefreshResponse() end)
-        b:SetPoint("RIGHT", row, "RIGHT", x, 0)
-        x = x - 64
+        if previous then
+            b:SetPoint("RIGHT", previous, "LEFT", -BUTTON_GAP, 0)
+            used = used + BUTTON_GAP
+        else
+            b:SetPoint("RIGHT", row, "RIGHT", -6, 0)
+        end
+        used = used + b:GetWidth()
+        previous = b
         row.buttons[r.id] = b
     end
+    row.width = 44 + TEXT_WIDTH + 12 + used + 6
+    row:SetSize(row.width, ROW_HEIGHT)
     return row
 end
 
@@ -251,7 +262,7 @@ function Frames:RefreshResponse()
         response:Hide()
         return
     end
-    response:SetHeight(70 + shown * ROW_HEIGHT)
+    response:SetSize(math.max(420, response.rows[1].width + 18), 70 + shown * ROW_HEIGHT)
 end
 
 function Frames:ShowResponse()
