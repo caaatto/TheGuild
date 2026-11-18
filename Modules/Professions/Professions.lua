@@ -104,6 +104,7 @@ function Prof:Scan()
         prof.g, prof.gn, prof.go = nil, nil, nil
     end
     prof.n = info.professionName
+    prof.l = GetLocale()
     prof.s = info.skillLevel
     prof.m = info.maxSkillLevel
     prof.r = recipes
@@ -138,7 +139,7 @@ function Prof:ShareLater(profID, delay)
 end
 
 local function snapshot(name, char, profID, prof, groups)
-    local data = { c = name, k = char.c, id = profID, n = prof.n, s = prof.s, m = prof.m, r = prof.r, t = prof.t }
+    local data = { c = name, k = char.c, id = profID, n = prof.n, l = prof.l, s = prof.s, m = prof.m, r = prof.r, t = prof.t }
     if groups then data.g, data.gn, data.go = prof.g, prof.gn, prof.go end
     return data
 end
@@ -229,6 +230,7 @@ function Prof:OnSnapshot(sender, data)
         end
     end
     prof.n, prof.s, prof.m, prof.r, prof.t = TG.CleanText(data.n, 40), tonumber(data.s), tonumber(data.m), recipes, tonumber(data.t) or TG.Now()
+    prof.l = type(data.l) == "string" and data.l:match("^%a%a%a%a$") or nil
     prof.g, prof.gn, prof.go = cleanGroups(data, recipes, prof)
     char.p[data.id] = prof
     g[name] = char
@@ -290,41 +292,114 @@ function Prof:Request()
     TG.Comm:Send("PQ", #need > 0 and { n = need } or "1", "BULK")
 end
 
+local spellNames = {}
+local tradeNames = {}
+
+local function localName(cache, fn, id)
+    local name = cache[id]
+    if name == nil then
+        name = false
+        if fn then
+            local ok, v = pcall(fn, id)
+            if ok and type(v) == "string" and v ~= "" then name = v end
+        end
+        cache[id] = name
+    end
+    return name
+end
+
+local function rankOf(prof, own, locale)
+    if prof.l then return prof.l == locale and 3 or 0 end
+    return own and 2 or 1
+end
+
 function Prof:Index()
     if not indexDirty and index then return index end
-    index = { byItem = {}, byName = {}, entries = {}, cats = {} }
+    index = { byItem = {}, byName = {}, entries = {}, cats = {}, profNames = {} }
     local g = guildProfs() or {}
     local mine = Prof.db.chars
+    local locale = GetLocale()
+    local made, byRecipe, profRank = {}, {}, {}
+    for _, char in pairs(g) do
+        for _, prof in pairs(char.p or {}) do
+            for recipeID, value in pairs(prof.r or {}) do
+                if type(value) == "number" then made[recipeID] = value end
+            end
+        end
+    end
     for name, char in pairs(g) do
+        local own = mine[name] ~= nil
         for profID, prof in pairs(char.p or {}) do
+            local rank = rankOf(prof, own, locale)
+            if prof.n and rank > (profRank[profID] or -1) then
+                profRank[profID] = rank
+                index.profNames[profID] = prof.n
+            end
             if prof.g then
                 local meta = index.cats[profID]
                 if not meta then
-                    meta = { of = {}, name = {}, order = {} }
+                    meta = { of = {}, name = {}, order = {}, rank = {} }
                     index.cats[profID] = meta
                 end
-                local own = mine[name] ~= nil
                 for cat, list in pairs(prof.g) do
                     for _, recipeID in ipairs(list) do meta.of[recipeID] = cat end
                     local label = prof.gn and prof.gn[cat]
-                    if label and (own or not meta.name[cat]) then meta.name[cat] = label end
+                    if label and rank > (meta.rank[cat] or -1) then
+                        meta.name[cat] = label
+                        meta.rank[cat] = rank
+                    end
                     if prof.go and prof.go[cat] and (own or not meta.order[cat]) then meta.order[cat] = prof.go[cat] end
                 end
             end
             for recipeID, value in pairs(prof.r or {}) do
-                local entry = { char = name, classFile = char.c, profID = profID, profName = prof.n, recipeID = recipeID, value = value }
+                local entry = { char = name, classFile = char.c, profID = profID, recipeID = recipeID, value = value }
+                local item = type(value) == "number" and value or made[recipeID]
                 local bucket
-                if type(value) == "number" then
-                    index.byItem[value] = index.byItem[value] or {}
-                    bucket = index.byItem[value]
+                if item then
+                    bucket = index.byItem[item]
+                    if not bucket then
+                        bucket = {}
+                        index.byItem[item] = bucket
+                    end
                 else
-                    local k = value:lower()
-                    index.byName[k] = index.byName[k] or { name = value, list = {} }
-                    bucket = index.byName[k].list
+                    local r = byRecipe[recipeID]
+                    if not r then
+                        r = { list = {}, names = {}, rank = -1 }
+                        byRecipe[recipeID] = r
+                    end
+                    if not r.names[value] then
+                        r.names[value] = true
+                        r.names[#r.names + 1] = value
+                    end
+                    if rank > r.rank then
+                        r.rank = rank
+                        r.name = value
+                    end
+                    bucket = r.list
                 end
                 bucket[#bucket + 1] = entry
                 index.entries[#index.entries + 1] = entry
             end
+        end
+    end
+    for profID, rank in pairs(profRank) do
+        if rank < 2 then
+            local name = localName(tradeNames, C_TradeSkillUI and C_TradeSkillUI.GetTradeSkillDisplayName, profID)
+            if name then index.profNames[profID] = name end
+        end
+    end
+    local getSpell = C_Spell and C_Spell.GetSpellName
+    for recipeID, r in pairs(byRecipe) do
+        local name = r.rank < 2 and localName(spellNames, getSpell, recipeID) or r.name
+        local k = name:lower()
+        local bucket = index.byName[k]
+        if not bucket then
+            bucket = { name = name, list = {}, alt = {} }
+            index.byName[k] = bucket
+        end
+        for _, e in ipairs(r.list) do bucket.list[#bucket.list + 1] = e end
+        for _, n in ipairs(r.names) do
+            if n ~= name then bucket.alt[#bucket.alt + 1] = n:lower() end
         end
     end
     indexDirty = false
@@ -468,8 +543,17 @@ function Prof:Rows()
     local idx = self:Index()
     local profs = {}
     local text = searchText:lower()
-    local function consider(key, name, list, level, minLevel)
-        if text ~= "" and not (name or ""):lower():find(text, 1, true) then return end
+    local function consider(key, name, list, level, minLevel, alt)
+        if text ~= "" and not (name or ""):lower():find(text, 1, true) then
+            local hit = false
+            for _, n in ipairs(alt or {}) do
+                if n:find(text, 1, true) then
+                    hit = true
+                    break
+                end
+            end
+            if not hit then return end
+        end
         local split = {}
         for _, e in ipairs(list) do
             local sub = split[e.profID]
@@ -482,7 +566,7 @@ function Prof:Rows()
         for profID, sub in pairs(split) do
             local p = profs[profID]
             if not p then
-                p = { kind = "prof", id = profID, name = sub[1].profName or tostring(profID), recipes = {}, crafters = {}, list = {} }
+                p = { kind = "prof", id = profID, name = idx.profNames[profID] or tostring(profID), recipes = {}, crafters = {}, list = {} }
                 profs[profID] = p
             end
             p.recipes[#p.recipes + 1] = { kind = "recipe", key = key, name = name, list = sub, level = level or 0, minLevel = minLevel or 0 }
@@ -499,7 +583,7 @@ function Prof:Rows()
         if text == "" or name then consider(itemID, name or ("#" .. itemID), list, level, minLevel) end
     end
     for _, bucket in pairs(idx.byName) do
-        consider(bucket.name, bucket.name, bucket.list)
+        consider(bucket.name, bucket.name, bucket.list, nil, nil, bucket.alt)
     end
     local order = {}
     for _, p in pairs(profs) do order[#order + 1] = p end

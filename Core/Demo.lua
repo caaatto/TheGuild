@@ -255,7 +255,7 @@ local function seedProfessions()
             for j, name in ipairs(p[3]) do
                 if j <= 2 + rnd(#p[3] - 2) then recipes[p[1] * 100 + j] = name end
             end
-            char.p[p[1]] = { n = p[2], s = 150 + rnd(150), m = 300, r = recipes, t = t - rnd(10 * DAY) }
+            char.p[p[1]] = { n = p[2], l = GetLocale(), s = 150 + rnd(150), m = 300, r = recipes, t = t - rnd(10 * DAY) }
         end
         g.profs[e.key] = char
     end
