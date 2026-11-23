@@ -28,6 +28,11 @@ local BAD_RELAYS = 3
 local BAD_WINDOW = 600
 local MAX_QUEUE = 1000
 local lastSyncRequest = 0
+local lastSameDigest = 0
+local MAX_SYNC_SKIP = 3600
+local BIG_BATCH = 50
+local FOLLOW_UP = 90
+local followUp = false
 local pending = {}
 local pendingCount = 0
 
@@ -268,7 +273,7 @@ function Store:Compact()
     local removed = 0
     for ns, items in pairs(d) do
         for key, item in pairs(items) do
-            if (item.v == nil and (item.t or 0) < now - TOMBSTONE_TTL) or (item.v ~= nil and expired(ns, item.t, now)) then
+            if (item.v == nil and (item.t or 0) < now - math.min(TOMBSTONE_TTL, retention[ns] or TOMBSTONE_TTL)) or (item.v ~= nil and expired(ns, item.t, now)) then
                 items[key] = nil
                 removed = removed + 1
             end
@@ -451,8 +456,10 @@ end
 
 function Store:RequestSync(force)
     if not IsInGuild() then return end
-    if not force and GetTime() - lastSyncRequest < 60 then return end
-    lastSyncRequest = GetTime()
+    local now = GetTime()
+    if not force and now - lastSyncRequest < 60 then return end
+    if not force and now - lastSameDigest < SYNC_INTERVAL and now - lastSyncRequest < MAX_SYNC_SKIP then return false end
+    lastSyncRequest = now
     TG.Comm:Send("SQ", digest(), "BULK")
 end
 
@@ -475,13 +482,24 @@ end
 
 TG.Comm:Register("ST", function(sender, msg) apply(msg, sender) end)
 
-TG.Comm:Register("SB", function(sender, msg)
+TG.Comm:Register("SB", function(sender, msg, channel)
     if type(msg) ~= "table" then return end
     for _, item in ipairs(msg) do apply(item, sender, true) end
+    if channel == "WHISPER" and #msg >= BATCH_SIZE and not followUp then
+        followUp = true
+        TG.After(FOLLOW_UP, function()
+            followUp = false
+            Store:RequestSync(true)
+        end)
+    end
 end)
 
 TG.Comm:Register("SQ", function(sender, theirs)
     if type(theirs) ~= "table" then return end
+    if TG.Canon(theirs) == TG.Canon(digest()) then
+        lastSameDigest = GetTime()
+        return
+    end
     if answered[sender] and GetTime() - answered[sender] < ANSWER_COOLDOWN then return end
     answered[sender] = GetTime()
     local d = data()
@@ -498,6 +516,10 @@ TG.Comm:Register("SQ", function(sender, theirs)
     if #batch == 0 then return end
     local slot = responderSlot(sender)
     if slot > MAX_RESPONDERS then return end
+    if slot > 1 and #batch > BIG_BATCH then
+        answered[sender] = nil
+        return
+    end
     TG.After((slot - 1) * 1.5, function()
         if not (TG.Roster:Get(sender) and TG.Roster:Get(sender).online or TG.Comm:Peers()[sender]) then return end
         for i = 1, #batch, BATCH_SIZE do
