@@ -29,6 +29,10 @@ local HI_COOLDOWN = 20
 local QUOTA_BYTES = 262144
 local QUOTA_WINDOW = 60
 local BLOCK_TIME = 300
+local heard = {}
+local gone = {}
+local whispered = {}
+local WHISPER_ECHO = 30
 local seq = math.random(1, 9999)
 local lastHello = 0
 local warnedVersion
@@ -55,13 +59,17 @@ local MAX_FANOUT = 200
 local PROBE_DELAY = 12
 local REPROBE = 600
 
-local function onSent(_, didSend, result)
-    if didSend then return end
+local function onSent(dest, didSend, result)
+    if didSend then
+        if type(dest) == "string" then whispered[dest] = GetTime() end
+        return
+    end
     Comm.stats.failed = Comm.stats.failed + 1
     Comm.stats.lastResult = result
+    Comm.stats.lastDest = dest
     if not warnedResult[result] then
         warnedResult[result] = true
-        TG:Print(L["Addon message not sent: %s"], resultName(result))
+        TG:Print(L["Addon message not sent: %s (%s)"], resultName(result), tostring(dest))
     end
 end
 
@@ -133,7 +141,7 @@ local function dispatchRaw(text, chatType, target, prio, prefix)
         Comm.stats.held = Comm.stats.held + 1
         return
     end
-    CTL:SendAddonMessage(prio or "NORMAL", prefix or TG.prefix, text, chatType, target, nil, onSent)
+    CTL:SendAddonMessage(prio or "NORMAL", prefix or TG.prefix, text, chatType, target, nil, onSent, target or prefix or chatType)
     Comm.stats.sent = Comm.stats.sent + 1
 end
 
@@ -151,11 +159,28 @@ function Comm:UnregisterAll(owner)
     end
 end
 
+local function isGone(key)
+    local at = gone[key]
+    if not at then return false end
+    local last = heard[key]
+    return not (last and last > at)
+end
+
+function Comm:Reachable(key)
+    key = TG.StripRealm(key)
+    if not key or TG.IsMe(key) then return true end
+    if isGone(key) then return false end
+    local m = TG.Roster:Get(key)
+    if not m or m.online then return true end
+    local last = heard[key]
+    return last ~= nil and GetTime() - last < ROSTER_GRACE
+end
+
 function Comm:Targets(tag)
     local out = {}
     if tag == "HI" or tag == "PING" then
         for _, e in ipairs(TG.Roster:Online()) do
-            if not TG.IsMe(e.key) then out[#out + 1] = e.key end
+            if not TG.IsMe(e.key) and not isGone(e.key) then out[#out + 1] = e.key end
             if #out >= MAX_FANOUT then break end
         end
     else
@@ -171,6 +196,7 @@ function Comm:Send(tag, payload, prio, target)
     local head = TG.protocol .. SEP .. tag .. SEP
     local targets
     if target then
+        if not self:Reachable(target) then return false end
         targets = { target }
     elseif self.guildBlocked then
         targets = self:Targets(tag)
@@ -324,6 +350,7 @@ local function onAddonMessage(_, prefix, text, channel, sender)
     if not key then return end
     if Comm:Blocked(key) then trace("blocked sender %s", key) return end
     Comm.stats.received = Comm.stats.received + 1
+    heard[key] = GetTime()
 
     if TG.IsMe(key) then
         Comm.echo[channel] = GetTime()
@@ -403,7 +430,7 @@ function Comm:Peers()
     for key, p in pairs(peers) do
         local m = TG.Roster:Get(key)
         local online = (m and m.online) or now - p.seen < ROSTER_GRACE
-        if online and now - p.seen < PEER_TTL then out[key] = p end
+        if online and now - p.seen < PEER_TTL and not isGone(key) then out[key] = p end
     end
     return out
 end
@@ -427,7 +454,7 @@ function Comm:PrintStats()
     local s = self.stats
     TG:Print("sent %d, failed %d, held %d, received %d (raw %d, unusable %d), ignored %d, chunks %d, reassembled %d, peers %d",
         s.sent, s.failed, s.held, s.received, s.raw, s.unusable, s.ignored, s.chunks, s.reassembled, self:PeerCount())
-    if s.lastResult then TG:Print("last send failure: %s", resultName(s.lastResult)) end
+    if s.lastResult then TG:Print("last send failure: %s (%s)", resultName(s.lastResult), tostring(s.lastDest)) end
     if s.lastTag then TG:Print("last: %s from %s", s.lastTag, tostring(s.lastFrom)) end
     TG:Print("in guild: %s, my name: %s, roster ready: %s, protocol %d, debug %s", tostring(IsInGuild()), tostring(TG.MyName()), tostring(TG.Roster:IsReady()), TG.protocol, self.debug and "on" or "off")
     local registered = C_ChatInfo.IsAddonMessagePrefixRegistered and C_ChatInfo.IsAddonMessagePrefixRegistered(TG.prefix)
@@ -438,6 +465,27 @@ function Comm:PrintStats()
 end
 
 TG:RegisterEvent("CHAT_MSG_ADDON", onAddonMessage)
+
+local notFound
+if type(ERR_CHAT_PLAYER_NOT_FOUND_S) == "string" and ERR_CHAT_PLAYER_NOT_FOUND_S:find("%s", 1, true) then
+    local escaped = ERR_CHAT_PLAYER_NOT_FOUND_S:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
+    notFound = "^" .. escaped:gsub("%%%%s", "(.+)", 1) .. "$"
+end
+
+local function onSystemMessage(_, _, msg)
+    if not notFound or not TG.usable(msg) or type(msg) ~= "string" then return false end
+    local name = msg:match(notFound)
+    local key = name and TG.StripRealm(name)
+    local at = key and whispered[key]
+    if not at or GetTime() - at > WHISPER_ECHO then return false end
+    if not isGone(key) then
+        gone[key] = GetTime()
+        trace("%s is offline, whispers stop", key)
+    end
+    return true
+end
+
+if notFound then TG.AddChatFilter("CHAT_MSG_SYSTEM", onSystemMessage) end
 
 Comm.prefixResult = C_ChatInfo.RegisterAddonMessagePrefix(TG.prefix)
 
@@ -464,11 +512,21 @@ end)
 
 TG:On("GUILD_CHANGED", function()
     peers = {}
+    wipe(gone)
+    wipe(heard)
     TG.After(5, function() Comm:SendHello() Comm:Probe() end)
 end)
 
 TG.Ticker(REPROBE, function()
     if Comm.guildBlocked then Comm:Probe() end
+end)
+
+TG:On("MEMBER_OFFLINE", function(e)
+    gone[e.key] = GetTime()
+end)
+
+TG:On("MEMBER_ONLINE", function(e)
+    gone[e.key] = nil
 end)
 
 TG:On("PEER_HELLO", function(key, info)
@@ -485,8 +543,10 @@ TG.Ticker(1, function()
         local queue = held
         held = {}
         for _, item in ipairs(queue) do
-            CTL:SendAddonMessage(item.prio or "NORMAL", item.prefix or TG.prefix, item.text, item.chatType, item.target)
-            Comm.stats.sent = Comm.stats.sent + 1
+            if not (item.chatType == "WHISPER" and item.target and isGone(TG.StripRealm(item.target))) then
+                CTL:SendAddonMessage(item.prio or "NORMAL", item.prefix or TG.prefix, item.text, item.chatType, item.target, nil, onSent, item.target or item.prefix or item.chatType)
+                Comm.stats.sent = Comm.stats.sent + 1
+            end
         end
     end
     local now = GetTime()
